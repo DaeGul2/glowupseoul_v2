@@ -413,6 +413,11 @@ CREATE TABLE match_requests (
 
   matched_at          TIMESTAMPTZ,
   match_result        JSONB,                         -- snapshot of top N matches at time of request
+
+  -- Public feed (main page social proof ticker)
+  -- 사용자 동의 시에만 public_feed_entries 로 익명화 노출
+  public_feed_consent BOOLEAN NOT NULL DEFAULT FALSE,
+
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -432,6 +437,10 @@ CREATE TABLE inquiries (
   user_message        TEXT,
   hospital_response_ko TEXT,
   notes               TEXT,
+
+  -- Public feed consent — opt-in only (Korean PIPA / GDPR)
+  public_feed_consent BOOLEAN NOT NULL DEFAULT FALSE,
+
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -511,6 +520,60 @@ CREATE TABLE post_op_checkins (
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- ---------------------------------------------------------------------
+-- 15. public_feed_entries — 메인 페이지 실시간 상담 신청 피드 (social proof)
+-- 익명화된 ticker 형태. opt-in 동의자만 + 운영자 시드 가능.
+-- 예: "*M.* in Singapore — consultation for *HIFU Lifting* · 5 min ago"
+-- ---------------------------------------------------------------------
+CREATE TABLE public_feed_entries (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- 출처 — 실제 inquiry/match_request, 또는 운영자 시드
+  source_type         TEXT NOT NULL CHECK (source_type IN ('inquiry','match_request','seed')),
+  source_id           UUID,                          -- FK 가능 (nullable for seed)
+
+  -- 익명화 표기 (운영자 큐레이션)
+  display_initial     TEXT NOT NULL,                 -- 'M', 'J', 'A' — 1자 알파벳
+  country_code        TEXT,                          -- ISO-2: 'SG','CN','JP','US'
+  country_label_en    TEXT,
+  country_label_zh    TEXT,
+  country_label_ja    TEXT,
+  country_label_ko    TEXT,
+
+  -- 상담 내용 — procedure/concern 중 하나 이상
+  procedure_id        INTEGER REFERENCES procedures(id) ON DELETE SET NULL,
+  concern_id          INTEGER REFERENCES concerns(id) ON DELETE SET NULL,
+
+  -- 노출용 pre-computed label (display speed 위함)
+  treatment_label_en  TEXT,                          -- "HIFU Lifting", "Acne Scar Consultation"
+  treatment_label_zh  TEXT,
+  treatment_label_ja  TEXT,
+  treatment_label_ko  TEXT,
+
+  -- 결과 (optional)
+  outcome             TEXT CHECK (outcome IN ('consulted','matched','quoted','booked','completed')),
+  outcome_note_en     TEXT,                          -- "matched with 3 clinics" 같은 짧은 코멘트
+  outcome_note_zh     TEXT,
+  outcome_note_ja     TEXT,
+  outcome_note_ko     TEXT,
+
+  -- 운영자 컨트롤
+  is_visible          BOOLEAN NOT NULL DEFAULT TRUE,
+  is_seed             BOOLEAN NOT NULL DEFAULT FALSE,  -- TRUE=운영자 시드, FALSE=실 사용자
+  priority            SMALLINT NOT NULL DEFAULT 0,     -- 동시 노출 시 우선순위 (운영자 강제 노출용)
+
+  -- 노출 타이밍
+  displayed_at        TIMESTAMPTZ NOT NULL DEFAULT now(),    -- "N분 전" 계산 기준
+  expires_at          TIMESTAMPTZ,                            -- 자동 숨김 (null=영구)
+
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_feed_visible_at ON public_feed_entries (is_visible, displayed_at DESC)
+  WHERE is_visible;
+CREATE INDEX idx_feed_source     ON public_feed_entries (source_type, source_id);
+
 -- =====================================================================
 -- DECISIONS LOG
 --
@@ -539,6 +602,16 @@ CREATE TABLE post_op_checkins (
 -- A: We're trying to FILL the gap. Where hospital has none, we route inquiries
 --    through our own WeChat. Tracking the field per-hospital lets us measure
 --    which clinics ever get direct access.
+--
+-- Q: Why a separate `public_feed_entries` table instead of a view on inquiries?
+-- A: 3 reasons:
+--    1) Privacy — Korean PIPA / GDPR require explicit opt-in. Separate table enforces
+--       this at the schema level (no accidental leakage from inquiries JOIN).
+--    2) Operator curation — early-stage low-traffic days need seed entries to keep the
+--       ticker alive. `is_seed=true` rows can coexist with real opt-in entries.
+--    3) Pre-computed multilingual labels — display speed (no JOINs on hot path).
+--    Cost: small duplication. Mitigated by simple post-insert trigger or app-layer copy
+--    when user consent flag flips TRUE on inquiries/match_requests.
 --
 -- Q: Image fields in 3 places (procedures / hospitals / hospital_procedures) — why?
 -- A: Different rendering contexts:
