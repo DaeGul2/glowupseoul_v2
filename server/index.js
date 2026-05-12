@@ -1,23 +1,98 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import clinicsRoute from './routes/clinics.js';
-import matchRoute from './routes/match.js';
+import { analyzeHandler } from './routes/analyze.js';
+import { synthesizeHandler } from './routes/synthesize.js';
+import { reviewsHandler } from './routes/reviews.js';
+import { partnerSubmitHandler, partnerListHandler } from './routes/partner.js';
+import {
+  categoriesHandler,
+  concernsHandler,
+  proceduresHandler,
+  procedureDetailHandler,
+  hospitalsHandler,
+  hospitalDetailHandler,
+  feedRecentHandler,
+} from './routes/catalog.js';
+import {
+  requireAdmin,
+  adminList, adminGet, adminCreate, adminUpdate, adminDelete,
+  adminPresignUpload, adminStats,
+} from './routes/admin.js';
+import { checkDbHealth } from './db/health.js';
+import { hasDbConfig, closeSequelize } from './db/sequelize.js';
+import { hasS3Config } from './s3.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
+const MAX_BODY_MB = Number(process.env.MAX_BODY_MB) || 8;
 
-app.use(cors());
-app.use(express.json({ limit: '5mb' }));
+const corsOrigin = (process.env.CORS_ORIGIN || '*').trim();
+app.use(cors({
+  origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((s) => s.trim()),
+}));
+app.use(express.json({ limit: `${MAX_BODY_MB}mb` }));
 
-app.get('/api/health', (req, res) => {
-  res.json({ ok: true, gpt: !!process.env.OPENAI_API_KEY });
+app.get('/api/health', async (_req, res) => {
+  const db = await checkDbHealth();
+  res.json({
+    ok: true,
+    has_openai_key: Boolean(process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.includes('PUT-YOUR-KEY')),
+    has_google_key: Boolean(process.env.GOOGLE_PLACES_API_KEY && process.env.GOOGLE_PLACES_API_KEY.trim()),
+    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    db,
+  });
 });
 
-app.use('/api/clinics', clinicsRoute);
-app.use('/api/match', matchRoute);
+// AI + concierge
+app.post('/api/analyze', analyzeHandler);
+app.post('/api/synthesize', synthesizeHandler);
+app.get('/api/reviews/:slug', reviewsHandler);
+app.post('/api/partner', partnerSubmitHandler);
+app.get('/api/partner/admin', partnerListHandler);
+
+// Catalog (RDS-backed reads)
+app.get('/api/catalog/categories',           categoriesHandler);
+app.get('/api/catalog/concerns',             concernsHandler);
+app.get('/api/catalog/procedures',           proceduresHandler);
+app.get('/api/catalog/procedures/:slug',     procedureDetailHandler);
+app.get('/api/catalog/hospitals',            hospitalsHandler);
+app.get('/api/catalog/hospitals/:slug',      hospitalDetailHandler);
+app.get('/api/feed/recent',                  feedRecentHandler);
+
+// Admin (X-Admin-Key gated)
+app.get   ('/api/admin/stats',                 requireAdmin, adminStats);
+app.post  ('/api/admin/upload/presign',        requireAdmin, adminPresignUpload);
+app.get   ('/api/admin/:kind',                 requireAdmin, adminList);
+app.post  ('/api/admin/:kind',                 requireAdmin, adminCreate);
+app.get   ('/api/admin/:kind/:id',             requireAdmin, adminGet);
+app.patch ('/api/admin/:kind/:id',             requireAdmin, adminUpdate);
+app.delete('/api/admin/:kind/:id',             requireAdmin, adminDelete);
+
+app.use((err, _req, res, _next) => {
+  console.error('[server] uncaught', err);
+  res.status(500).json({ error: 'internal' });
+});
 
 app.listen(PORT, () => {
-  console.log(`[server] listening on http://localhost:${PORT}`);
-  console.log(`[server] GPT: ${process.env.OPENAI_API_KEY ? 'on' : 'off (rule-based fallback)'}`);
+  console.log(`✦ Glow Up Seoul v2 server · http://localhost:${PORT}`);
+  console.log('  /api/health  /api/analyze  /api/synthesize  /api/reviews/:slug');
+  console.log('  /api/partner  /api/partner/admin');
+  console.log('  /api/catalog/{categories,concerns,procedures,procedures/:slug,hospitals,hospitals/:slug}');
+  console.log('  /api/feed/recent');
+  if (!process.env.GOOGLE_PLACES_API_KEY) {
+    console.log('  ⚠ GOOGLE_PLACES_API_KEY not set — /api/reviews returns mock data.');
+  }
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes('PUT-YOUR-KEY')) {
+    console.log('  ⚠ OPENAI_API_KEY not set — /api/analyze returns mock responses.');
+  }
+  if (!hasDbConfig()) {
+    console.log('  ⚠ DB_HOST / DB_PASSWORD not set — /api/catalog/* and /api/feed/recent return 503.');
+  }
+  if (!hasS3Config()) {
+    console.log('  ⚠ S3 not configured — admin uploads disabled (set AWS_*, S3_BUCKET).');
+  }
 });
+
+process.on('SIGTERM', async () => { await closeSequelize(); process.exit(0); });
+process.on('SIGINT',  async () => { await closeSequelize(); process.exit(0); });

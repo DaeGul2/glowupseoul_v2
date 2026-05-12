@@ -1,7 +1,6 @@
 {
-  "name": "glowupseoul-v2-client",
-  "version": "0.2.0",
-  "private": true,
+  "name": "glowupseoul-client",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
