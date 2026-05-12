@@ -538,6 +538,10 @@ Procedure.belongsToMany(Concern, {
   otherKey: 'concern_id',
   as: 'concerns',
 });
+// Explicit belongsTo so admin list/edit can eager-load the related rows
+// (belongsToMany alone doesn't give us a "concern" alias on the join row).
+ConcernProcedure.belongsTo(Concern,   { foreignKey: 'concern_id',   as: 'concern' });
+ConcernProcedure.belongsTo(Procedure, { foreignKey: 'procedure_id', as: 'procedure' });
 
 User.hasMany(MatchRequest, { foreignKey: 'user_id', as: 'matchRequests' });
 MatchRequest.belongsTo(User, { foreignKey: 'user_id', as: 'user' });

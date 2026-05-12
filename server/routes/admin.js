@@ -131,6 +131,10 @@ const MODELS = {
     cols: ['concern_id','procedure_id','relevance',
            'rationale_ko','rationale_en','rationale_zh','rationale_ja'],
     order: [['concern_id','ASC'], ['procedure_id','ASC']],
+    include: [
+      { model: Concern,   as: 'concern',   attributes: ['id', 'slug', 'name_ko', 'name_en'] },
+      { model: Procedure, as: 'procedure', attributes: ['id', 'slug', 'name_ko', 'name_en'] },
+    ],
   },
 };
 

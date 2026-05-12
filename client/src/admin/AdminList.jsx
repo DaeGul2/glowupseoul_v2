@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { adminApi } from './api.js';
 import { getSpec, getKindLabel } from './specs.js';
+import BackButton from './BackButton.jsx';
 
 const PAGE = 25;
 
@@ -112,6 +113,9 @@ export default function AdminList({ kind }) {
 
   return (
     <div className="gs-admin-page">
+      <div className="gs-admin-backbar">
+        <BackButton fallback="/admin/dashboard" label="대시보드" />
+      </div>
       <header className="gs-admin-header">
         <h1>{getKindLabel(kind)}</h1>
         <div className="gs-admin-header-actions">

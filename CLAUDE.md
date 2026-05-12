@@ -1912,4 +1912,40 @@ B&A (전후사진)           ← ba_photos
 
 ---
 
-*§24 갱신: 2026-05-13. 룰 핵심: **Admin = 한국어 전용 + 모든 필드 ? 툴팁 + brands/hp 는 병원 안에 통합**. 운영자가 처음 봐도 알 수 있게.*
+### 24-8. 그룹뷰 + Append 패턴 (사용자 추가 지시)
+
+> "고민 시술 매트릭스도.. 고민 끼리 묶고 거기에다가 시술이랑 관련도를 append하는 식으로 하면 좋잖아"
+> "이런거랑 비슷한거 있나 살펴보고 append 이후 crud쉽게 다른 필드들도 다 바꿔봐"
+
+| 변경 | 결과 |
+|---|---|
+| `ConcernMatrixPage.jsx` 신설 | `/admin/concern_procedures` 진입 시 일반 list 대신 **고민별 그룹뷰**. 각 고민 카드 = 헤더 (이름·body_area·매핑 수) + 시술 리스트 + "+ 시술 추가" 인라인 폼. relevance select 가 행마다 즉시 변경. |
+| `HospitalDoctorsPanel.jsx` 신설 | 병원 편집 페이지 안에 의사 inline 목록. 행 1줄 = portrait 클릭 업로드 + 이름·직책·경력 + "대표 토글 / 자세히 / 삭제". 추가는 4필드 인라인 폼. |
+| `HospitalBAPhotosPanel.jsx` 신설 | 병원 편집 페이지 안에 B&A 카드 그리드. 새 추가는 before/after 두 박스 + 환자 메타 + **서면 동의 강제 체크**. 카드 옆 visibility select 즉시 변경. |
+| AdminList 의 FK 컬럼 라벨 매핑 | `concern_id` → `고민`, `procedure_id` → `시술` 식으로 헤더 한국어. `cols` 의 label 우선 + fallback 사전. |
+
+### 24-9. 패턴 정리 (재사용)
+
+| 케이스 | 진입점 | 그룹 기준 | 자식 |
+|---|---|---|---|
+| 병원 ↔ 시술 가격표 | `/admin/hospitals/:id` 안 | 병원 | hospital_procedures rows |
+| 병원 ↔ 의사 | 동일 | 병원 | doctors rows |
+| 병원 ↔ B&A | 동일 | 병원 | ba_photos cards |
+| **고민 ↔ 시술** | `/admin/concern_procedures` | 고민 | concern_procedures rows |
+
+**공통 UX 룰**:
+- 자식 추가는 **모달 X · 인라인 폼**. 핵심 3~5 필드만. 자세히 = 기존 풀 편집 페이지로 링크.
+- 자식 행 옆 **인라인 액션** (visibility/relevance/featured 토글, 삭제).
+- 부모 카드 헤더에 자식 카운트 (예: "이 병원 소속 의사 (3명)").
+
+### 24-10. CSS 추가
+
+| 클래스 | 용도 |
+|---|---|
+| `.gs-cm-card / .gs-cm-row / .gs-cm-row-actions` | 고민 매트릭스 그룹뷰 |
+| `.gs-dr-list / .gs-dr-row / .gs-dr-portrait` | 의사 inline 행 + 사진 |
+| `.gs-ba-grid / .gs-ba-card / .gs-ba-pair / .gs-ba-uploadbox / .gs-ba-consent` | B&A 그리드 + 신규 추가 폼 |
+
+---
+
+*§24 갱신: 2026-05-13. 룰 핵심: **Admin = 한국어 전용 + ? 툴팁 + 부모↔자식 그룹뷰 + 인라인 append**. 모달 없이 한 화면에서 끝.*

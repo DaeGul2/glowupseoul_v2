@@ -1,6 +1,7 @@
 // Partner application inbox — list / inspect / approve / reject.
 import { useEffect, useState } from 'react';
 import { adminApi } from './api.js';
+import BackButton from './BackButton.jsx';
 
 export default function AdminPartners() {
   const [rows, setRows] = useState([]);
@@ -68,6 +69,9 @@ export default function AdminPartners() {
 
   return (
     <div className="gs-admin-page">
+      <div className="gs-admin-backbar">
+        <BackButton fallback="/admin/dashboard" label="대시보드" />
+      </div>
       <header className="gs-admin-header">
         <h1>파트너 신청서</h1>
         <div className="gs-admin-header-actions">

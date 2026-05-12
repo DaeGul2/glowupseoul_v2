@@ -11,8 +11,14 @@ import AdminDashboard from './AdminDashboard.jsx';
 import AdminList from './AdminList.jsx';
 import AdminEdit from './AdminEdit.jsx';
 import AdminPartners from './AdminPartners.jsx';
+import ConcernMatrixPage from './ConcernMatrixPage.jsx';
 
-function ListRoute()  { const { kind } = useParams(); return <AdminList kind={kind} key={kind} />; }
+// concern_procedures 는 특수 그룹뷰. AdminList 우회.
+function ListRoute()  {
+  const { kind } = useParams();
+  if (kind === 'concern_procedures') return <ConcernMatrixPage />;
+  return <AdminList kind={kind} key={kind} />;
+}
 function EditRoute()  { const { kind, id } = useParams(); return <AdminEdit kind={kind} id={id} key={`${kind}/${id}`} />; }
 function NewRoute()   { const { kind } = useParams(); return <AdminEdit kind={kind} id={null} key={`${kind}/new`} />; }
 

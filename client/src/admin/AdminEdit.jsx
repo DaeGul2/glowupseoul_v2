@@ -7,6 +7,9 @@ import ImageUploader from './ImageUploader.jsx';
 import ImageGalleryEditor from './ImageGalleryEditor.jsx';
 import FkPicker, { invalidateFkCache } from './FkPicker.jsx';
 import HospitalOfferingsPanel from './HospitalOfferingsPanel.jsx';
+import HospitalDoctorsPanel from './HospitalDoctorsPanel.jsx';
+import HospitalBAPhotosPanel from './HospitalBAPhotosPanel.jsx';
+import BackButton from './BackButton.jsx';
 
 function blankFromSpec(spec) {
   const o = {};
@@ -109,6 +112,9 @@ export default function AdminEdit({ kind, id }) {
 
   return (
     <div className="gs-admin-page">
+      <div className="gs-admin-backbar">
+        <BackButton fallback={`/admin/${kind}`} label={`${kindLabel} 목록`} />
+      </div>
       <header className="gs-admin-header">
         <h1>
           <a href={`/admin/${kind}`} className="gs-admin-crumb">{kindLabel}</a>
@@ -154,6 +160,8 @@ export default function AdminEdit({ kind, id }) {
       {kind === 'hospitals' && id && (
         <>
           <HospitalOfferingsPanel hospitalId={Number(id)} />
+          <HospitalDoctorsPanel  hospitalId={Number(id)} />
+          <HospitalBAPhotosPanel hospitalId={Number(id)} />
         </>
       )}
     </div>
