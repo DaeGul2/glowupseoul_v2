@@ -1949,3 +1949,111 @@ B&A (전후사진)           ← ba_photos
 ---
 
 *§24 갱신: 2026-05-13. 룰 핵심: **Admin = 한국어 전용 + ? 툴팁 + 부모↔자식 그룹뷰 + 인라인 append**. 모달 없이 한 화면에서 끝.*
+
+---
+
+## 25. 운영 매뉴얼 — 처음부터 DB 시드하는 순서
+
+> 사용자 발화: "자 그러면 아예 첨부터 모든거 싹 지우고 시작한다고 가정하고 어떤 순서대로 db에 넣으면되려나? 구체적으로 말해"
+> 이 섹션은 **운영팀이 새 환경에서 부트스트랩**할 때 참고하는 SOP. 엑셀로도 동시 배포 — `docs/data_seeding_order.xlsx`.
+
+### 25-0. 의존성 그래프 (FK 기준)
+
+```
+mechanisms (lookup)        ← 의존성 없음. migrate 자동 시드.
+procedure_categories (8)   ← 의존성 없음. migrate 자동 시드.
+concerns                   ← 의존성 없음. 운영자 수기.
+brands                     ← 의존성 없음. hospitals 저장 시 자동 upsert.
+procedures                 ← procedure_categories(category_id)
+hospitals                  ← brands(brand_id) [자동]
+concern_procedures         ← concerns + procedures
+doctors                    ← hospitals
+hospital_procedures        ← hospitals + procedures
+ba_photos                  ← hospitals (+ procedures, doctors 옵션)
+public_feed_entries        ← procedures, concerns (옵션) — 실 환자 + 운영자 시드
+users / match_requests / inquiries / quotes / trips / consultations / post_op_checkins  ← 운영 자동
+```
+
+### 25-1. Phase 0 — 인프라
+
+```
+1.  AWS RDS MySQL 인스턴스 생성 (서울 ap-northeast-2, MySQL 8.x)
+2.  Security Group inbound: 3306 / 0.0.0.0/0  (dev 만)
+3.  server/.env 채움 — DB_HOST · DB_PASSWORD · ADMIN_KEY · AWS_* · OPENAI_API_KEY · GOOGLE_PLACES_API_KEY
+4.  node scripts/db-ping.js                     # 연결 확인
+5.  npm run db:migrate                          # 스키마 + lookup 시드 (mechanisms 30, categories 8)
+6.  npm run db:extend                           # doctors / ba_photos 테이블 + 추가 컬럼
+7.  npm run dev  (server)                       # 부팅 로그 + /api/health  db.ok=true
+8.  /admin/login                                # ADMIN_KEY 입력. counts 전부 0.
+```
+
+### 25-2. Phase 1 — 카탈로그 토대 (순서 절대 어기지 마세요)
+
+| 순서 | 메뉴 | 양 | 시간 | 주의 |
+|---|---|---|---|---|
+| **1** | `/admin/concerns` | 20~30 | 30분 | 외국 환자 키워드. slug + name_ko/en + body_area 필수. |
+| **2** | `/admin/procedure_categories` | 8 (행은 시드됨) | 15분 | thumbnail_url + hero_image_url 만 업로드. |
+| **3** | `/admin/procedures` | 30~50 | 2시간 | category_id · mechanism · domain · body_area 필수. 인기 10개 먼저. |
+| **4** | `/admin/concern_procedures` | 90~150 매핑 | 1~2시간 | 매트릭스 그룹뷰. 한 고민당 2~3개 시술. **매칭 품질의 핵심.** |
+
+### 25-3. Phase 2 — 병원 (한 화면에 다)
+
+각 병원당 약 30분 × 22개 = 약 10시간.
+
+| 순서 | 위치 | 작업 |
+|---|---|---|
+| **5** | `/admin/hospitals` → "+ 새로 만들기" | 기본 정보 (slug · 간판명 · 주소 · 연락처) + 브랜드 정보 그룹 (이름·로고 — 자동 brand 생성) + 언어/응대 + 사진 + **contract_status = active** ← ⚠ 필수 |
+| **6** | (저장 후 같은 화면) 의사 패널 | "+ 의사 추가" → 이름·직책·경력. portrait 클릭 업로드. 대표 의사 토글. |
+| **7** | (같은 화면) 시술 가격표 패널 | "+ 시술 추가" → 시술 선택 + 시작 가격 + 장비. 10~30개. |
+| **8** | (같은 화면) B&A 패널 | "+ B&A 추가" → before/after 2장. ⚠ 환자 서면 동의 체크 필수. |
+
+### 25-4. Phase 3 — 메인 페이지 활성화
+
+| 순서 | 위치 | 작업 |
+|---|---|---|
+| **9** | `/admin/public_feed_entries` | 운영자 시드 5~10건 (메인 ticker 부트스트랩). `is_seed=true`. |
+| **10** | `client/public/` | `og-cover.jpg` (1200×630) + `favicon.svg` + `apple-touch-icon.png` 드롭. |
+
+### 25-5. Phase 4 — 운영 시작 (자동)
+
+| 모델 | 누가 생성 |
+|---|---|
+| `users` | 환자 로그인 (현재 미구현 — 익명 가능) |
+| `match_requests` | 스캔 완료 시 자동 (`POST /api/match-requests`) |
+| `public_feed_entries` (실 환자) | 옵트인 시 자동 append |
+| `inquiries` / `quotes` | WhatsApp 핸드오프 후 운영자 수기 (Phase 2 작업) |
+| 신규 `brands` / `hospitals` (외부 신청) | `/admin/partners` → 승인 → 자동 INSERT (`contract_status=pending` — 운영자가 `active` 로 변경 필요) |
+
+### 25-6. 자주 빠뜨리는 함정 (관통하는 룰)
+
+1. **순서 절대 어기지 마세요** — concerns/procedures/hospitals 가 후속 작업의 전제.
+2. **slug 는 한 번 정하면 변경 X** — URL · S3 폴더 · 외부 링크 모두 깨짐.
+3. **병원 `contract_status = 'active'` 확인** — active 아니면 사이트·매칭 모두 미노출. **함정 1순위.**
+4. **B&A 환자 서면 동의 없이 절대 X** — PIPA 위반.
+5. **사진은 권장이지만 최소 thumbnail 은** — 비어있으면 카드 회색 박스.
+6. **파트너 승인 후 `pending` → `active`** — 자동 등록은 항상 pending 으로 들어옴.
+7. **매트릭스는 운영 품질의 80%** — 매칭 결과의 핵심. 수기 큐레이션 정성 들이세요.
+
+### 25-7. 전체 소요 시간 추정
+
+| Phase | 시간 |
+|---|---|
+| Phase 0 (인프라) | 30분 |
+| Phase 1 (카탈로그) | 4시간 |
+| Phase 2 (병원 22곳) | 10시간 |
+| Phase 3 (메인 활성화) | 30분 |
+| **합계** | **약 15시간** |
+
+병원 측 사진·B&A 받는 시간 별도. 외주 분배 가능 (병원당 30분 작업이 22 인스턴스 병렬).
+
+### 25-8. 산출물
+
+| 파일 | 용도 |
+|---|---|
+| `CLAUDE.md §25` | 본 SOP (개발팀 참조) |
+| `docs/data_seeding_order.xlsx` | 운영팀 배포용 4시트:<br>① 단계별 순서 · ② 테이블 의존성 · ③ 필수 입력 필드 · ④ 핵심 룰 |
+| `scripts/export_seeding_order.cjs` | xlsx 재생성 스크립트 |
+
+---
+
+*§25 갱신: 2026-05-13. 운영 매뉴얼 — 처음부터 DB 시드하는 순서. 새 환경 부트스트랩 시 이 섹션만 따라가면 됨.*
