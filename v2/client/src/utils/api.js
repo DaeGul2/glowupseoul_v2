@@ -30,6 +30,17 @@ export async function getClinicReviews(slug, { refresh = false, signal } = {}) {
   return r.json();
 }
 
+export async function submitPartner(payload) {
+  const r = await fetch('/api/partner', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const json = await r.json().catch(() => null);
+  if (!r.ok) throw new Error(json?.error || `partner HTTP ${r.status}`);
+  return json;
+}
+
 export async function getHealth() {
   try {
     const r = await fetch('/api/health');

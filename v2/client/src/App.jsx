@@ -14,6 +14,7 @@ import AboutPage from './pages/AboutPage.jsx';
 import HowItWorksPage from './pages/HowItWorksPage.jsx';
 import ServicesPage from './pages/ServicesPage.jsx';
 import FAQPage from './pages/FAQPage.jsx';
+import PartnerApplyPage from './pages/PartnerApplyPage.jsx';
 
 function parseHash() {
   const raw = window.location.hash.replace(/^#/, '') || '/';
@@ -30,6 +31,7 @@ function parseHash() {
   if (parts[0] === 'how-it-works' || parts[0] === 'how') return { name: 'how' };
   if (parts[0] === 'services') return { name: 'services' };
   if (parts[0] === 'faq') return { name: 'faq' };
+  if (parts[0] === 'partner' || parts[0] === 'for-clinics') return { name: 'partner' };
   return { name: 'home' };
 }
 
@@ -151,6 +153,7 @@ export default function App() {
       {route.name === 'how'       && <HowItWorksPage />}
       {route.name === 'services'  && <ServicesPage />}
       {route.name === 'faq'       && <FAQPage />}
+      {route.name === 'partner'   && <PartnerApplyPage />}
       <Footer />
       <ScanModal open={scanOpen} onClose={() => setScanOpen(false)} onSubmit={onScanSubmit} />
     </ScanContext.Provider>

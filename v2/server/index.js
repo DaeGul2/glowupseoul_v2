@@ -4,6 +4,7 @@ import cors from 'cors';
 import { analyzeHandler } from './routes/analyze.js';
 import { synthesizeHandler } from './routes/synthesize.js';
 import { reviewsHandler } from './routes/reviews.js';
+import { partnerSubmitHandler, partnerListHandler } from './routes/partner.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -29,6 +30,8 @@ app.get('/api/health', (_req, res) => {
 app.post('/api/analyze', analyzeHandler);
 app.post('/api/synthesize', synthesizeHandler);
 app.get('/api/reviews/:slug', reviewsHandler);
+app.post('/api/partner', partnerSubmitHandler);
+app.get('/api/partner/admin', partnerListHandler);
 
 app.use((err, _req, res, _next) => {
   console.error('[server] uncaught', err);
@@ -37,7 +40,7 @@ app.use((err, _req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`✦ Glow Up Seoul v2 server · http://localhost:${PORT}`);
-  console.log(`  /api/health  /api/analyze  /api/synthesize  /api/reviews/:slug`);
+  console.log(`  /api/health  /api/analyze  /api/synthesize  /api/reviews/:slug  /api/partner  /api/partner/admin`);
   if (!process.env.GOOGLE_PLACES_API_KEY) {
     console.log('  ⚠  GOOGLE_PLACES_API_KEY not set — /api/reviews returns mock data.');
   }
