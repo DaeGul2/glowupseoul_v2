@@ -871,3 +871,244 @@ node scripts/device-detail-smoke.mjs  # device_brands 필터 정확도
 ---
 
 *§16 갱신: 2026-05-12 (v2 풀스택 + AI + 리뷰 + UI 모더나이즈 세션). 새 결정 시 §16-3 결정 로그에 한 줄, 사용자 인용은 §16-1 에 추가.*
+
+---
+
+## 17. 2026-05-12 (이어서) — Live Match Feed + Case Detail + EN/ZH WhatsApp 인콰이어리
+
+§16 다음 같은 날 추가된 변경. v2 의 **컨버전 깔때기 마지막 마일**을 정의한다 — 스캔 결과를 사람(상담사 Romie) 손으로 넘기는 부분.
+
+### 17-1. 사용자 발화 (의사결정 anchor)
+
+**Recent matches 가시화**
+> "스캔했던 내용도 나중에 db에 저장할거야. 어떤 사람이(이건 아마 로그인 안 하고 하는거니까 그냥 익명 표시하면되고) 어떤 고민이 있어서 어떤 설정값으로 신청했고, 이 때 어떤 추천을 해줬었는지도 나올거야. 이건 홈페이지 메인페이지에 잘 보이게해야돼"
+
+→ 결정:
+- 인증 없이 익명 (`display_initial` 1자 + 국가 코드 + 옵션 노출 동의)
+- **메인페이지에서 시각적 위계 1순위** — Hero 아래 얇은 ticker 는 살리되, 큰 에디토리얼 섹션 신설
+- 데이터 모델은 schema.sql 의 `public_feed_entries` + `match_requests.match_result` 합쳐서 한 entry 로
+
+**카드는 티저 / 디테일은 풀**
+> "기록들은 지금처럼 하는 게 아니라, 디테일 누르면 실제 이 고객이 어떤 요청 했었는지 선택했던 것들 있잖아 스캔 시에. 그리고 이 결과(ai 추천 시술, ai 한줄평 등등)를 매우 가시적으로 명확하게 보여주도록"
+
+→ 결정:
+- 카드 = 이니셜·국가·concerns·top match 만 (3-5초 스캔 가능)
+- 모달 = **3 섹션 (Brief / AI Scan / Romie 추천)** 풀 케이스 스터디. 매우 가시적·구분명확.
+
+**상담사 인콰이어리 자동화**
+> "스캔 결과 그대로 와츠앱 문의에 나오게. 필드 장 정리해서 상담사 자체도 쉽게 고민내용 알 수 있게. 스캔 이후에 '이 결과 그대로 문의하기' 영어버전/중국어버전 다 만들어놓고, 스캔 내역(홈페이지 메인)에도 이 버튼 그대로 동작하게 만들어놔"
+
+→ 결정:
+- 메시지 = **5섹션 ━━━ 굵은 구분선** (PATIENT / BRIEF / AI FACE SCAN / AI RECOMMENDATION / ASK)
+- **EN + ZH 두 버전** 만들어서 어떤 페이지/모달이든 같은 빌더 (`buildCaseMessage`) 통과
+- **본인 스캔 (ResultsPage) + 시드 케이스 (CaseDetailModal) 모두 동일 메시지 포맷** — 일관성
+
+---
+
+### 17-2. 새 산출물
+
+```
+v2/client/src/
+├── data/
+│   └── publicFeed.js          ← 시드 10개 entry 에 `case: { prefs, ai_scan, synth, top_match }` 풀세트
+│                                +  addPublicFeedEntry() / subscribeFeed() / clearLocalFeed() 헬퍼
+│                                +  localStorage 영속 (key: gs_v2_public_feed_local, 최대 20)
+├── components/
+│   ├── RecentMatches.jsx      ← 홈 메인 에디토리얼 섹션 (Live · 골드 펄스 점 / 3-col × 2-row 카드 / Detail 버튼)
+│   └── CaseDetailModal.jsx    ← 풀스크린 케이스 스터디 모달
+│                                  · Header: 이니셜·국가·시간·outcome
+│                                  · §01 Brief — concerns 칩 + 5-up 메트릭 (budget/downtime/pain/style/lang) + 노트
+│                                  · §02 AI Scan — 다크 BG · narrative 인용 · 6 metric 진행바 · region 알약
+│                                  · §03 Recommendation — synth 인용 + 매치 카드 (가격+할인+device+rationale) + closing
+│                                  · Footer: EN/ZH WhatsApp 듀얼 버튼 + Preview/Copy 도구
+└── utils/
+    └── caseMessage.js         ← buildCaseMessage({entry, lang}) + buildEntryFromLive({ai, prefs, matches, synth})
+                                   I18N 테이블 (en/zh): section header · field label · metric label · pain scale
+                                   환자 자유 텍스트 (narrative/notes) 는 원어 그대로 유지
+```
+
+**확장된 publicFeed entry shape**
+```js
+{
+  // 기존 (§16)
+  id, display_initial, country_code, country_label_en,
+  concern_slugs, concern_labels_en,
+  treatment_slug, treatment_label_en,
+  hospital_slug, hospital_label_en,
+  outcome, outcome_note_en, story_en, displayed_at,
+  is_visible, is_seed, source_type,
+
+  // NEW — 디테일 모달에 푸는 풀세트
+  case: {
+    prefs: {
+      budget_tier, budget_label,
+      downtime_max, pain_max,
+      style_target, style_label,
+      language, notes,
+    },
+    ai_scan: null | {
+      narrative, confidence,
+      concerns_detected, metrics, regions,
+    },
+    synth: null | {
+      overall, rationale, closing,
+    },
+    top_match: {
+      procedure_name_en, hospital_name_en,
+      price_krw, original_price_krw, discount_pct,
+      device_brands,
+    },
+  },
+}
+```
+
+---
+
+### 17-3. WhatsApp 메시지 포맷 (상담사 핸드오프)
+
+5섹션, ━━━ 굵은 구분선, 모바일 WhatsApp 에서 스크롤 안 해도 한 호흡으로 스캔 가능.
+
+```
+[Glow Up Seoul · AI Scan Inquiry]
+
+━━━ PATIENT ━━━
+• Initial: M.
+• Country: Singapore
+• Language: EN
+• Submitted: 05/12/2026, 14:32 KST   ← Intl.DateTimeFormat Asia/Seoul 강제
+• Outcome: matched
+
+━━━ THEIR BRIEF ━━━
+• Concerns: Lifting · Wrinkles
+• Budget: ₩800k – ₩2M
+• Max downtime: 3 days
+• Pain tolerance: high (4/5)
+• Style preference: Soft (2/5)
+• Notes:
+  "Wedding in October — need recovery to be quick."
+
+━━━ AI FACE SCAN ━━━
+• Confidence: medium
+• AI observed:
+  "We notice mild jawline softening..."
+• Metrics (0–100):
+    – Skin clarity: 72
+    – Tone evenness: 78
+    – Under-eye darkness: 24
+    – Jawline definition: 56
+    – Symmetry: 91
+    – Youthful volume: 78
+• Flagged regions:
+    – JAWLINE — soft contour — lift candidates apply
+
+━━━ AI RECOMMENDATION ━━━
+• Romie's overall read:
+  "Your scan reads as early-stage softening..."
+• Top match: HIFU Face Lifting
+•   Hospital: Vellicell · Gangnam
+•   Device: Shurink
+•   Price: ₩390,000 (orig ₩600,000, −35%)
+  Why this fit:
+    "Shurink 600-shot fits both your budget headroom and the SMAS-layer signal..."
+• Closing note:
+  "Pick a date — we'll confirm doctor availability."
+
+━━━ ASK ━━━
+Please confirm doctor availability for the patient's trip dates, and any pre-treatment requirements.
+```
+
+**ZH 버전** — 섹션 헤더와 라벨만 번역 (`━━━ 客户 ━━━`, `关注问题`, `预算`, `AI 面部扫描`, `指标`, `首选推荐`, `匹配原因`, `结语`). 환자 자유 텍스트(narrative / notes)는 **원어 그대로** — 진짜 환자 목소리 보존. 영어 환자가 ZH 버전 보내도 한국인 상담사가 라벨로 어떤 케이스인지 즉시 파악.
+
+**핵심 디자인 결정**
+- I18N 은 **라벨만**, 콘텐츠는 원어 — 번역 비용·왜곡 회피
+- 시간은 항상 **KST 강제** — 서울 상담사 mental model 기준
+- 가격은 항상 **KRW + 천 단위 콤마** — 한국 운영진 baseline 통화
+- ASK 섹션 = 상담사가 답할 action 명시 — "확인해야 할 것" 만 깔끔하게
+
+---
+
+### 17-4. 버튼 통합 — 4 진입점, 1 빌더
+
+같은 `buildCaseMessage()` 빌더 통과해서 동일한 메시지 포맷이 4 군데에서 동일하게 동작:
+
+| 위치 | 진입점 | source data |
+|------|--------|-------------|
+| 홈 RecentMatches 카드 | "View full case →" 버튼 → CaseDetailModal 모달 → 푸터 EN/ZH 버튼 | publicFeed 시드 (10 entries) |
+| ResultsPage Hero | EN/ZH 듀얼 풀-width 버튼 | live 스캔 (`buildEntryFromLive`) |
+| ResultsPage Finale CTA strip | EN/ZH 듀얼 버튼 | 동일 |
+| 본인 스캔 (opt-in 후) | localStorage 저장된 본인 entry → CaseDetailModal 에서 동일 흐름 | live + 영속 |
+
+CaseDetailModal 푸터의 보조 도구 (3 개 텍스트 버튼):
+- `Preview EN message ↓` — 모노스페이스 다크 박스에 메시지 그대로 표시
+- `Preview 中文 message ↓` — 동일
+- `Copy to clipboard ⧉` — navigator.clipboard 로 메시지 카피 (WhatsApp 안 열고 다른 채널 쓸 때)
+
+---
+
+### 17-5. UI 디테일
+
+**RecentMatches 섹션 (홈)**
+- Hero · Press · Editorial · Ticker 다음 위치
+- 좌상단 `◇ Live · recently matched` 의 ● 아이콘이 1.6s ease-in-out 펄스 (살아있다는 신호)
+- 거대 italic "Real *journeys,* right now."
+- 우측 설명 + 옵트인 안내
+- 3-col 카드 그리드 (모바일 1-col / 태블릿 2-col)
+- 본인 스캔 entry 는 **"YOUR SCAN" 골드 알약** + 골드 배경 + 골드 보더로 즉시 식별
+- 1분마다 "X min ago" 시간 리프레시 (setInterval)
+- subscribeFeed 로 새 entry 추가 시 즉시 재렌더
+
+**CaseDetailModal**
+- Backdrop `rgba(15,15,17,0.75) + blur(10px)` — 백뷰 가리되 공간감 유지
+- 카드 max-width 1080px, 모바일 폭 가득
+- 우상단 닫기 = 반투명 흰 원 + blur
+- 섹션 3개 padding 56px (수직 호흡)
+- §02 AI Scan 만 다크 BG — 다른 섹션과 시각 위계 다름
+- §03 매치 카드 = 크림 BG + 골드 좌측 4px 보더 + 거대 italic 가격 (우측 정렬)
+- Footer 의 EN/ZH 버튼 = 풀-width 다크 (Hover 시 골드로 변신 + translateY -2px + 골드 그림자)
+- Disclaimer = 다크 띠 한 줄 ("Shared with the patient's explicit opt-in...")
+
+**localStorage 영속 (`gs_v2_public_feed_local`)**
+- 본인 스캔 + opt-in → entry 가 localStorage 와 인메모리 둘 다에 prepend
+- 새로고침해도 본인 entry 가 시드 위에 살아있음
+- 최대 20개까지 (오래된 자동 truncate)
+- `db.clearLocalFeed()` 헬퍼로 reset 가능 (admin 용도)
+
+---
+
+### 17-6. 결정 로그 추가
+
+| 결정 | 한 줄 이유 |
+|------|-----------|
+| **인증 X — 익명 1자 이니셜만** | 외국인 환자 + 의료 데이터 → 가입 마찰 줄이고 PIPA 안전. opt-in 1 체크박스 (디폴트 OFF) 가 최소 합의. |
+| **메인 ticker + 큰 섹션 동시 운영** | ticker = "지금 일어나고 있다" 신호 (44px 라인), 섹션 = "case study 깊이". 두 스케일 social proof. |
+| **카드는 티저, 모달은 풀** | 카드에 모든 걸 박으면 시각 부하. 클릭 → 디테일 분기가 모던 luxury 사이트 패턴. |
+| **모달 3 섹션 (Brief / Scan / Rec)** | schema 의 3 entity (`match_requests` / `analyze` 결과 / `synthesize` 결과) 시각적 1:1 매핑. 학습 비용 0. |
+| **§02 만 다크 BG** | AI Scan 섹션 = "기계가 본 것" → 색상으로도 결 다름을 표현. 라이트/다크/라이트 리듬. |
+| **WhatsApp 메시지 5섹션 + ━━━ 구분선** | 상담사 모바일에서 한 호흡 스캔. 텍스트만으로 시각 위계. |
+| **라벨만 i18n, 콘텐츠 원어 유지** | 환자 voice 보존 + 번역 비용 0. 상담사는 라벨로 파악, 원문은 그대로 환자 의도. |
+| **`buildEntryFromLive` 어댑터** | live 스캔 state 와 publicFeed entry shape 를 1:1 변환 → 4 진입점이 한 빌더 통과. |
+| **localStorage 영속 (Redis 아님)** | 본인 entry 가 새로고침에도 살아있는 게 핵심 UX. 운영 시 server-side `match_requests` 로 이전. |
+| **메시지 Preview + Copy** | 일부 환자는 WhatsApp 안 쓰고 WeChat/LINE 쓸 수 있음. 카피해서 다른 채널 보낼 옵션 보존. |
+
+---
+
+### 17-7. 알려진 한계 / TODO
+
+- [ ] **synth 영속화** — 현재 본인 스캔에서 synth 응답을 `case.synth` 에 넣는 코드가 ResultsPage 에서 일어나야 하는데, App.jsx 의 onScanSubmit 시점엔 synth 결과가 아직 도착 안 함 (results 페이지 마운트 후 비동기 호출). 본인 entry 는 `synth: null` 로 저장됨 → ResultsPage 에서 synth 도착 시 entry update 하는 로직 추가 필요.
+- [ ] **국가 추정 정확도** — opt-in 한 본인 entry 의 country_code 가 prefs.language 로만 추정 (en → 랜덤 US/GB/AU/SG). 폼에 country dropdown 추가 가능.
+- [ ] **메시지 길이 cap** — WhatsApp URL ~4KB 한계. 현재 ~1500 chars 로 안전하지만 notes 길어지면 cap 필요.
+- [ ] **server-side `/api/feed`** — 실 DB 도입 시 localStorage 대신 `POST /api/feed` + `GET /api/feed/recent`. publicFeed.js 의 `addPublicFeedEntry` / `getPublicFeedEntries` 가 fetch 로 교체될 후보 (지금은 인메모리 + localStorage).
+- [ ] **opt-in UX 강화** — 현재 폼 마지막 단일 체크박스. 권리 명시 + privacy 페이지 링크 검토.
+- [ ] **outcome 라이프사이클** — 시드 entries 는 matched/quoted/consulted/booked/completed 다양하게. 실 운영에선 운영자가 outcome 수동 진행 (matched → quoted → booked). admin UI 미구현.
+
+---
+
+### 17-8. 비용 영향
+
+추가 GPT/Google API 호출 **없음**. RecentMatches / CaseDetailModal / WhatsApp 빌더는 모두 클라이언트 로컬 연산. localStorage R/W 만.
+
+§16-7 의 사이클당 ~$0.0006 (analyze + synthesize) 그대로.
+
+---
+
+*§17 갱신: 2026-05-12 (Live feed + Case detail + EN/ZH 상담사 인콰이어리). 다음 자연스러운 확장점 = §17-7 의 synth 영속화 + server-side `/api/feed` 도입.*
