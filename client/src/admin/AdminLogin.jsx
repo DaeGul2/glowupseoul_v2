@@ -15,7 +15,7 @@ export default function AdminLogin() {
     const ok = await verifyAdminKey(key);
     setBusy(false);
     if (!ok) {
-      setError('Invalid key.');
+      setError('관리자 키가 일치하지 않습니다.');
       return;
     }
     setAdminKey(key);
@@ -25,19 +25,19 @@ export default function AdminLogin() {
   return (
     <div className="gs-admin-login">
       <form onSubmit={submit} className="gs-admin-login-card">
-        <h1>Glow Up Seoul · Admin</h1>
-        <p className="gs-admin-login-sub">Enter the admin key to continue.</p>
+        <h1>Glow Up Seoul · 관리자</h1>
+        <p className="gs-admin-login-sub">관리자 키를 입력하세요.</p>
         <input
           type="password"
           value={key}
           onChange={(e) => setKey(e.target.value)}
-          placeholder="X-Admin-Key"
+          placeholder="관리자 키"
           autoFocus
         />
         {error && <div className="gs-admin-login-err">{error}</div>}
-        <button type="submit" disabled={busy || !key}>{busy ? 'Verifying…' : 'Sign in'}</button>
+        <button type="submit" disabled={busy || !key}>{busy ? '확인 중…' : '로그인'}</button>
         <div className="gs-admin-login-hint">
-          Set <code>ADMIN_KEY</code> in <code>server/.env</code> and restart the server.
+          키 분실 시 운영팀에 문의. 서버측 <code>server/.env</code> 의 <code>ADMIN_KEY</code> 값과 일치해야 합니다.
         </div>
       </form>
     </div>

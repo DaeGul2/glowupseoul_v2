@@ -76,7 +76,7 @@ export default function FkPicker({ value, onChange, table, placeholder = 'Type t
             <span className="gs-fkp-id">#{selected.id}</span>
           </>
         ) : (
-          <span className="gs-fkp-placeholder">{busy ? 'Loading…' : (value ? `#${value} (not found)` : 'Pick one →')}</span>
+          <span className="gs-fkp-placeholder">{busy ? '불러오는 중…' : (value ? `#${value} (찾을 수 없음)` : '선택하세요 →')}</span>
         )}
         <span className="gs-fkp-caret">▾</span>
       </div>
@@ -98,11 +98,11 @@ export default function FkPicker({ value, onChange, table, placeholder = 'Type t
                 className="gs-fkp-clear"
                 onClick={() => { onChange(null); setOpen(false); setQuery(''); }}
               >
-                ✕ Clear selection
+                ✕ 선택 해제
               </button>
             )}
             {matches.length === 0 ? (
-              <div className="gs-fkp-empty">No matches.</div>
+              <div className="gs-fkp-empty">일치하는 항목 없음.</div>
             ) : (
               matches.map((r) => (
                 <button

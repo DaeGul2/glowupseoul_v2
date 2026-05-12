@@ -36,11 +36,11 @@ export default function AdminPartners() {
 
   async function approve() {
     if (!open) return;
-    if (!confirm(`Approve "${detail?.brand?.name_ko}" — this will insert brand + hospital + ${detail?.procedures?.length || 0} hospital_procedure rows.`)) return;
+    if (!confirm(`"${detail?.brand?.name_ko}" 를 승인하시겠습니까?\n브랜드 + 병원 + 시술 ${detail?.procedures?.length || 0}건이 DB 에 등록됩니다.`)) return;
     setActionBusy(true);
     try {
       const r = await adminApi.partnerApprove(open);
-      setFlash(`✓ Approved. brand=${r.result?.brand?.slug} hospital=${r.result?.hospital?.slug} hp×${r.result?.hospital_procedures}${r.result?.warnings?.length ? ` · ${r.result.warnings.length} warning(s)` : ''}`);
+      setFlash(`✓ 승인 완료. 브랜드=${r.result?.brand?.slug} · 병원=${r.result?.hospital?.slug} · 시술 ${r.result?.hospital_procedures}건${r.result?.warnings?.length ? ` · 경고 ${r.result.warnings.length}건` : ''}`);
       setOpen(null); setDetail(null);
       refresh();
     } catch (e) {
@@ -52,11 +52,11 @@ export default function AdminPartners() {
 
   async function reject() {
     if (!open) return;
-    if (!confirm('Reject and archive this submission?')) return;
+    if (!confirm('이 신청서를 거절(보관) 처리하시겠습니까?')) return;
     setActionBusy(true);
     try {
       await adminApi.partnerReject(open);
-      setFlash('Rejected.');
+      setFlash('거절 처리됨.');
       setOpen(null); setDetail(null);
       refresh();
     } catch (e) {
@@ -69,29 +69,32 @@ export default function AdminPartners() {
   return (
     <div className="gs-admin-page">
       <header className="gs-admin-header">
-        <h1>Partner Applications</h1>
+        <h1>파트너 신청서</h1>
         <div className="gs-admin-header-actions">
-          <button onClick={refresh}>↻ Refresh</button>
+          <button onClick={refresh}>↻ 새로고침</button>
         </div>
       </header>
+      <div className="gs-admin-intro">
+        병원이 보낸 등록 신청서 inbox. 내용을 검토한 뒤 \"승인 → DB 등록\" 을 누르면 자동으로 병원·시술 가격표로 옮겨갑니다 (계약 상태는 일단 \"pending\" 으로 들어가니, 매칭 노출하려면 그 행에서 \"active\" 로 바꿔주세요).
+      </div>
 
       {flash && <div className="gs-admin-ok">{flash}</div>}
       {err && <div className="gs-admin-err">{err}</div>}
 
       {busy ? (
-        <div className="gs-admin-loading">Loading…</div>
+        <div className="gs-admin-loading">불러오는 중…</div>
       ) : rows.length === 0 ? (
-        <div className="gs-admin-empty">No pending submissions.</div>
+        <div className="gs-admin-empty">대기 중인 신청서가 없습니다.</div>
       ) : (
         <div className="gs-admin-table-wrap">
           <table className="gs-admin-table">
             <thead>
               <tr>
-                <th>Submitted</th>
-                <th>Brand</th>
-                <th>Branch</th>
-                <th>Applicant</th>
-                <th>Procedures</th>
+                <th>신청 일시</th>
+                <th>브랜드</th>
+                <th>지점 / 위치</th>
+                <th>신청자</th>
+                <th>시술 수</th>
                 <th></th>
               </tr>
             </thead>
@@ -110,7 +113,7 @@ export default function AdminPartners() {
                   </td>
                   <td>{r.procedure_count}</td>
                   <td>
-                    <button onClick={() => openDetail(r.file)}>Open</button>
+                    <button onClick={() => openDetail(r.file)}>열기</button>
                   </td>
                 </tr>
               ))}
@@ -127,41 +130,41 @@ export default function AdminPartners() {
               <button onClick={() => setOpen(null)}>×</button>
             </header>
             {!detail ? (
-              <div className="gs-admin-loading">Loading…</div>
+              <div className="gs-admin-loading">불러오는 중…</div>
             ) : (
               <div className="gs-admin-modal-body">
                 <div className="gs-admin-kv">
-                  <KV label="Applicant" v={`${detail.applicant?.name} · ${detail.applicant?.role}`} />
-                  <KV label="Email"     v={detail.applicant?.email} />
-                  <KV label="Phone"     v={detail.applicant?.phone} />
-                  <KV label="Channel"   v={`${detail.applicant?.preferred_channel || '—'} ${detail.applicant?.channel_id || ''}`} />
-                  <KV label="Brand"     v={`${detail.brand?.name_ko} (${detail.brand?.name_en || '—'})`} />
-                  <KV label="Founder"   v={detail.brand?.founding_doctor} />
-                  <KV label="Site"      v={detail.brand?.website_url} />
-                  <KV label="Specialization" v={detail.brand?.specialization_depth} />
-                  <KV label="Chain"     v={detail.brand?.is_chain ? 'Yes' : 'No'} />
-                  <KV label="Location"  v={`${detail.hospital?.city} · ${detail.hospital?.district} · ${detail.hospital?.neighborhood || '—'}`} />
-                  <KV label="Branch"    v={detail.hospital?.branch_name} />
-                  <KV label="Address"   v={detail.hospital?.full_address_ko} />
-                  <KV label="Phone (clinic)" v={detail.hospital?.phone} />
-                  <KV label="Established" v={detail.hospital?.established_year} />
-                  <KV label="Languages" v={(detail.hospital?.languages_supported || []).join(', ')} />
-                  <KV label="Safety claim" v={detail.trust?.safety_claim} />
-                  <KV label="BA photos"    v={detail.trust?.ba_photo_count} />
-                  <KV label="Foreign cases/mo" v={detail.trust?.foreign_case_volume_monthly} />
-                  <KV label="Commission asked" v={detail.commercial?.commission_pct != null ? `${detail.commercial.commission_pct}%` : '—'} />
-                  <KV label="Notes"     v={detail.commercial?.notes} />
+                  <KV label="신청자"        v={`${detail.applicant?.name} · ${detail.applicant?.role}`} />
+                  <KV label="이메일"        v={detail.applicant?.email} />
+                  <KV label="전화"          v={detail.applicant?.phone} />
+                  <KV label="선호 채널"     v={`${detail.applicant?.preferred_channel || '—'} ${detail.applicant?.channel_id || ''}`} />
+                  <KV label="브랜드"        v={`${detail.brand?.name_ko} (${detail.brand?.name_en || '—'})`} />
+                  <KV label="대표/창립 의사" v={detail.brand?.founding_doctor} />
+                  <KV label="홈페이지"      v={detail.brand?.website_url} />
+                  <KV label="전문성"        v={detail.brand?.specialization_depth} />
+                  <KV label="체인 여부"     v={detail.brand?.is_chain ? '예' : '아니오'} />
+                  <KV label="위치"          v={`${detail.hospital?.city} · ${detail.hospital?.district} · ${detail.hospital?.neighborhood || '—'}`} />
+                  <KV label="지점명"        v={detail.hospital?.branch_name} />
+                  <KV label="주소"          v={detail.hospital?.full_address_ko} />
+                  <KV label="병원 전화"     v={detail.hospital?.phone} />
+                  <KV label="개원 연도"     v={detail.hospital?.established_year} />
+                  <KV label="응대 가능 언어" v={(detail.hospital?.languages_supported || []).join(', ')} />
+                  <KV label="안전 클레임"   v={detail.trust?.safety_claim} />
+                  <KV label="B&A 사진 수"   v={detail.trust?.ba_photo_count} />
+                  <KV label="월 외국 환자"  v={detail.trust?.foreign_case_volume_monthly} />
+                  <KV label="요청 수수료"   v={detail.commercial?.commission_pct != null ? `${detail.commercial.commission_pct}%` : '—'} />
+                  <KV label="비고"          v={detail.commercial?.notes} />
                 </div>
-                <h3>Capabilities</h3>
+                <h3>외국 환자 응대 역량</h3>
                 <div className="gs-admin-chiplist">
                   {Object.entries(detail.hospital?.capabilities || {}).map(([k, v]) => (
                     <span key={k} className={`gs-admin-chip ${v ? 'is-on' : 'is-off'}`}>{k}</span>
                   ))}
                 </div>
-                <h3>Procedures ({detail.procedures?.length || 0})</h3>
+                <h3>제공 시술 ({detail.procedures?.length || 0}건)</h3>
                 <table className="gs-admin-table">
                   <thead>
-                    <tr><th>slug</th><th>local name</th><th>price (KRW)</th><th>device</th><th>signature</th></tr>
+                    <tr><th>시술 식별자</th><th>병원 자체 명칭</th><th>가격 (원)</th><th>장비</th><th>시그너처</th></tr>
                   </thead>
                   <tbody>
                     {(detail.procedures || []).map((p, i) => (
@@ -178,10 +181,10 @@ export default function AdminPartners() {
               </div>
             )}
             <footer>
-              <button className="gs-admin-danger" onClick={reject} disabled={actionBusy || !detail}>Reject</button>
+              <button className="gs-admin-danger" onClick={reject} disabled={actionBusy || !detail}>거절 (보관)</button>
               <div style={{ flex: 1 }} />
               <button className="gs-admin-savebtn" onClick={approve} disabled={actionBusy || !detail}>
-                Approve → import to DB
+                승인 → DB 등록
               </button>
             </footer>
           </div>

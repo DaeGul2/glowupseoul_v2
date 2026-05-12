@@ -1,9 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import { adminApi } from './api.js';
-import { getSpec, KINDS } from './specs.js';
+import { getSpec, getKindLabel } from './specs.js';
 
 const PAGE = 25;
-const LABEL = Object.fromEntries(KINDS.map((k) => [k.kind, k.label]));
+
+// 컬럼명 → 사용자 친화 한국어. specs.cols 의 label 을 우선 매핑, 없으면 fallback.
+function buildColLabels(spec) {
+  const map = {};
+  for (const c of spec.cols || []) if (c.label) map[c.name] = c.label;
+  // 공용 컬럼
+  const fallback = {
+    id: 'ID', slug: 'URL 식별자',
+    name_ko: '이름 (한국어)', name_en: '이름 (영어)',
+    is_active: '활성',
+    contract_status: '계약 상태', city: '도시', district: '구',
+    domain: '도메인', is_surgical: '수술',
+    is_signature: '시그너처', is_seed: '시드',
+    is_visible: '노출',
+    display_initial: '이니셜', country_code: '국가',
+    treatment_label_en: '시술 표기 (EN)',
+    outcome: '결과',
+    visibility: '공개 범위',
+    body_area: '부위', display_order: '순서',
+    relevance: '관련도',
+    hospital_id: '병원', procedure_id: '시술', doctor_id: '의사',
+    brand_id: '브랜드', category_id: '카테고리', concern_id: '고민',
+    starting_price_krw: '시작 가격', price_tier: '가격대',
+    is_featured: '대표',
+  };
+  return { ...fallback, ...map };
+}
 
 export default function AdminList({ kind }) {
   const spec = useMemo(() => getSpec(kind), [kind]);
@@ -22,9 +48,10 @@ export default function AdminList({ kind }) {
       .finally(() => setBusy(false));
   }, [kind, offset]);
 
-  if (!spec) return <div className="gs-admin-err">unknown kind: {kind}</div>;
+  if (!spec) return <div className="gs-admin-err">알 수 없는 모델: {kind}</div>;
 
   const cols = spec.list;
+  const labels = buildColLabels(spec);
   const filtered = filter
     ? rows.filter((r) => JSON.stringify(r).toLowerCase().includes(filter.toLowerCase()))
     : rows;
@@ -43,7 +70,7 @@ export default function AdminList({ kind }) {
   }
 
   async function remove(r) {
-    if (!confirm('Delete this row?')) return;
+    if (!confirm('이 항목을 삭제하시겠습니까?')) return;
     try {
       await adminApi.remove(kind, rowId(r));
       setRows((rs) => rs.filter((x) => rowId(x) !== rowId(r)));
@@ -52,7 +79,6 @@ export default function AdminList({ kind }) {
     }
   }
 
-  // FK columns: show the joined name from the eager-loaded association.
   const FK_ALIAS = {
     hospital_id: 'hospital',
     procedure_id: 'procedure',
@@ -65,7 +91,6 @@ export default function AdminList({ kind }) {
   };
 
   function cellRender(col, val, row) {
-    // FK column → show the related object's display name with a small id chip.
     if (col in FK_ALIAS) {
       const rel = row[FK_ALIAS[col]];
       if (rel) {
@@ -88,20 +113,22 @@ export default function AdminList({ kind }) {
   return (
     <div className="gs-admin-page">
       <header className="gs-admin-header">
-        <h1>{LABEL[kind] || kind}</h1>
+        <h1>{getKindLabel(kind)}</h1>
         <div className="gs-admin-header-actions">
           <input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter (on current page)…"
+            placeholder="현재 페이지에서 검색…"
             className="gs-admin-filter"
           />
-          <a className="gs-admin-newbtn" href={`/admin/${kind}/new`}>+ New</a>
+          <a className="gs-admin-newbtn" href={`/admin/${kind}/new`}>+ 새로 만들기</a>
         </div>
       </header>
 
+      {spec.listIntro && <div className="gs-admin-intro">{spec.listIntro}</div>}
+
       {err && <div className="gs-admin-err">{err}</div>}
-      {busy && <div className="gs-admin-loading">Loading…</div>}
+      {busy && <div className="gs-admin-loading">불러오는 중…</div>}
 
       {!busy && (
         <>
@@ -109,7 +136,7 @@ export default function AdminList({ kind }) {
             <table className="gs-admin-table">
               <thead>
                 <tr>
-                  {cols.map((c) => <th key={c}>{c}</th>)}
+                  {cols.map((c) => <th key={c}>{labels[c] || c}</th>)}
                   <th className="gs-admin-table-actions">·</th>
                 </tr>
               </thead>
@@ -122,21 +149,21 @@ export default function AdminList({ kind }) {
                       </td>
                     ))}
                     <td className="gs-admin-table-actions">
-                      <button onClick={() => remove(r)}>×</button>
+                      <button onClick={() => remove(r)} title="삭제">×</button>
                     </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={cols.length + 1} className="gs-admin-empty">No rows.</td></tr>
+                  <tr><td colSpan={cols.length + 1} className="gs-admin-empty">아직 등록된 항목이 없습니다.</td></tr>
                 )}
               </tbody>
             </table>
           </div>
 
           <footer className="gs-admin-pager">
-            <span>{offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>
-            <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Prev</button>
-            <button disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next</button>
+            <span>총 {total}건 · {offset + 1}–{Math.min(offset + PAGE, total)}</span>
+            <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>이전</button>
+            <button disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>다음</button>
           </footer>
         </>
       )}

@@ -1,12 +1,12 @@
-// Auto-generated form from specs.js. New / edit a row.
+// specs.js 의 메타데이터 기반 자동 폼.
+// 모든 사용자-노출 텍스트는 한국어. 컬럼 라벨은 col.label, hint 는 col.help.
 import { useEffect, useMemo, useState } from 'react';
 import { adminApi } from './api.js';
-import { getSpec, KINDS } from './specs.js';
+import { getSpec, getKindLabel } from './specs.js';
 import ImageUploader from './ImageUploader.jsx';
 import ImageGalleryEditor from './ImageGalleryEditor.jsx';
 import FkPicker, { invalidateFkCache } from './FkPicker.jsx';
-
-const LABEL = Object.fromEntries(KINDS.map((k) => [k.kind, k.label]));
+import HospitalOfferingsPanel from './HospitalOfferingsPanel.jsx';
 
 function blankFromSpec(spec) {
   const o = {};
@@ -27,19 +27,32 @@ export default function AdminEdit({ kind, id }) {
     if (!id) { setRow(blankFromSpec(spec)); setBusy(false); return; }
     setBusy(true);
     adminApi.get(kind, id)
-      .then((r) => setRow(r.row))
+      .then((r) => {
+        const merged = { ...r.row };
+        // hospitals — flatten the joined brand into synthetic brand_* fields
+        // so the operator sees one unified form.
+        if (kind === 'hospitals' && r.row.brand) {
+          merged.brand_name_ko              = r.row.brand.name_ko;
+          merged.brand_name_en              = r.row.brand.name_en;
+          merged.brand_logo_url             = r.row.brand.logo_url;
+          merged.brand_founding_doctor      = r.row.brand.founding_doctor;
+          merged.brand_specialization_depth = r.row.brand.specialization_depth;
+          merged.brand_is_chain             = r.row.brand.is_chain;
+          merged.brand_website_url          = r.row.brand.website_url;
+        }
+        setRow(merged);
+      })
       .catch((e) => setErr(e.message))
       .finally(() => setBusy(false));
   }, [kind, id, spec]);
 
-  if (!spec) return <div className="gs-admin-err">unknown kind: {kind}</div>;
-  if (busy) return <div className="gs-admin-loading">Loading…</div>;
-  if (!row) return <div className="gs-admin-err">{err || 'not found'}</div>;
+  if (!spec) return <div className="gs-admin-err">알 수 없는 모델: {kind}</div>;
+  if (busy) return <div className="gs-admin-loading">불러오는 중…</div>;
+  if (!row) return <div className="gs-admin-err">{err || '찾을 수 없습니다.'}</div>;
 
   function set(name, v) { setRow((r) => ({ ...r, [name]: v })); }
 
-  function ownerFor(col) {
-    // S3 key owner — prefer slug; fall back to id; "new" rows get "new".
+  function ownerFor() {
     return row.slug || row.id || 'new';
   }
 
@@ -50,12 +63,20 @@ export default function AdminEdit({ kind, id }) {
     try {
       const payload = {};
       for (const c of spec.cols) if (c.name in row) payload[c.name] = row[c.name];
+      // hospitals — keep synthetic brand_* fields in the payload so the server
+      // can upsert the brand row and link brand_id automatically.
+      if (kind === 'hospitals') {
+        for (const k of ['brand_name_ko','brand_name_en','brand_logo_url',
+                         'brand_founding_doctor','brand_specialization_depth',
+                         'brand_is_chain','brand_website_url']) {
+          if (k in row) payload[k] = row[k];
+        }
+      }
       let saved;
       if (id) saved = await adminApi.update(kind, id, payload);
       else    saved = await adminApi.create(kind, payload);
       setRow(saved.row);
-      setOk('Saved.');
-      // Bust the FK picker cache so other forms see the new/updated row.
+      setOk('저장됨.');
       invalidateFkCache(kind);
       if (!id) {
         const newId = spec.pkFields
@@ -71,9 +92,9 @@ export default function AdminEdit({ kind, id }) {
     }
   }
 
-  // Render fields grouped by `group` heading.
+  // group 단위로 묶기
   const groups = [];
-  let cur = { name: 'Main', cols: [] };
+  let cur = { name: '기본', cols: [] };
   for (const c of spec.cols) {
     if (c.group) {
       if (cur.cols.length) groups.push(cur);
@@ -84,19 +105,27 @@ export default function AdminEdit({ kind, id }) {
   }
   if (cur.cols.length) groups.push(cur);
 
+  const kindLabel = getKindLabel(kind);
+
   return (
     <div className="gs-admin-page">
       <header className="gs-admin-header">
         <h1>
-          <a href={`/admin/${kind}`} className="gs-admin-crumb">{LABEL[kind] || kind}</a> · {id ? `#${id}` : 'New'}
+          <a href={`/admin/${kind}`} className="gs-admin-crumb">{kindLabel}</a>
+          {' · '}
+          {id ? `편집 #${id}` : '새로 만들기'}
         </h1>
         <div className="gs-admin-header-actions">
-          <a href={`/admin/${kind}`} className="gs-admin-ghostbtn">Cancel</a>
+          <a href={`/admin/${kind}`} className="gs-admin-ghostbtn">취소</a>
           <button onClick={save} disabled={saving} className="gs-admin-savebtn">
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? '저장 중…' : '저장'}
           </button>
         </div>
       </header>
+
+      {spec.listIntro && !id && (
+        <div className="gs-admin-intro">{spec.listIntro}</div>
+      )}
 
       {err && <div className="gs-admin-err">{err}</div>}
       {ok  && <div className="gs-admin-ok">{ok}</div>}
@@ -112,30 +141,61 @@ export default function AdminEdit({ kind, id }) {
                   col={c}
                   value={row[c.name]}
                   onChange={(v) => set(c.name, v)}
-                  owner={ownerFor(c)}
+                  owner={ownerFor()}
                 />
               ))}
             </div>
           </section>
         ))}
-        <button type="submit" disabled={saving} style={{ display: 'none' }}>Save</button>
+        <button type="submit" disabled={saving} style={{ display: 'none' }}>저장</button>
       </form>
+
+      {/* hospitals 전용 inline 패널들 — 같은 화면에서 시술/의사/B&A 관리 */}
+      {kind === 'hospitals' && id && (
+        <>
+          <HospitalOfferingsPanel hospitalId={Number(id)} />
+        </>
+      )}
     </div>
   );
 }
 
+// ─── Field 렌더러 ─────────────────────────────────────────────────────
 function Field({ col, value, onChange, owner }) {
   const id = `f-${col.name}`;
+  const labelText = col.label || col.name;
+  const showRaw = col.label && col.label !== col.name;
+
+  // 공통 라벨 박스 — help 는 ? 아이콘 (hover/click 시 tooltip)
+  const Label = (
+    <label htmlFor={id} className="gs-admin-label">
+      <span className="gs-admin-label-main">
+        {labelText}
+        {col.required && <span className="gs-admin-req"> *</span>}
+        {col.help && (
+          <span className="gs-admin-help-icon" tabIndex={0} aria-label={col.help} title={col.help}>
+            ?
+            <span className="gs-admin-help-pop">{col.help}</span>
+          </span>
+        )}
+      </span>
+      {showRaw && <span className="gs-admin-label-raw">{col.name}</span>}
+    </label>
+  );
+  // bool 같이 라벨이 inline 인 케이스만 별도로 처리.
+  const Help = null;
+
   if (col.type === 'image') {
     return (
       <div className="gs-admin-field gs-admin-field-wide">
+        {Label}
+        {Help}
         <ImageUploader
           value={value}
           onChange={onChange}
           kind={col.upload?.kind || 'misc'}
           slot={col.upload?.slot || col.name}
           owner={owner}
-          label={col.name}
         />
       </div>
     );
@@ -143,13 +203,14 @@ function Field({ col, value, onChange, owner }) {
   if (col.type === 'gallery') {
     return (
       <div className="gs-admin-field gs-admin-field-wide">
+        {Label}
+        {Help}
         <ImageGalleryEditor
           value={value || []}
           onChange={onChange}
           kind={col.upload?.kind || 'misc'}
           slot={col.upload?.slot || 'gallery'}
           owner={owner}
-          label={col.name}
         />
       </div>
     );
@@ -157,7 +218,8 @@ function Field({ col, value, onChange, owner }) {
   if (col.type === 'textarea') {
     return (
       <div className="gs-admin-field gs-admin-field-wide">
-        <label htmlFor={id}>{col.name}{col.required && <span className="gs-admin-req"> *</span>}</label>
+        {Label}
+        {Help}
         <textarea id={id} rows={3} value={value || ''} onChange={(e) => onChange(e.target.value)} />
       </div>
     );
@@ -165,20 +227,32 @@ function Field({ col, value, onChange, owner }) {
   if (col.type === 'bool') {
     return (
       <div className="gs-admin-field gs-admin-field-bool">
-        <label>
+        <label className="gs-admin-label">
           <input type="checkbox" checked={Boolean(value)} onChange={(e) => onChange(e.target.checked)} />
-          {col.name}
+          <span className="gs-admin-label-main">
+            {labelText}
+            {col.help && (
+              <span className="gs-admin-help-icon" tabIndex={0} aria-label={col.help} title={col.help}>
+                ?
+                <span className="gs-admin-help-pop">{col.help}</span>
+              </span>
+            )}
+          </span>
+          {showRaw && <span className="gs-admin-label-raw">{col.name}</span>}
         </label>
       </div>
     );
   }
   if (col.type === 'select') {
+    const opts = col.options || [];
+    const optLabels = col.optionLabels || {};
     return (
       <div className="gs-admin-field">
-        <label htmlFor={id}>{col.name}{col.required && <span className="gs-admin-req"> *</span>}</label>
+        {Label}
+        {Help}
         <select id={id} value={value ?? ''} onChange={(e) => onChange(e.target.value || null)}>
-          <option value="">—</option>
-          {col.options.map((o) => <option key={o} value={o}>{o}</option>)}
+          <option value="">— 선택 안 함 —</option>
+          {opts.map((o) => <option key={o} value={o}>{optLabels[o] || o}</option>)}
         </select>
       </div>
     );
@@ -187,10 +261,12 @@ function Field({ col, value, onChange, owner }) {
     const arr = Array.isArray(value) ? value : [];
     return (
       <div className="gs-admin-field gs-admin-field-wide">
-        <label htmlFor={id}>{col.name} <span className="gs-admin-hint">(comma-separated)</span></label>
+        {Label}
+        {Help}
         <input
           id={id}
           type="text"
+          placeholder="콤마(,)로 구분"
           value={arr.join(', ')}
           onChange={(e) => onChange(e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
         />
@@ -200,10 +276,12 @@ function Field({ col, value, onChange, owner }) {
   if (col.type === 'json') {
     return (
       <div className="gs-admin-field gs-admin-field-wide">
-        <label htmlFor={id}>{col.name} <span className="gs-admin-hint">(JSON)</span></label>
+        {Label}
+        {Help}
         <textarea
           id={id}
           rows={4}
+          placeholder='JSON 형식. 예: {"key":"value"} 또는 [{"a":1}]'
           value={value == null ? '' : (typeof value === 'string' ? value : JSON.stringify(value, null, 2))}
           onChange={(e) => {
             const txt = e.target.value;
@@ -217,15 +295,21 @@ function Field({ col, value, onChange, owner }) {
   if (col.type === 'number') {
     return (
       <div className="gs-admin-field">
-        <label htmlFor={id}>{col.name}</label>
-        <input id={id} type="number" value={value ?? ''} onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))} />
+        {Label}
+        {Help}
+        <input
+          id={id} type="number"
+          value={value ?? ''}
+          onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+        />
       </div>
     );
   }
   if (col.type === 'date') {
     return (
       <div className="gs-admin-field">
-        <label htmlFor={id}>{col.name}</label>
+        {Label}
+        {Help}
         <input id={id} type="date" value={value || ''} onChange={(e) => onChange(e.target.value || null)} />
       </div>
     );
@@ -233,7 +317,8 @@ function Field({ col, value, onChange, owner }) {
   if (col.type === 'datetime') {
     return (
       <div className="gs-admin-field">
-        <label htmlFor={id}>{col.name}</label>
+        {Label}
+        {Help}
         <input
           id={id} type="datetime-local"
           value={value ? new Date(value).toISOString().slice(0, 16) : ''}
@@ -245,18 +330,16 @@ function Field({ col, value, onChange, owner }) {
   if (col.type === 'fk') {
     return (
       <div className="gs-admin-field">
-        <label>
-          {col.name}{col.required && <span className="gs-admin-req"> *</span>}{' '}
-          <span className="gs-admin-hint">→ {col.table}</span>
-        </label>
+        {Label}
+        {Help}
         <FkPicker
           value={value}
           onChange={onChange}
           table={col.table}
-          placeholder={`Search ${col.table} by name or slug…`}
+          placeholder={`${col.label || col.name} 검색 (이름 또는 URL 식별자)`}
         />
         {col.table && (
-          <a href={`/admin/${col.table}`} className="gs-admin-fk-link">manage {col.table} →</a>
+          <a href={`/admin/${col.table}`} className="gs-admin-fk-link">{getKindLabel(col.table)} 관리 →</a>
         )}
       </div>
     );
@@ -264,7 +347,8 @@ function Field({ col, value, onChange, owner }) {
   // default = text
   return (
     <div className="gs-admin-field">
-      <label htmlFor={id}>{col.name}{col.required && <span className="gs-admin-req"> *</span>}</label>
+      {Label}
+      {Help}
       <input id={id} type="text" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
     </div>
   );

@@ -91,7 +91,8 @@
 .gs-admin-statcard:hover { border-color: #c9a063; transform: translateY(-1px); }
 .gs-admin-statnum   { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
 .gs-admin-statlabel { font-size: 12px; color: var(--a-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
-.gs-admin-statmeta  { margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap; }
+.gs-admin-statmeta  { margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.gs-admin-statmeta-hint { font-size: 11px; color: var(--a-muted); }
 
 /* Chips */
 .gs-admin-chip {
@@ -147,13 +148,85 @@
   margin-top: 12px; padding: 8px 0; font-size: 12px; color: var(--a-muted);
 }
 
+/* Page intro band */
+.gs-admin-intro {
+  background: #fef9ed; border: 1px solid #f3e2bf; color: #6b5421;
+  padding: 10px 14px; border-radius: 6px; font-size: 13px;
+  margin-bottom: 18px; line-height: 1.55;
+}
+.gs-admin-page-intro { color: var(--a-muted); margin: 8px 0 20px; font-size: 13px; }
+
 /* Form */
 .gs-admin-form { margin-top: 8px; }
 .gs-admin-formsec {
-  background: var(--a-card); border: 1px solid var(--a-border); border-radius: 8px;
-  padding: 16px 20px; margin-bottom: 16px;
+  background: var(--a-card); border: 1px solid var(--a-border); border-radius: 10px;
+  padding: 20px 24px; margin-bottom: 18px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.02);
 }
-.gs-admin-formsec h2 { margin: 0 0 14px; }
+.gs-admin-formsec h2 {
+  margin: 0 0 16px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--a-border);
+  color: var(--a-text); font-size: 13px; font-weight: 600;
+  text-transform: none; letter-spacing: 0;
+}
+
+/* Label & help */
+.gs-admin-label { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.gs-admin-label-main { font-size: 12px; color: var(--a-text); font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.gs-admin-label-raw  { font-size: 10px; color: var(--a-muted); font-family: ui-monospace, monospace; opacity: 0.6; }
+.gs-admin-help-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px;
+  border-radius: 999px; background: #e5e5e8; color: var(--a-muted);
+  font-size: 10px; font-weight: 600; cursor: help;
+  position: relative; outline: none;
+}
+.gs-admin-help-icon:hover, .gs-admin-help-icon:focus { background: #c9a063; color: #fff; }
+.gs-admin-help-pop {
+  display: none;
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: #18181b; color: #fafafa;
+  padding: 8px 12px; border-radius: 6px;
+  font-size: 11px; font-weight: 400; line-height: 1.5;
+  width: max-content; max-width: 320px;
+  white-space: normal; text-align: left;
+  z-index: 60; pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+}
+.gs-admin-help-pop::after {
+  content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 4px solid transparent; border-top-color: #18181b;
+}
+.gs-admin-help-icon:hover .gs-admin-help-pop,
+.gs-admin-help-icon:focus .gs-admin-help-pop { display: block; }
+
+/* Panel header — inline 패널 (시술 가격표 등) */
+.gs-admin-panel-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--a-border);
+}
+.gs-admin-panel-header h2 { margin: 0; padding: 0; border: 0; }
+
+/* Inline form (시술 추가 등) */
+.gs-admin-inlineform {
+  background: #fafafa; border: 1px solid var(--a-border); border-radius: 8px;
+  padding: 14px 16px; margin-bottom: 14px;
+}
+.gs-admin-inlineform-row {
+  display: grid; grid-template-columns: 2fr 1fr 1.4fr auto auto; gap: 12px;
+  align-items: end;
+}
+@media (max-width: 900px) {
+  .gs-admin-inlineform-row { grid-template-columns: 1fr 1fr; }
+}
+.gs-admin-inlineform-actions {
+  display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px;
+}
+.gs-admin-textbtn-danger {
+  background: none !important; border: 0 !important; color: var(--a-danger) !important;
+  padding: 2px 4px !important; font-size: 12px; cursor: pointer;
+}
+.gs-admin-textbtn-danger:hover { text-decoration: underline; }
 .gs-admin-formgrid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px 16px;
 }
@@ -176,8 +249,19 @@
 }
 .gs-admin-req  { color: var(--a-danger); }
 .gs-admin-hint { font-size: 10px; color: var(--a-muted); text-transform: none; letter-spacing: 0; }
+.gs-admin-help { font-size: 11px; color: var(--a-muted); line-height: 1.5; margin-top: 2px; }
 .gs-admin-fk-link { font-size: 10px; color: var(--a-muted); margin-top: 2px; text-decoration: none; }
 .gs-admin-fk-link:hover { color: #18181b; text-decoration: underline; }
+
+/* URL details (image uploader 의 옵션) */
+.gs-iu-url-wrap { margin-top: 4px; }
+.gs-iu-url-wrap > summary {
+  font-size: 10px; color: var(--a-muted); cursor: pointer;
+  list-style: none; padding: 4px 0;
+}
+.gs-iu-url-wrap > summary::before { content: '▸ '; font-size: 8px; }
+.gs-iu-url-wrap[open] > summary::before { content: '▾ '; }
+.gs-iu-url-wrap > summary:hover { color: var(--a-text); }
 
 /* ImageUploader */
 .gs-iu { display: flex; flex-direction: column; gap: 6px; }

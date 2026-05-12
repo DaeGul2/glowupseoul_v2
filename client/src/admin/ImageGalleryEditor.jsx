@@ -44,15 +44,14 @@ export default function ImageGalleryEditor({ value, onChange, kind, slot, owner,
 
   return (
     <div className="gs-ige">
-      {label && <div className="gs-iu-label">{label}</div>}
       <div className="gs-ige-grid">
         {urls.map((url, i) => (
           <div className="gs-ige-cell" key={url + i}>
             <img src={url} alt="" />
             <div className="gs-ige-cell-ops">
-              <button type="button" onClick={() => move(i, -1)} disabled={i === 0}>↑</button>
-              <button type="button" onClick={() => move(i,  1)} disabled={i === urls.length - 1}>↓</button>
-              <button type="button" className="gs-iu-danger" onClick={() => remove(i)}>×</button>
+              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} title="앞으로">↑</button>
+              <button type="button" onClick={() => move(i,  1)} disabled={i === urls.length - 1} title="뒤로">↓</button>
+              <button type="button" className="gs-iu-danger" onClick={() => remove(i)} title="삭제">×</button>
             </div>
           </div>
         ))}
@@ -63,7 +62,7 @@ export default function ImageGalleryEditor({ value, onChange, kind, slot, owner,
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer?.files); }}
         >
-          + Add
+          + 추가
           {busy > 0 && <span className="gs-ige-busy">{busy}</span>}
         </button>
       </div>

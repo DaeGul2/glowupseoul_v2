@@ -140,6 +140,51 @@ function pickCols(body, cols) {
   return out;
 }
 
+// Synthesize a brand slug from a hospital name. Lowercase + safe chars + cap.
+function brandSlugFrom(hospitalSlug, brandName) {
+  const base = (brandName || hospitalSlug || 'brand')
+    .toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 60);
+  return base || 'brand';
+}
+
+// When the admin saves a hospital with brand_* synthetic fields, upsert the
+// brand row + connect via brand_id. Runs BEFORE the hospital insert/update.
+async function upsertBrandFromHospitalPayload(body) {
+  const hasAny = ['brand_name_ko','brand_name_en','brand_logo_url','brand_specialization_depth',
+                  'brand_is_chain','brand_founding_doctor','brand_website_url']
+    .some((k) => body[k] != null && body[k] !== '');
+  if (!hasAny && body.brand_id) return body.brand_id;       // operator picked an existing brand
+  if (!hasAny) return null;                                  // nothing to upsert
+
+  const slug = brandSlugFrom(body.slug, body.brand_name_ko || body.brand_name_en || body.name_ko);
+  const [brand] = await Brand.upsert({
+    slug,
+    name_ko: body.brand_name_ko || body.name_ko,
+    name_en: body.brand_name_en || body.name_en,
+    logo_url: body.brand_logo_url || null,
+    founding_doctor: body.brand_founding_doctor || null,
+    specialization_depth: body.brand_specialization_depth || 'general',
+    is_chain: Boolean(body.brand_is_chain),
+    website_url: body.brand_website_url || null,
+    is_active: true,
+  });
+  return brand.id;
+}
+
+function stripBrandSyntheticFields(payload) {
+  const out = { ...payload };
+  for (const k of ['brand_name_ko','brand_name_en','brand_logo_url',
+                   'brand_founding_doctor','brand_specialization_depth',
+                   'brand_is_chain','brand_website_url']) {
+    delete out[k];
+  }
+  return out;
+}
+
 function wrap(fn) {
   return (req, res) => Promise.resolve(fn(req, res)).catch((e) => {
     console.error('[admin]', e?.message || e);
@@ -150,17 +195,40 @@ function wrap(fn) {
 // ----------------------------------------------------------
 // Generic CRUD: /api/admin/:kind  /api/admin/:kind/:id
 // ----------------------------------------------------------
+
+// Whitelisted query filters per kind. Lets clients narrow lists by FK without
+// inventing a generic where-builder.
+const FILTERS = {
+  hospitals:           ['contract_status', 'city', 'district', 'brand_id'],
+  hospital_procedures: ['hospital_id', 'procedure_id', 'is_signature'],
+  doctors:             ['hospital_id', 'brand_id', 'is_featured'],
+  ba_photos:           ['hospital_id', 'procedure_id', 'doctor_id', 'visibility'],
+  procedures:          ['category_id', 'domain', 'is_surgical'],
+  concern_procedures:  ['concern_id', 'procedure_id'],
+  public_feed_entries: ['source_type', 'is_visible', 'is_seed'],
+};
+
 export const adminList = wrap(async (req, res) => {
   const spec = MODELS[req.params.kind];
   if (!spec) return res.status(404).json({ error: 'unknown kind' });
   const limit  = Math.min(Number(req.query.limit)  || 200, 500);
   const offset = Math.max(Number(req.query.offset) || 0, 0);
-  const rows = await spec.M.findAll({
-    include: spec.include,
-    order:   spec.order,
-    limit, offset,
-  });
-  const total = await spec.M.count();
+
+  const allowed = FILTERS[req.params.kind] || [];
+  const where = {};
+  for (const k of allowed) {
+    if (req.query[k] != null && req.query[k] !== '') {
+      const v = req.query[k];
+      where[k] = ['true','1'].includes(v) ? true
+               : ['false','0'].includes(v) ? false
+               : (isNaN(Number(v)) ? v : Number(v));
+    }
+  }
+
+  const findOpts = { include: spec.include, order: spec.order, limit, offset };
+  if (Object.keys(where).length) findOpts.where = where;
+  const rows = await spec.M.findAll(findOpts);
+  const total = await spec.M.count(Object.keys(where).length ? { where } : undefined);
   res.json({ rows, total, limit, offset });
 });
 
@@ -175,7 +243,15 @@ export const adminGet = wrap(async (req, res) => {
 export const adminCreate = wrap(async (req, res) => {
   const spec = MODELS[req.params.kind];
   if (!spec) return res.status(404).json({ error: 'unknown kind' });
-  const payload = pickCols(req.body || {}, spec.cols);
+  const body = req.body || {};
+
+  // hospitals: 같은 폼에서 brand 정보도 받아 자동 upsert.
+  if (req.params.kind === 'hospitals') {
+    const brandId = await upsertBrandFromHospitalPayload(body);
+    if (brandId) body.brand_id = brandId;
+  }
+
+  const payload = pickCols(stripBrandSyntheticFields(body), spec.cols);
   const row = await spec.M.create(payload);
   res.status(201).json({ row });
 });
@@ -185,7 +261,14 @@ export const adminUpdate = wrap(async (req, res) => {
   if (!spec) return res.status(404).json({ error: 'unknown kind' });
   const row = await spec.M.findByPk(req.params.id);
   if (!row) return res.status(404).json({ error: 'not found' });
-  const payload = pickCols(req.body || {}, spec.cols);
+  const body = req.body || {};
+
+  if (req.params.kind === 'hospitals') {
+    const brandId = await upsertBrandFromHospitalPayload(body);
+    if (brandId) body.brand_id = brandId;
+  }
+
+  const payload = pickCols(stripBrandSyntheticFields(body), spec.cols);
   await row.update(payload);
   res.json({ row });
 });

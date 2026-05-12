@@ -35,20 +35,19 @@ export default function ImageUploader({ value, onChange, kind, slot, owner, labe
 
   return (
     <div className="gs-iu" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
-      {label && <div className="gs-iu-label">{label}</div>}
       <div className="gs-iu-box">
         {value ? (
           <>
             <img src={value} alt="" className="gs-iu-preview" />
             <div className="gs-iu-actions">
-              <button type="button" onClick={() => input.current?.click()}>Replace</button>
-              <button type="button" className="gs-iu-danger" onClick={() => onChange(null)}>Remove</button>
+              <button type="button" onClick={() => input.current?.click()}>교체</button>
+              <button type="button" className="gs-iu-danger" onClick={() => onChange(null)}>제거</button>
             </div>
           </>
         ) : (
           <button type="button" className="gs-iu-pick" onClick={() => input.current?.click()}>
             <span className="gs-iu-pick-plus">+</span>
-            <span className="gs-iu-pick-text">{busy ? `Uploading ${pct}%` : 'Drop or click to upload'}</span>
+            <span className="gs-iu-pick-text">{busy ? `업로드 중 ${pct}%` : '여기에 드래그하거나 클릭해서 업로드'}</span>
           </button>
         )}
         {busy && <div className="gs-iu-bar"><div style={{ width: `${pct}%` }} /></div>}
@@ -62,13 +61,20 @@ export default function ImageUploader({ value, onChange, kind, slot, owner, labe
         style={{ display: 'none' }}
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
-      <input
-        type="text"
-        className="gs-iu-url"
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="https://…"
-      />
+      {/* raw URL 은 사용자에게 직접 노출하지 않음 — 운영자가 URL 을 손으로 칠 일은 없음.
+          외부 URL 을 박아야 하면 details/summary 안에 숨겨둠. */}
+      {value && (
+        <details className="gs-iu-url-wrap">
+          <summary>URL 직접 입력/확인</summary>
+          <input
+            type="text"
+            className="gs-iu-url"
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="https://…"
+          />
+        </details>
+      )}
     </div>
   );
 }

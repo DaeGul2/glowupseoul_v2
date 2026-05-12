@@ -303,5 +303,97 @@
       ]
     },
     "source": "google"
+  },
+  "ayun_청담점": {
+    "fetchedAt": 1778599791440,
+    "placeId": "ChIJ-0St6PShfDURcMa9eJ672FU",
+    "data": {
+      "placeId": "ChIJ-0St6PShfDURcMa9eJ672FU",
+      "name": "아윤의원 강남 | AYUN Clinic Gangnam | 阿昀医美 | アユンクリニック",
+      "address": "South Korea, Seoul, Seocho District, Gangnam-daero, 441 서산빌딩 7층",
+      "rating": 5,
+      "rating_count": 74,
+      "google_url": "https://maps.google.com/?cid=6185900377498306160&g_mp=CiVnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLkdldFBsYWNlEAIYBCAA",
+      "website": "https://ayunclinic.com/",
+      "reviews": [
+        {
+          "author": "Diana Nafikova",
+          "photo": "https://lh3.googleusercontent.com/a/ACg8ocJWvcJ4YVWypE2jX1QI4mOXUobo_HxhhCfD0idthklOijWJ3Q=s128-c0x00000000-cc-rp-mo",
+          "rating": 5,
+          "text": "I chose this clinic because it’s in a very convenient location, right near Gangnam Station. From the reception, all the staff were very friendly. The procedures were carried out professionally and without any delays. Everything went quickly and comfortably.",
+          "language": "en",
+          "relative": "in the last week",
+          "publishedAt": "2026-05-12T07:40:04.654547060Z"
+        },
+        {
+          "author": "Jane Sirata",
+          "photo": "https://lh3.googleusercontent.com/a/ACg8ocLkaNjtEkH5SkZ39b15-b9p7L9Ylp8w_lLZA3f6rlGqIiok8A=s128-c0x00000000-cc-rp-mo-ba2",
+          "rating": 5,
+          "text": "I had a great experience at Ayun Clinic. The staff were all very friendly and made me feel comfortable from the moment I arrived. The doctor was especially caring took the time to understand my concerns and customized the treatment specifically for me. Really appreciate the personalized approach and attention to detail. Highly recommend!",
+          "language": "en",
+          "relative": "a week ago",
+          "publishedAt": "2026-05-01T03:30:48.182954764Z"
+        },
+        {
+          "author": "Chanakan O.",
+          "photo": "https://lh3.googleusercontent.com/a-/ALV-UjU_0ZcP3IZeyivmhwfXAq_1kckCgmhq7GgedEiI1rsg8pQESzE=s128-c0x00000000-cc-rp-mo-ba3",
+          "rating": 5,
+          "text": "All the procedures are done fast. I came here for body’s fat injection all the process were done within 1 hour!",
+          "language": "en",
+          "relative": "a week ago",
+          "publishedAt": "2026-05-01T02:33:14.072909048Z"
+        },
+        {
+          "author": "Romina Aguilar",
+          "photo": "https://lh3.googleusercontent.com/a-/ALV-UjXcVeCnQVmJrLU4kMRh-WXmLITnbqMZIlSDmURWaUP0XZAvH4iu=s128-c0x00000000-cc-rp-mo",
+          "rating": 5,
+          "text": "I'm leaving AYUN CLINIC extremely happy ~^^ The staff was very attentive and friendly, today was a wonderful beauty day, totally recommended!!!!",
+          "language": "en",
+          "relative": "a week ago",
+          "publishedAt": "2026-04-30T08:34:06.830714427Z"
+        },
+        {
+          "author": "Amy A",
+          "photo": "https://lh3.googleusercontent.com/a/ACg8ocJ9O6Tuv6vjZFdyHUwssQFg7nBTr435Y2eXYtrOYa0MSIhG7w=s128-c0x00000000-cc-rp-mo",
+          "rating": 5,
+          "text": "I tried some skin boosters here..Kind and good",
+          "language": "en",
+          "relative": "2 months ago",
+          "publishedAt": "2026-02-15T19:44:58.798444229Z"
+        },
+        {
+          "author": "袁盼",
+          "photo": "https://lh3.googleusercontent.com/a/ACg8ocKeEHjOiJ32GIJjtAvstJ2ZW6gHf7LYvad8AopKtD12L8pGMg=s128-c0x00000000-cc-rp-mo",
+          "rating": 5,
+          "text": "来打嘴巴玻尿酸，打之前还会敷麻药，没那么痛了，做完效果好满意！嘴巴嘟嘟的了！服务环境都很棒，还有中文翻译，很方便。",
+          "language": "zh",
+          "relative": "1周前",
+          "publishedAt": "2026-04-29T09:01:58.653354984Z"
+        },
+        {
+          "author": "欧阳红",
+          "photo": "https://lh3.googleusercontent.com/a/ACg8ocLz0o3I9RVuomv1JZ_NCALe_-aTf6gXtcbNpmSHechykGPudg=s128-c0x00000000-cc-rp-mo",
+          "rating": 5,
+          "text": "来do嘴巴，环境非常好，一对一服务，疼痛管理也做的很好，英文交流顺畅。嘴巴打得超级好看！韩味很浓",
+          "language": "zh",
+          "relative": "1个月前",
+          "publishedAt": "2026-04-01T02:53:40.530155086Z"
+        },
+        {
+          "author": "黄雪婷",
+          "photo": "https://lh3.googleusercontent.com/a/ACg8ocIFMVHcZJMqLQaF72LzzBx6IPDgAGdkvvdSUgCOa1u86NBmTA=s128-c0x00000000-cc-rp-mo",
+          "rating": 5,
+          "text": "环境很好下次还来",
+          "language": "zh",
+          "relative": "1个月前",
+          "publishedAt": "2026-03-25T03:48:31.522282175Z"
+        }
+      ],
+      "review_lang_breakdown": {
+        "en": 5,
+        "zh": 3
+      }
+    },
+    "source": "google"
   }
 }
