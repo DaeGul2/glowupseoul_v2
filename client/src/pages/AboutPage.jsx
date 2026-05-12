@@ -1,7 +1,17 @@
 import { navigate } from '../App.jsx';
 import WhatsAppCTA from '../components/WhatsAppCTA.jsx';
+import { useSeo, breadcrumbLd } from '../utils/seo.js';
 
 export default function AboutPage() {
+  useSeo({
+    title: 'About — Romie & the Glow Up Seoul concierge',
+    description: 'Meet Romie — your dedicated coordinator for Korean dermatology, plastic surgery and dental care. Ministry of Health & Welfare registered. 500+ patients · 98% satisfaction.',
+    canonical: '/about',
+    jsonLd: [
+      { '@context': 'https://schema.org', '@type': 'AboutPage', name: 'About Glow Up Seoul', url: 'https://glowupseoul.com/about' },
+      breadcrumbLd([{ name: 'Home', url: '/' }, { name: 'About', url: '/about' }]),
+    ],
+  });
   return (
     <>
       <section className="gs-hero" style={{ padding: '80px 28px 40px' }}>

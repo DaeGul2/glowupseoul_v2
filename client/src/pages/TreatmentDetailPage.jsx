@@ -1,6 +1,7 @@
 import db from '../data/db.js';
 import { navigate } from '../App.jsx';
 import WhatsAppCTA from '../components/WhatsAppCTA.jsx';
+import { useSeo, breadcrumbLd, medicalProcedureLd } from '../utils/seo.js';
 
 function fmtKRW(n) {
   if (n == null) return '—';
@@ -11,10 +12,27 @@ const FLAGS = { ko:'🇰🇷', en:'🇬🇧', zh:'🇨🇳', ja:'🇯🇵', ru:'
 
 export default function TreatmentDetailPage({ slug }) {
   const p = db.procedureBySlug[slug];
-  if (!p) return <div className="gs-section"><p>Unknown treatment.</p></div>;
+  const offerings = p ? db.offeringsForProcedure(p.id) : [];
+  const cat = p ? db.categoryById[p.category_id] : null;
 
-  const offerings = db.offeringsForProcedure(p.id);
-  const cat = db.categoryById[p.category_id];
+  useSeo(p ? {
+    title: `${p.name_en || p.name_ko} — clinics, price, downtime`,
+    description: (p.description_en || p.description_ko || `${p.name_en} in Seoul.`) + ` Compare ${offerings.length} clinic offer${offerings.length === 1 ? '' : 's'} with device, price, downtime, doctor.`,
+    keywords: [p.name_en, p.name_ko, p.name_zh, ...(p.tags || []), 'Korea', 'Seoul'].filter(Boolean).join(', '),
+    canonical: `/treatment/${slug}`,
+    ogType: 'article',
+    ogImage: p.hero_image_url || p.thumbnail_url,
+    jsonLd: [
+      medicalProcedureLd(p),
+      breadcrumbLd([
+        { name: 'Home', url: '/' },
+        { name: cat?.name_en || 'Services', url: cat ? `/category/${cat.slug}` : '/services' },
+        { name: p.name_en || p.name_ko, url: `/treatment/${slug}` },
+      ]),
+    ],
+  } : { title: 'Treatment', noindex: true });
+
+  if (!p) return <div className="gs-section"><p>Unknown treatment.</p></div>;
 
   return (
     <>

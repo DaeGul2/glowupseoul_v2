@@ -1,6 +1,7 @@
 import db from '../data/db.js';
 import { navigate } from '../App.jsx';
 import WhatsAppCTA from '../components/WhatsAppCTA.jsx';
+import { useSeo, breadcrumbLd } from '../utils/seo.js';
 
 const CARE_CATEGORIES = [
   { slug: 'skin',     title: 'Laser & Skin Resurfacing',   blurb: 'PicoSure, CO2 fractional, IPL.' },
@@ -21,6 +22,13 @@ const PREMIUM_CATEGORIES = [
 ];
 
 export default function ServicesPage() {
+  useSeo({
+    title: 'Services — Care & Premium Care',
+    description: 'Two tiers of curated Korean medical aesthetic services: HIFU lifting, rhinoplasty, double eyelid, skin boosters, dental implants and more. Eight body-area categories.',
+    keywords: 'Korean services, HIFU, rhinoplasty, double eyelid, skin booster, dental implant, body contouring',
+    canonical: '/services',
+    jsonLd: breadcrumbLd([{ name: 'Home', url: '/' }, { name: 'Services', url: '/services' }]),
+  });
   return (
     <>
       <section className="gs-hero" style={{ padding: '80px 28px 40px' }}>

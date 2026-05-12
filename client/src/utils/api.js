@@ -48,3 +48,33 @@ export async function getHealth() {
     return r.json();
   } catch { return null; }
 }
+
+// Public feed (homepage ticker + recent matches section). RDS-backed.
+export async function getRecentFeed({ limit = 20, signal } = {}) {
+  try {
+    const r = await fetch(`/api/feed/recent?limit=${limit}`, { signal });
+    if (!r.ok) return { entries: [] };
+    return r.json();
+  } catch { return { entries: [] }; }
+}
+
+// Persist a completed scan/match flow. session_token = our client-side id so
+// the same user can later look up their own result.
+export async function persistMatchRequest(payload) {
+  try {
+    const r = await fetch('/api/match-requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const json = await r.json().catch(() => null);
+    if (!r.ok) {
+      console.warn('persistMatchRequest failed', json?.error || r.status);
+      return null;
+    }
+    return json;
+  } catch (e) {
+    console.warn('persistMatchRequest error', e);
+    return null;
+  }
+}

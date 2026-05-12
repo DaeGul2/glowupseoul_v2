@@ -24,7 +24,7 @@ export default function Footer() {
         </div>
         <div className="row" style={{ paddingTop: 16, borderTop: '1px solid var(--border-soft)' }}>
           <span>WhatsApp +82 10 6487 1060 · glowupinseoul@gmail.com · 24h reply SLA</span>
-          <span>© 2026 Glow Up Seoul · v2 preview</span>
+          <span>© 2026 Glow Up Seoul. All rights reserved.</span>
         </div>
       </div>
     </footer>

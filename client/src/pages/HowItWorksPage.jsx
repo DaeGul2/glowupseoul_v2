@@ -1,5 +1,6 @@
 import WhatsAppCTA from '../components/WhatsAppCTA.jsx';
 import { navigate } from '../App.jsx';
+import { useSeo, breadcrumbLd } from '../utils/seo.js';
 
 const STEPS = [
   {
@@ -40,6 +41,12 @@ const STEPS = [
 ];
 
 export default function HowItWorksPage() {
+  useSeo({
+    title: 'How it works — five-step concierge journey',
+    description: 'Scan, consult, match, travel, follow up. Five quiet steps from AI face scan to D+30 post-op check-in. One coordinator, one journey, entirely yours.',
+    canonical: '/how-it-works',
+    jsonLd: breadcrumbLd([{ name: 'Home', url: '/' }, { name: 'How it works', url: '/how-it-works' }]),
+  });
   return (
     <>
       <section className="gs-hero" style={{ padding: '80px 28px 40px' }}>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import db from '../data/db.js';
 import { navigate, useScanFlow } from '../App.jsx';
+import { useSeo } from '../utils/seo.js';
 import Hero from '../components/Hero.jsx';
 import PublicFeedTicker from '../components/PublicFeedTicker.jsx';
 import TreatmentCard from '../components/TreatmentCard.jsx';
@@ -320,6 +321,14 @@ function Finale() {
 }
 
 export default function HomePage() {
+  useSeo({
+    title: 'Korea Medical Tourism Concierge',
+    description: 'A personal concierge for foreign patients in Seoul. AI face scan, curated dermatology / plastic surgery / dental clinics, WhatsApp consultations — fully handled.',
+    keywords: 'Korea medical tourism, Seoul plastic surgery, K-beauty, Gangnam clinic, HIFU lifting, rhinoplasty Korea, foreign patient Seoul',
+    canonical: '/',
+    ogType: 'website',
+  });
+
   const trending = useMemo(() => (
     db.procedures
       .map((p) => {

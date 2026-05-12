@@ -7,6 +7,7 @@ import { openWhatsApp } from '../components/WhatsAppCTA.jsx';
 import { buildCaseMessage, buildEntryFromLive } from '../utils/caseMessage.js';
 import AiSynthLoading, { AiPickSkeleton } from '../components/AiSynthLoading.jsx';
 import ReviewAvatar from '../components/ReviewAvatar.jsx';
+import { useSeo } from '../utils/seo.js';
 
 const LANG_FLAGS_R = { en:'🇬🇧', 'en-US':'🇺🇸', ko:'🇰🇷', zh:'🇨🇳', 'zh-CN':'🇨🇳', 'zh-TW':'🇹🇼', ja:'🇯🇵' };
 function StarBar({ rating, size = 11 }) {
@@ -67,6 +68,12 @@ function buildLiveCase({ matches, prefs, ai, synth }) {
 }
 
 export default function ResultsPage({ snapshot, ai, prefs, onRestart }) {
+  useSeo({
+    title: 'Your scan result',
+    description: 'Your personal AI scan results and curated clinic matches.',
+    noindex: true,           // user-private — never indexed
+    canonical: '/',          // canonicalize back to home for crawlers that wander in
+  });
   const matches = useMemo(() => prefs ? matchOfferings(prefs) : [], [prefs]);
   const [synth, setSynth] = useState(null);
   const [synthLoading, setSynthLoading] = useState(false);

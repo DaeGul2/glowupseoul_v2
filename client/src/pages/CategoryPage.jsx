@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import db from '../data/db.js';
 import { navigate } from '../App.jsx';
 import TreatmentCard from '../components/TreatmentCard.jsx';
+import { useSeo, breadcrumbLd } from '../utils/seo.js';
 
 const INTENSITY = [
   { key: 'all',       label: 'All' },
@@ -13,6 +14,28 @@ const PRICE_TIERS = ['all','$','$$','$$$','$$$$'];
 
 export default function CategoryPage({ slug }) {
   const cat = db.categoryBySlug[slug];
+  useSeo({
+    title: cat ? `${cat.name_en} — Korean clinic services` : 'Category',
+    description: cat
+      ? `Curated Korean ${cat.name_en?.toLowerCase()} treatments in Seoul. Compare HIFU, thread lifting, filler, surgical and skin-tier procedures. Concierge handled end to end.`
+      : undefined,
+    canonical: `/category/${slug}`,
+    ogType: 'website',
+    jsonLd: cat ? [
+      breadcrumbLd([
+        { name: 'Home', url: '/' },
+        { name: 'Services', url: '/services' },
+        { name: cat.name_en, url: `/category/${slug}` },
+      ]),
+      {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: `${cat.name_en} treatments in Seoul`,
+        url: `https://glowupseoul.com/category/${slug}`,
+        about: cat.name_en,
+      },
+    ] : null,
+  });
   const [intensity, setIntensity] = useState('all');
   const [tier, setTier] = useState('all');
   const [activeConcern, setActiveConcern] = useState(null);

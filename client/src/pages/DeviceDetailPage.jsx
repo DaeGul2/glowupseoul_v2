@@ -1,6 +1,7 @@
 import db from '../data/db.js';
 import { navigate } from '../App.jsx';
 import WhatsAppCTA from '../components/WhatsAppCTA.jsx';
+import { useSeo, breadcrumbLd } from '../utils/seo.js';
 
 function fmtKRW(n) {
   if (n == null) return '—';
@@ -11,6 +12,17 @@ const FLAGS = { ko:'🇰🇷', en:'🇬🇧', zh:'🇨🇳', ja:'🇯🇵', ru:'
 
 export default function DeviceDetailPage({ slug }) {
   const d = db.deviceBySlug[slug];
+  useSeo(d ? {
+    title: `${d.name} — Korean clinics offering this device`,
+    description: `${d.description || d.name + ' device in Seoul'} Compare partner clinics offering ${d.name} with price, doctor, downtime.`,
+    keywords: [d.name, slug, 'Korea', 'Seoul', 'device'].join(', '),
+    canonical: `/device/${slug}`,
+    jsonLd: breadcrumbLd([
+      { name: 'Home', url: '/' },
+      { name: 'Devices', url: '/' },
+      { name: d.name, url: `/device/${slug}` },
+    ]),
+  } : { title: 'Device', noindex: true });
   if (!d) {
     return <section className="gs-section"><p>Unknown device.</p></section>;
   }

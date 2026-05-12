@@ -19,6 +19,11 @@ import {
   adminList, adminGet, adminCreate, adminUpdate, adminDelete,
   adminPresignUpload, adminStats,
 } from './routes/admin.js';
+import {
+  listSubmissions, getSubmission, approveSubmission, rejectSubmission,
+} from './routes/partner-admin.js';
+import { createMatchRequestHandler, getMatchRequestHandler } from './routes/match.js';
+import { sitemapHandler, robotsHandler } from './routes/sitemap.js';
 import { checkDbHealth } from './db/health.js';
 import { hasDbConfig, closeSequelize } from './db/sequelize.js';
 import { hasS3Config } from './s3.js';
@@ -60,9 +65,23 @@ app.get('/api/catalog/hospitals',            hospitalsHandler);
 app.get('/api/catalog/hospitals/:slug',      hospitalDetailHandler);
 app.get('/api/feed/recent',                  feedRecentHandler);
 
+// Match-request persistence (public, no auth — session_token is the only key)
+app.post('/api/match-requests',            createMatchRequestHandler);
+app.get ('/api/match-requests/:id',        getMatchRequestHandler);
+
+// SEO
+app.get('/sitemap.xml', sitemapHandler);
+app.get('/robots.txt',  robotsHandler);
+
 // Admin (X-Admin-Key gated)
-app.get   ('/api/admin/stats',                 requireAdmin, adminStats);
-app.post  ('/api/admin/upload/presign',        requireAdmin, adminPresignUpload);
+app.get   ('/api/admin/stats',                                  requireAdmin, adminStats);
+app.post  ('/api/admin/upload/presign',                         requireAdmin, adminPresignUpload);
+// Partner submissions (must come BEFORE the generic /:kind catch-all)
+app.get   ('/api/admin/partner-submissions',                    requireAdmin, listSubmissions);
+app.get   ('/api/admin/partner-submissions/:file',              requireAdmin, getSubmission);
+app.post  ('/api/admin/partner-submissions/:file/approve',      requireAdmin, approveSubmission);
+app.post  ('/api/admin/partner-submissions/:file/reject',       requireAdmin, rejectSubmission);
+// Generic CRUD
 app.get   ('/api/admin/:kind',                 requireAdmin, adminList);
 app.post  ('/api/admin/:kind',                 requireAdmin, adminCreate);
 app.get   ('/api/admin/:kind/:id',             requireAdmin, adminGet);

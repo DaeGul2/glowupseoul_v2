@@ -1412,3 +1412,389 @@ DB_SSL_CA_PATH=           # 빈 채로 두면 server/certs/rds-global-bundle.pem
 ---
 
 *§19 갱신: 2026-05-12 (AWS RDS MySQL 스캐폴딩). 다음 자연 확장점 = mock 데이터 import 검증 → client `data/db.js` fetch 전환.*
+
+---
+
+## 20. 2026-05-13 — RDS live · Sequelize · seed-from-mock 성공
+
+`§19` 의 스캐폴딩이 실제로 살아 움직임. RDS 띄움 → 보안그룹 → 스키마 적용 → mock 데이터 모두 import. raw mysql2 path 를 **Sequelize** 로 전면 교체 (사용자 지시 "야 시퀄라이즈 써").
+
+### 20-1. 사용자 발화 / 의사결정
+
+> "DB 주소도 필요하지않음? 엔드포인트"
+> "다 넣어놨음 테스트해봐"
+> "함" (Security Group inbound rule 추가 후)
+> "야 시퀄라이즈 써"
+> "나 궁금한게 왜 #/admin 으로 가는거야? 걍 /admin으로 안하고? 보통 #을 붙여?"
+> "slug의 역할은 뭐야?"
+
+→ 결정: 사용자가 본격적으로 운영 도구를 만질 시점. ORM 도입 / path URL / slug 개념 잡기 모두 같은 흐름.
+
+### 20-2. RDS 인스턴스 (운영 좌표)
+
+| 항목 | 값 |
+|---|---|
+| endpoint | `database-1.cna8q8goadu8.ap-northeast-2.rds.amazonaws.com` |
+| engine | MySQL 8.4.8 |
+| region | `ap-northeast-2` (서울) |
+| master user | `admin` |
+| DB name | `glowupseoul` |
+| SG inbound | `MYSQL/Aurora 3306, Source 0.0.0.0/0` (dev 편의 — 운영 진입 전 좁히기) |
+| TLS | `rejectUnauthorized:false` 폴백 사용 중 (실 PEM 미배치) |
+
+> 운영 진입 시 필수:
+> - SG source `0.0.0.0/0` → 특정 IP / VPC peering
+> - `server/certs/rds-global-bundle.pem` 다운로드 → 진짜 CA 검증
+> - DB_PASSWORD 를 AWS Secrets Manager 로 이전
+
+### 20-3. Sequelize 전환
+
+| 변경 | 결과 |
+|---|---|
+| `server/db/pool.js` (raw mysql2 풀) → `server/db/sequelize.js` | 싱글톤 Sequelize, RDS SSL, pool 옵션 |
+| `server/db/queries/catalog.js` (raw SQL) → `server/db/models.js` | 15개 모델 + associations 한 파일 |
+| `server/routes/catalog.js` | `Model.findAll({ include })` 로 재작성 |
+| `server/scripts/migrate.js` | `--use-sequelize` 옵션 추가 (기본은 raw SQL — CHECK 제약 보존) |
+| `server/scripts/seed-from-mock.js` | `bulkCreate({ updateOnDuplicate })` 기반. mock id → DB id 슬러그 매핑 자동 |
+| `server/db/health.js` | `sequelize.authenticate()` |
+
+**라이브러리 추가**: `sequelize@^6.37.4` (driver = mysql2)
+
+### 20-4. mock 데이터 import 결과 (RDS 실측)
+
+```
+brands:                  22
+hospitals:               22
+procedures:              30
+concerns:                20
+hospital_procedures:     69
+concern_procedures:      46
+public_feed_entries:     10
+mechanisms (seed):       30
+procedure_categories:    8
+```
+
+`/api/health` → `{ db: { ok: true, latency_ms: 156 } }` · `s3_configured: true`
+
+### 20-5. 진단 스크립트 — `server/scripts/db-ping.js`
+
+연결 안 될 때 첫 단추로 돌리는 진단. 친절한 에러 메시지로 ETIMEDOUT (SG 차단) / ACCESS_DENIED (자격 증명 오류) / ENOTFOUND (endpoint 오타) 분기 안내.
+
+### 20-6. 결정 추가
+
+| 결정 | 한 줄 이유 |
+|------|-----------|
+| **Sequelize (ORM) 채택** | 사용자 지시. 모델 변경 시 raw SQL 전체 수정 비용 큼. mysql2 는 sequelize 의 driver 로 그대로 유지. |
+| **모든 모델 한 파일** (`db/models.js`) | 15개 분리하면 import 그래프 복잡. 한 파일 + 각 모델 export 가 깔끔. associations 도 같이 정의. |
+| **`migrate.js` 의 raw path 가 기본** | `sequelize.sync` 는 CHECK 제약 / partial 인덱스를 못 만듦. `db/schema.mysql.sql` 이 source of truth. |
+| **SG source `0.0.0.0/0`** | dev 가 카페·집·핫스팟 옮겨다님. My-IP 만 허용하면 와이파이 바뀔 때마다 재설정. 운영 진입 전엔 좁힌다. |
+
+### 20-7. Slug 의 역할 (사용자 질문 정리)
+
+| 용도 | 예시 |
+|---|---|
+| URL 식별자 | `/treatment/hifu_face`, `/clinic/hershe_청담점` |
+| DB id 대체 안정 키 | id 1→47 로 바뀌어도 slug 는 동일 → 코드는 slug 로 lookup |
+| SEO 친화 URL | 구글이 `hifu_face` 키워드를 URL 에서 인덱스 |
+| S3 폴더 이름 | `procedures/hifu_face/thumbnail-xxx.jpg` (id 였으면 무의미) |
+| Admin FkPicker 검색 키 | slug + name 으로 검색해서 id 자동 매칭 |
+
+**규칙**: 소문자 + 영숫자 + `_`/`-`. 한글 허용 (지점명 `_청담점`). **한 번 정하면 절대 변경 X** (URL 깨짐).
+
+---
+
+## 21. 2026-05-13 — Admin 시스템 풀세트 + S3 + 파트너 승인 + 스캔 영구화
+
+사용자 발화: "이제 어드민 페이지 제대로만들어봐 각 사진들도 넣을수있게" → "다 만들고 저장소는 s3 할게" → "모든 테이블에 대하여 CRUD 가능하도록 만들어줘야되고, pending된 파트너사 승인하는 부분도 만들어야하고, 어떤 병신같은 곳에서 id를 직접 손으로 치나? 비개발자들이 할건데?"
+
+### 21-1. 사용자 명시 가이드라인 (잊지 않게)
+
+| 룰 | 적용 |
+|---|---|
+| **모든 테이블 CRUD** | generic `/api/admin/:kind` + spec 기반 자동 폼 생성 |
+| **사진 슬롯 다 넣을 수 있게** | procedures 3 + brands 2 + hospitals 3+gallery + doctors 3 + ba_photos 2 + categories 2 + hospital_procedures override 2 |
+| **저장소 = S3** | presigned PUT direct upload, 서버는 URL 발급만 |
+| **파트너 신청 = pending → 운영자 승인** | submissions/*.json → admin 모달에서 검토 → "Approve → DB import" 누르면 brand+hospital+hp 자동 INSERT, `contract_status='pending'` 으로 들어가서 매칭에 자동 노출 X |
+| **비개발자 친화 FK** | id 숫자 입력 절대 X. **이름으로 검색하는 콤보박스** (FkPicker) |
+| **스캔 내역 영구 저장** | 옵트인 무관하게 match_requests 에 저장. 옵트인 시 public_feed_entries 에도. |
+| **클라가 RDS 에서 가져옴** | 최소 publicFeed → `/api/feed/recent`. 나머지 catalog 는 Phase 2. |
+
+### 21-2. 스키마 확장 (`db/schema.extend.mysql.sql`)
+
+| 변경 | 이유 |
+|---|---|
+| `procedure_categories.thumbnail_url`, `.hero_image_url` | 카테고리 hero (1:1 + 16:9) |
+| `procedures.gallery_urls` (JSON) | 시술 hero 외 결과 예시 5~10장 |
+| `doctors` 테이블 신설 | 병원당 의사 다수. 외국 환자 신뢰 시그널 1순위. portrait/hero/gallery + bio 다국어 + credentials JSON |
+| `ba_photos` 테이블 신설 | before/after 짝. consent_signed, visibility (public/logged_in/staff_only), 환자 메타 (age_range/country) |
+
+적용: `npm run db:extend` (서버 측). idempotent — errno 1050/1060/1061/1826 무시 (재실행 안전).
+
+### 21-3. S3 통합 (`server/s3.js`)
+
+**presigned PUT 방식** — 파일이 서버를 통과하지 않음. 클라 → 직접 S3.
+
+| 항목 | 값 |
+|---|---|
+| 버킷 | `glowupseoul` (ap-northeast-2) |
+| 객체 소유권 | ACL 비활성화 (권장) |
+| 퍼블릭 액세스 | 차단 해제 (사진 CDN 용) |
+| 버킷 정책 | `s3:GetObject` Allow `Principal: *` |
+| CORS | `PUT/GET/HEAD` from `*` (dev) |
+| 암호화 | SSE-S3 (무료, 자동) |
+| IAM | `glowupseoul-server` 사용자 + `AmazonS3FullAccess` |
+
+**키 구조** (자동 생성):
+```
+procedures/hifu_face/thumbnail-mp2px9ru.jpg
+procedures/hifu_face/gallery/{ts}-{uuid}.jpg
+hospitals/hershe_청담점/hero-xxx.jpg
+hospitals/hershe_청담점/gallery/{ts}-{uuid}.jpg
+brands/soi/logo-xxx.png
+doctors/{slug}/portrait-xxx.jpg
+ba/{id}/before.jpg, ba/{id}/after.jpg
+categories/{slug}/thumbnail-xxx.jpg
+```
+
+`S3_PUBLIC_BASE_URL` 비워두면 `https://glowupseoul.s3.ap-northeast-2.amazonaws.com/{key}` 자동.
+
+### 21-4. Admin API (server/routes/admin.js)
+
+전부 `X-Admin-Key` 헤더 가드. 401 → 자동 로그아웃.
+
+| 메서드 | 경로 | 용도 |
+|---|---|---|
+| GET | `/api/admin/stats` | 모델별 row 수 + S3 상태 |
+| POST | `/api/admin/upload/presign` | `{ kind, owner, slot, mime, size }` → `{ upload_url, public_url }` |
+| GET/POST/GET/PATCH/DELETE | `/api/admin/:kind`, `/api/admin/:kind/:id` | generic CRUD (9개 모델: brands, hospitals, procedures, procedure_categories, concerns, hospital_procedures, doctors, ba_photos, public_feed_entries, concern_procedures) |
+| GET | `/api/admin/partner-submissions` | 파일 inbox |
+| GET | `/api/admin/partner-submissions/:file` | 한 건 풀 본문 |
+| POST | `/api/admin/partner-submissions/:file/approve` | brand + hospital + hospital_procedures INSERT, 파일 `_approved/` 로 이동 |
+| POST | `/api/admin/partner-submissions/:file/reject` | 파일 `_rejected/` 로 이동 |
+
+### 21-5. 스캔 영구화 (`server/routes/match.js`)
+
+POST `/api/match-requests` — 익명 OK (`session_token` 만이 키). 옵션 feed entry 동시 생성.
+
+`client/src/App.jsx` 의 `onScanSubmit` 이 자동 호출 → match_request 영구 저장. 옵트인 시 public_feed_entries 도 자동 추가.
+
+`session_token` 은 `sessionStorage.gs_session_token` 에 저장 — 같은 사용자가 새로고침해도 동일 session 유지.
+
+### 21-6. Admin UI (`client/src/admin/` — 14 파일)
+
+```
+client/src/admin/
+├── AdminApp.jsx           ← 라우터 + 인증 가드 (BrowserRouter)
+├── AdminLogin.jsx         ← 키 입력 → verify → sessionStorage 'gs_admin_key'
+├── AdminLayout.jsx        ← 좌측 nav (Dashboard / Partners / 10개 모델)
+├── AdminDashboard.jsx     ← 카운트 카드 그리드 + S3 chip
+├── AdminList.jsx          ← 공용 테이블 + 페이지네이션 + 필터 + FK 컬럼 자동 join 표시
+├── AdminEdit.jsx          ← spec 기반 자동 폼 (text/textarea/number/bool/date/datetime/select/tags/json/image/gallery/fk)
+├── AdminPartners.jsx      ← 신청서 inbox + 모달 + Approve → DB import
+├── ImageUploader.jsx      ← 단일 사진 드래그앤드롭 → presign → S3 PUT → URL 자동 반환
+├── ImageGalleryEditor.jsx ← 다중 사진 + 순서 변경 + 삭제
+├── FkPicker.jsx           ← FK 콤보박스 — 이름/slug 로 검색, id 자동 매칭, 캐시 + invalidate
+├── specs.js               ← 10개 모델 × 모든 컬럼 metadata (group/type/upload slot/options)
+├── api.js                 ← fetch wrapper, X-Admin-Key 자동 헤더, 401 시 자동 로그아웃 + navigate
+└── admin.css              ← Linear/Notion 풍 회색조 sans-only 톤 (사이트 럭셔리 톤과 분리)
+```
+
+### 21-7. 결정 추가
+
+| 결정 | 한 줄 이유 |
+|------|-----------|
+| **presigned PUT, 서버 우회 업로드** | 큰 파일 (이미지) 이 Node 메모리 통과 X. 서버는 URL 발급만. |
+| **bucket public read + bucket policy** | 사진 CDN. 운영 진입 시 CloudFront + Origin Access Control 로 이전 옵션. |
+| **모델 spec 기반 자동 폼** | 100+ 컬럼 수기 작성하면 유지보수 폭망. spec 한 곳만 수정 → 폼 자동 업데이트. |
+| **FK = 콤보박스만** (id 입력 금지) | 비개발자가 사용. id 직접 입력은 운영자 실수 1순위. |
+| **List 의 FK 컬럼 = join 된 이름** | `hospital_id: 9` 대신 `Hershe 청담점` 표시. 백엔드 `include` 가 자동으로 join 객체 보내줌. |
+| **soft delete (`deleted_at`) 기본** | `is_active=false` + 타임스탬프. 운영자가 실수로 삭제해도 복구 가능. |
+| **파트너 approve = `contract_status='pending'`** | 자동 노출 X. 운영자가 별도 단계로 행 편집해서 `active` 로 바꿔야 매칭에 등장. 2단계 안전망. |
+| **세션 토큰 = 익명 영구화 키** | 로그인 안 하는 외국 환자도 본인 스캔 결과 다시 볼 수 있어야. `session_token` 으로 owner 검증. |
+| **publicFeed 만 RDS hydrate** (catalog 는 mock 유지) | catalog 전체 fetch 전환은 비동기 마이그레이션 부담. 메인 ticker / RecentMatches 가 동적이면 운영자 입력 즉시 반영 가능 — 가장 큰 가치. |
+
+### 21-8. 알려진 한계 / TODO (Phase 2)
+
+- [ ] **catalog 도 RDS fetch 로** — `client/src/data/db.js` 의 procedures/hospitals/concerns/categories/devices/brands 까지 fetch 로 교체. 동기 → 비동기 변환 필요, React Query 또는 SWR 도입 결정.
+- [ ] **doctors / ba_photos 시드 0 건** — 운영자가 admin 에서 채워야 함. 우선순위: Hershe · 노즈립 · 리엔장 강남 · 우아 의사 1~3명 + 시그너처 시술 B&A 5~10건.
+- [ ] **procedures.category_id NULL** — mock 의 `category_slug` 누락. 일괄 UPDATE 또는 mock 재시드 필요.
+- [ ] **composite PK 편집** (`concern_procedures`) — `/admin/concern_procedures/{concern_id}-{procedure_id}` 형태로 처리하긴 하나 새로 만들 때 `id` URL 자리에 `new` 만 가니까 PK 두 개 모두 폼에서 결정. 작동은 함, UX 거칠음.
+- [ ] **CloudFront 도입** — 이미지 CDN. 현재 S3 직접 호출 (서울 리전 → 글로벌 사용자 latency).
+- [ ] **이미지 자동 리사이즈 / 포맷 변환** — 현재 원본 그대로 저장. webp/avif 자동 + 썸네일 자동 생성 → Lambda@Edge 또는 Cloudinary 검토.
+- [ ] **EXIF 위치 정보 strip** — 환자 사진 업로드 시 GPS 등 메타 자동 제거 (privacy).
+- [ ] **rate limit / brute-force 보호** — `/api/admin/upload/presign` 무제한. 토큰 throttle 필요.
+
+---
+
+## 22. 2026-05-13 — Path-based 라우팅 전환 + 풀 SEO
+
+사용자 발화: "나 궁금한게 왜 #/admin 으로 가는거야? 걍 /admin으로 안하고? 보통 #을 붙여?" → "먼저 전환해. 그리고 seo도 검색 잘 되도록 넣어줘 부탁할게. v2 Preview라넛도 없애고 그냥 GlowUpSeoul 로만 인덱스 ㄱㄱ" → "seo같은거 할떄 아주 제대로좀 해야돼. 고수들의 노하우를 따라해서 해줘"
+
+### 22-1. Path-based 라우팅 (hash router → BrowserRouter)
+
+| 변경 | 결과 |
+|---|---|
+| `react-router-dom@^7` 도입 | `<BrowserRouter>` + `<Routes>` + `<Link>` + `useNavigate` |
+| `App.jsx` 의 `parseHash` 제거 | `<Routes>` 정의로 대체 |
+| `redirectLegacyHash()` 1회 실행 | 사용자가 옛 `#/about` 로 들어와도 자동 `/about` 로 `replaceState` — 사용자 동작 0 |
+| `navigate('/x')` 호환 헬퍼 | 컴포넌트 밖에서 호출 가능 (`history.pushState` + popstate 이벤트). 기존 `navigate()` 콜러 코드 변경 없이 작동. |
+| 모든 `href="#/..."` → `href="/..."` 일괄 치환 | admin + 사이트 본 |
+| `vite.config.js` SPA fallback | dev 는 vite 자동, 운영은 호스팅(nginx/vercel/netlify) 설정 필요 |
+| `NotFoundPage.jsx` 신설 | 매칭 안 되는 path → 404 + noindex |
+
+운영 진입 시 호스팅 SPA fallback 예시:
+- **nginx**: `try_files $uri /index.html;`
+- **vercel**: `vercel.json` 에 `"rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]`
+- **netlify**: `_redirects` 에 `/*  /index.html  200`
+
+### 22-2. SEO 시스템 (`client/src/utils/seo.js`)
+
+**`useSeo()` 훅** — 마운트 시 head 동적 변경, unmount 시 자동 복구. react-helmet 도입 X (의존성 줄임).
+
+세팅하는 것 (페이지마다 고유):
+- `<title>` (suffix 자동 ` · Glow Up Seoul`)
+- `<meta name="description">`, `name="keywords"`, `name="robots"` (noindex 옵션)
+- `<link rel="canonical">` (절대 URL 자동)
+- Open Graph: `og:title`, `og:description`, `og:url`, `og:image`, `og:type`
+- Twitter: `summary_large_image` 카드
+- `<link rel="alternate" hreflang="…">` (다국어 변형 시)
+- `<script type="application/ld+json">` (구조화 데이터 한 페이지에 여러 개 가능)
+
+**JSON-LD 빌더** (모든 빌더가 `utils/seo.js` 에서 export):
+
+| 빌더 | 용도 | 페이지 |
+|---|---|---|
+| `breadcrumbLd(items)` | BreadcrumbList — 구글 rich result 의 빵부스러기 표시 | 거의 모든 페이지 |
+| `medicalProcedureLd(procedure)` | MedicalProcedure schema — 시술 정보가 의료 카드로 표시 | TreatmentDetailPage |
+| `medicalBusinessLd(hospital)` | MedicalBusiness with address + geo | HospitalDetailPage |
+| `faqPageLd(items)` | FAQPage — Q&A 가 검색결과에 펼쳐서 표시 | FAQPage |
+
+### 22-3. 페이지별 SEO 적용
+
+| 페이지 | title | special |
+|---|---|---|
+| Home | "Korea Medical Tourism Concierge" | site-wide MedicalBusiness LD (index.html) |
+| About | "About — Romie & the Glow Up Seoul concierge" | AboutPage LD |
+| HowItWorks | "How it works — five-step concierge journey" | |
+| Services | "Services — Care & Premium Care" | |
+| FAQ | "FAQ — booking, travel, treatment, privacy" | **FAQPage schema (모든 Q&A flatten)** |
+| Partner | "파트너 신청 — 외국 환자 모객 위탁" (한국어) | |
+| Category (`/category/:slug`) | `${name_en} — Korean clinic services` | CollectionPage LD, 동적 |
+| Treatment (`/treatment/:slug`) | `${name_en} — clinics, price, downtime` | **MedicalProcedure LD**, 동적, og:type=article |
+| Hospital (`/clinic/:slug`) | `${name} · ${neighborhood} — clinic profile` | **MedicalBusiness LD with address/geo**, 동적 |
+| Device (`/device/:slug`) | `${name} — Korean clinics offering this device` | 동적 |
+| Results (`/results`) | "Your scan result" | **noindex** (개인) |
+| 404 (`/*`) | "Page not found" | **noindex** |
+| Admin | "Admin" | **noindex** (어디서도 노출 금지) |
+
+### 22-4. 동적 sitemap.xml + robots.txt
+
+**`server/routes/sitemap.js`** — RDS 의 `procedure_categories` + `procedures` (is_active) + `hospitals` (contract_status='active') 모두 자동 포함. `lastmod` 도 `updated_at` 기반.
+
+```xml
+<url>
+  <loc>https://glowupseoul.com/treatment/hifu_face</loc>
+  <lastmod>2026-05-13</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.85</priority>
+</url>
+…
+```
+
+**`server/routes/sitemap.js → robotsHandler`** — Disallow `/admin`, `/api`, `/results`. Sitemap 위치 명시.
+
+vite proxy 가 dev 에서도 `/sitemap.xml`, `/robots.txt` 를 백엔드로 보냄. 정적 `public/sitemap.xml`, `public/robots.txt` 는 삭제 (충돌 방지).
+
+### 22-5. `index.html` site-wide 메타
+
+| 항목 | 값 |
+|---|---|
+| `<html lang="en">` | en 으로 변경 (기본). 페이지별 다국어는 페이지 component 가 처리 |
+| `<title>` | `Glow Up Seoul — Korea Medical Tourism Concierge` ("v2 Preview" 제거) |
+| `<meta name="description">` | 기본 (페이지가 override) |
+| `<meta name="keywords">` | Korea medical tourism, Seoul plastic surgery, K-beauty… |
+| `<link rel="canonical">` | `https://glowupseoul.com/` |
+| OG 기본값 | og:image = `/og-cover.jpg` (사용자 측 드롭 필요) |
+| Twitter | summary_large_image |
+| favicon | `/favicon.svg`, `/apple-touch-icon.png` (사용자 측 드롭 필요) |
+| theme-color | `#fafaf7` (브랜드 warm white) |
+| site-wide JSON-LD | MedicalBusiness — areaServed, knowsAbout, availableLanguage, founder=Romie |
+
+### 22-6. "v2 preview" 박멸
+
+| 위치 | 변경 |
+|---|---|
+| `client/index.html` `<title>` | "Glow Up Seoul — Korea Medical Tourism Concierge" |
+| `client/src/components/Footer.jsx` | "© 2026 Glow Up Seoul. All rights reserved." |
+
+검색 결과 어디에도 v2/preview/beta 표시 0.
+
+### 22-7. 결정 추가
+
+| 결정 | 한 줄 이유 |
+|------|-----------|
+| **react-router-dom 도입** | 가벼움보다 표준이 더 가치 있는 시점. SEO + 운영 도구 모두 path URL 필수. |
+| **react-helmet 안 씀** (직접 head DOM 조작) | 단일 페이지의 단순 head 갱신이면 react-helmet 의 무거운 추상 불필요. 50줄 헬퍼로 충분. |
+| **per-page useSeo + cleanup** | 페이지 떠나면 자동 복구. SPA 에서 stale meta 남는 버그 방지. |
+| **JSON-LD 페이지 타입 매칭** | MedicalProcedure / MedicalBusiness / FAQPage / BreadcrumbList 등 의료 도메인 schema 풀세트 — 구글 rich result 노출 극대화. |
+| **동적 sitemap (정적 파일 X)** | RDS 에 시술/병원 추가될 때마다 운영자가 sitemap 다시 만들 일 없음. `/sitemap.xml` 호출 시점에 빌드. |
+| **Results / Admin noindex** | 개인 결과 + 운영 도구는 검색 노출 NG. canonical 도 home 으로 redirect 시켜서 잘못 들어와도 home 인덱스만. |
+| **og:image 자리만 만들고 파일은 사용자 측** | 디자인 결정 (메인 비주얼) 은 운영자. 코드는 자리만 깔아둠. |
+
+### 22-8. 운영 진입 체크리스트
+
+- [ ] `client/public/og-cover.jpg` (1200×630), `favicon.svg`, `apple-touch-icon.png` (180×180) 드롭
+- [ ] 도메인 연결 (`glowupseoul.com`) — DNS A/AAAA → 호스팅
+- [ ] 호스팅 SPA fallback 설정 (위 §22-1 참고)
+- [ ] `SITE_ORIGIN` 환경변수 — 운영 도메인으로 설정 (sitemap/robots 가 사용)
+- [ ] HTTPS 강제 + www → non-www (또는 반대) 301 redirect
+- [ ] **Google Search Console** 에 `https://glowupseoul.com/sitemap.xml` 제출
+- [ ] **Bing Webmaster Tools** 등록
+- [ ] Google Analytics / GTM 코드 박기 (현재 0)
+- [ ] Naver / Yahoo 도 webmaster tool 등록 (한국 + 일본 시장)
+- [ ] 中文 SEO 백도어: 백두 / Sogou 도 sitemap 제출 (중국 80% 타깃)
+- [ ] Schema.org Review/Rating — Google Places 리뷰 5점 평균을 시술/병원 LD 에 attach 검토
+- [ ] Performance: 이미지 lazy loading, `<img width height>` 명시, font preload 검증 (Lighthouse 95+)
+- [ ] Core Web Vitals 모니터 — Vercel Analytics 또는 RUM
+
+---
+
+*§20–22 갱신: 2026-05-13. 한 사이클 작업량: Sequelize 전환 / Admin UI 전체 / S3 / 파트너 승인 / 스캔 영구화 / Path 라우팅 / 풀 SEO. 다음 자연 확장점 = catalog fetch 전환 (Phase 2) + 운영 도메인 + Google Search Console.*
+
+---
+
+## 23. 통합 TODO — 즉시 / 단기 / 운영 진입
+
+이 섹션은 §10–22 곳곳에 흩어진 TODO 를 **우선순위 한 줄로** 압축. 새 세션 진입 시 여기부터 봐도 됨.
+
+### 즉시 (다음 세션 시작 시)
+1. **catalog fetch 전환** — `client/src/data/db.js` 의 procedures/hospitals/concerns/categories/devices 를 `/api/catalog/*` 호출로 교체. React Query 도입 결정. (`§19-7`, `§21-8`)
+2. **procedures.category_id NULL 일괄 채우기** — mock 의 `category_slug` 누락. UPDATE 쿼리 또는 mock 재시드. (`§20`, `§21-8`)
+3. **OG / favicon 이미지 드롭** — `client/public/og-cover.jpg`, `favicon.svg`, `apple-touch-icon.png` (`§22-8`)
+
+### 단기 (운영 시작 전)
+4. **doctors + ba_photos 시드** — Hershe / 노즈립 / 리엔장 강남 / 우아 의사 + 시그너처 시술 B&A. (`§21-8`)
+5. **concerns 시드 + concern_procedures 매트릭스** — 20~30 concern + 100+ 매핑 수기 큐레이션. (`§11`)
+6. **CloudFront** — 이미지 CDN. Origin Access Control 로 버킷 직접 접근 차단. (`§21-8`)
+7. **이미지 자동 변환 (Lambda@Edge / Cloudinary)** — webp/avif, 썸네일 자동 생성, EXIF strip. (`§21-8`)
+8. **JP 다국어 라우팅** — 현재 EN/中/Bahasa 운영. JP 시장 진입. (`§11`)
+
+### 운영 진입 (도메인 + SEO 마무리)
+9. **호스팅 SPA fallback** — nginx/vercel/netlify 한 곳 결정 후 fallback 설정. (`§22-8`)
+10. **DB / S3 credential → AWS Secrets Manager** — `.env` 평문 탈피. (`§19-7`, `§21-8`)
+11. **RDS SG 좁히기** + 진짜 CA 번들 배치 — 0.0.0.0/0 → 운영 IP / VPC peering, `server/certs/rds-global-bundle.pem`. (`§20-2`)
+12. **Google Search Console + Naver Webmaster + 中文 (Baidu/Sogou)** — sitemap 제출. (`§22-8`)
+13. **Analytics** — GA4 + GTM, Core Web Vitals 모니터. (`§22-8`)
+14. **읽기 전용 RDS 레플리카** — 트래픽 증가 시 read/write 분리. (`§19-7`)
+15. **schema_migrations 테이블** — 마이그레이션 버저닝 부재. v0→v1 변경 시 도입. (`§19-7`)
+
+### 장기 (Phase 3)
+16. **users / auth flow** — schema 만 있고 OAuth 라우트 미구현. WeChat/LINE/Google. (`§19-7`)
+17. **JSON 컬럼 generated column + 인덱스** — 카탈로그 hot path 별로. (`§19-7`)
+18. **Schema.org Review/Rating** — Google Places 리뷰를 시술/병원 LD 에 attach. (`§22-8`)
+19. **백업/복구 SOP** — PITR 검증, dump 자동화, 복구 리허설. (`§19-7`)
+20. **rate limit on /api/admin/upload/presign** — 토큰 throttle. (`§21-8`)
+
+---
+
+*§23 갱신: 2026-05-13. 우선순위는 변경될 수 있으니 새 결정마다 이 섹션 동기화.*

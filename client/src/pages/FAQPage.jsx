@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import WhatsAppCTA from '../components/WhatsAppCTA.jsx';
+import { useSeo, faqPageLd, breadcrumbLd } from '../utils/seo.js';
 
 const FAQ = [
   {
@@ -55,6 +56,18 @@ const FAQ = [
 export default function FAQPage() {
   const [open, setOpen] = useState({ '0_0': true });
   const toggle = (k) => setOpen((o) => ({ ...o, [k]: !o[k] }));
+
+  // Flatten for FAQ schema — surfaces in Google rich results.
+  const flat = FAQ.flatMap((c) => c.items);
+  useSeo({
+    title: 'FAQ — booking, travel, treatment, privacy',
+    description: 'Common questions on booking a Korean clinic, K-ETA / medical visa, recovery lodging, revision policies, photo privacy. Answered by the Glow Up Seoul concierge.',
+    canonical: '/faq',
+    jsonLd: [
+      faqPageLd(flat),
+      breadcrumbLd([{ name: 'Home', url: '/' }, { name: 'FAQ', url: '/faq' }]),
+    ],
+  });
 
   return (
     <>

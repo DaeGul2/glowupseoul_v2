@@ -247,6 +247,46 @@ export function getPublicFeedEntries() {
   return entries.filter((e) => e.is_visible !== false);
 }
 
+// One-shot hydrate from RDS. Replaces the in-memory seed with rows from
+// /api/feed/recent so the homepage shows live entries (including ones added
+// via /api/match-requests). Falls back silently when the API isn't ready.
+let _hydrated = false;
+export async function hydratePublicFeed() {
+  if (_hydrated) return entries;
+  if (typeof window === 'undefined') return entries;
+  try {
+    const res = await fetch('/api/feed/recent?limit=30');
+    if (!res.ok) return entries;
+    const json = await res.json();
+    if (!Array.isArray(json.entries) || json.entries.length === 0) return entries;
+
+    // Adapt API row → existing client entry shape (RecentMatches / Ticker read these).
+    const adapted = json.entries.map((row) => ({
+      id: row.id,
+      display_initial: row.display_initial,
+      country_code: row.country_code,
+      country_label_en: row.country_label_en || row.country_code,
+      treatment_label_en: row.treatment_label_en,
+      treatment_label_zh: row.treatment_label_zh,
+      outcome: row.outcome,
+      outcome_note_en: row.outcome_note_en,
+      displayed_at: row.displayed_at,
+      is_visible: true,
+      is_seed: row.is_seed,
+      source_type: row.source_type,
+    }));
+
+    // Keep any locally-added entries on top (user just submitted), then DB rows.
+    const local = entries.filter((e) => !e.is_seed && String(e.id).startsWith('local_'));
+    entries = [...local, ...adapted];
+    listeners.forEach((fn) => { try { fn(entries); } catch {} });
+    _hydrated = true;
+  } catch {
+    // network failure → keep static seed
+  }
+  return entries;
+}
+
 export function addPublicFeedEntry(entry) {
   const full = {
     ...entry,

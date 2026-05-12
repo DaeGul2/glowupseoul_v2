@@ -3,6 +3,7 @@ import db from '../data/db.js';
 import { navigate } from '../App.jsx';
 import { submitPartner } from '../utils/api.js';
 import WhatsAppCTA from '../components/WhatsAppCTA.jsx';
+import { useSeo, breadcrumbLd } from '../utils/seo.js';
 
 // ---------- Step config ----------
 const STEPS = [
@@ -106,6 +107,12 @@ function Select({ label, options, hint, ...props }) {
 
 // ---------- Page ----------
 export default function PartnerApplyPage() {
+  useSeo({
+    title: '파트너 신청 — 외국 환자 모객 위탁',
+    description: '강남·청담·부산 22개 병원과 함께. 보건복지부 정식 등록 외국인 환자 유치 에이전시. 환자 모객부터 사후 관리까지 — 전 과정 운영.',
+    canonical: '/partner',
+    jsonLd: breadcrumbLd([{ name: 'Home', url: '/' }, { name: 'Partner', url: '/partner' }]),
+  });
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(DEFAULT_FORM);
   const [submitting, setSubmitting] = useState(false);

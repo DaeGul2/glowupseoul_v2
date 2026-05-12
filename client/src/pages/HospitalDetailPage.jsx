@@ -2,6 +2,7 @@ import db from '../data/db.js';
 import { navigate } from '../App.jsx';
 import WhatsAppCTA from '../components/WhatsAppCTA.jsx';
 import ClinicReviews from '../components/ClinicReviews.jsx';
+import { useSeo, breadcrumbLd, medicalBusinessLd } from '../utils/seo.js';
 
 const FLAGS = { ko:'🇰🇷', en:'🇬🇧', zh:'🇨🇳', ja:'🇯🇵', ru:'🇷🇺', vi:'🇻🇳', id:'🇮🇩', th:'🇹🇭', ar:'🇸🇦' };
 
@@ -25,9 +26,27 @@ const FEATURE_LIST = [
 
 export default function HospitalDetailPage({ slug }) {
   const h = db.hospitalBySlug[slug];
+  const brand = h ? db.brandById[h.brand_id] : null;
+  const offerings = h ? db.offeringsForHospital(h.id) : [];
+
+  useSeo(h ? {
+    title: `${h.name_en || h.name_ko} · ${h.neighborhood} — clinic profile`,
+    description: `${h.safety_claim || `${h.name_en || h.name_ko} clinic in ${h.city} ${h.district}`}. Languages: ${(h.languages_supported || []).join(', ')}. ${offerings.length} treatments offered.`,
+    keywords: [h.name_en, h.name_ko, h.name_zh, h.city, h.district, h.neighborhood, brand?.name_en].filter(Boolean).join(', '),
+    canonical: `/clinic/${slug}`,
+    ogType: 'article',
+    ogImage: h.hero_image_url || h.thumbnail_url,
+    jsonLd: [
+      medicalBusinessLd({ ...h, brand }),
+      breadcrumbLd([
+        { name: 'Home', url: '/' },
+        { name: 'Clinics', url: '/services' },
+        { name: h.name_en || h.name_ko, url: `/clinic/${slug}` },
+      ]),
+    ],
+  } : { title: 'Clinic', noindex: true });
+
   if (!h) return <div className="gs-section"><p>Unknown clinic.</p></div>;
-  const brand = db.brandById[h.brand_id];
-  const offerings = db.offeringsForHospital(h.id);
 
   return (
     <>

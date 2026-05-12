@@ -9,7 +9,7 @@ import { concernProcedures } from './concernProcedures.js';
 import { brands, brandBySlug, brandById } from './brands.js';
 import { hospitals, hospitalBySlug, hospitalById } from './hospitals.js';
 import { hospitalProcedures, hpByHospital, hpByProcedure } from './hospitalProcedures.js';
-import { publicFeedEntries, getPublicFeedEntries, addPublicFeedEntry, subscribeFeed } from './publicFeed.js';
+import { publicFeedEntries, getPublicFeedEntries, addPublicFeedEntry, subscribeFeed, hydratePublicFeed } from './publicFeed.js';
 import { devices, deviceBySlug } from './devices.js';
 
 // ---------- Query helpers (병원 + 시술 join 한 row 만들기) ----------
@@ -158,6 +158,7 @@ export const db = {
 
   addPublicFeedEntry,
   subscribeFeed,
+  hydratePublicFeed,
 
   proceduresForConcern(concernId) {
     return concernProcedures
