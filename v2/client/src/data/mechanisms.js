@@ -1,0 +1,20 @@
+// 시술 메커니즘 (procedures.mechanism[] 의 값으로 쓰임)
+export const mechanisms = [
+  { slug: 'hifu', label_ko: 'HIFU 초음파', label_en: 'HIFU', label_zh: 'HIFU超声', label_ja: 'HIFU超音波', description_ko: '집속초음파로 SMAS 층 자극', description_en: 'Focused ultrasound targeting SMAS layer', domain: 'face_aesthetic', display_order: 1 },
+  { slug: 'rf',           label_ko: '고주파 RF',      label_en: 'Radiofrequency',     label_zh: '射频',     label_ja: 'ラジオ波',  description_ko: '진피층 가열로 콜라겐 수축',     description_en: 'Heats dermis to contract collagen',     domain: 'face_aesthetic', display_order: 2 },
+  { slug: 'laser_pico',   label_ko: '피코 레이저',    label_en: 'Pico Laser',         label_zh: '皮秒激光', label_ja: 'ピコレーザー', description_ko: '색소 분해용 초단펄스 레이저',  description_en: 'Ultra-short pulse pigment laser',       domain: 'derm_medical',   display_order: 3 },
+  { slug: 'laser_co2',    label_ko: 'CO2 프락셔널',   label_en: 'CO2 Fractional',     label_zh: 'CO2点阵', label_ja: 'CO2フラクショナル', description_ko: '피부 재생용 분획 레이저', description_en: 'Fractional ablative resurfacing',     domain: 'derm_medical',   display_order: 4 },
+  { slug: 'botox',        label_ko: '보톡스',         label_en: 'Botulinum Toxin',    label_zh: '肉毒素',   label_ja: 'ボトックス', description_ko: '근육 수축 차단',                description_en: 'Blocks muscle contraction',           domain: 'face_aesthetic', display_order: 5 },
+  { slug: 'filler_ha',    label_ko: '히알루론산 필러', label_en: 'HA Filler',          label_zh: '玻尿酸',   label_ja: 'ヒアルロン酸', description_ko: '볼륨 보충',                    description_en: 'Volume restoration',                  domain: 'face_aesthetic', display_order: 6 },
+  { slug: 'thread_lift',  label_ko: '실리프팅',       label_en: 'Thread Lift',        label_zh: '埋线提升', label_ja: 'スレッドリフト', description_ko: 'PDO/PLLA 실 삽입 리프팅',     description_en: 'PDO/PLLA thread insertion',           domain: 'face_aesthetic', display_order: 7 },
+  { slug: 'skinbooster',  label_ko: '스킨부스터',     label_en: 'Skinbooster',        label_zh: '水光针',   label_ja: 'スキンブースター', description_ko: '진피 보습/재생 주사',        description_en: 'Dermal hydration/regen injection',    domain: 'face_aesthetic', display_order: 8 },
+  { slug: 'stem_cell',    label_ko: '줄기세포',       label_en: 'Stem Cell',          label_zh: '干细胞',   label_ja: '幹細胞', description_ko: '재생 세포 치료',                 description_en: 'Regenerative cell therapy',           domain: 'regenerative',   display_order: 9 },
+  { slug: 'exosome',      label_ko: '엑소좀',         label_en: 'Exosome',            label_zh: '外泌体',   label_ja: 'エクソソーム', description_ko: '세포외 소포 재생',           description_en: 'Extracellular vesicle therapy',      domain: 'regenerative',   display_order: 10 },
+  { slug: 'surgery',      label_ko: '수술',           label_en: 'Surgery',            label_zh: '手术',     label_ja: '手術', description_ko: '절개/봉합 외과 시술',             description_en: 'Incision-based surgical',             domain: 'surgical',       display_order: 11 },
+  { slug: 'em_muscle',    label_ko: '근육자극',       label_en: 'EM Stimulation',     label_zh: '电磁刺激', label_ja: '筋肉刺激', description_ko: '근육 수축 유도',              description_en: 'Electromagnetic muscle contraction',  domain: 'body_contouring', display_order: 12 },
+  { slug: 'cryolipo',     label_ko: '냉동지방분해',   label_en: 'Cryolipolysis',      label_zh: '冷冻溶脂', label_ja: '冷却脂肪溶解', description_ko: '냉각 지방 세포 사멸',       description_en: 'Cold-induced adipocyte apoptosis',    domain: 'body_contouring', display_order: 13 },
+  { slug: 'implant',      label_ko: '임플란트',       label_en: 'Implant',            label_zh: '种植',     label_ja: 'インプラント', description_ko: '치과 임플란트',              description_en: 'Dental implant',                      domain: 'dental',         display_order: 14 },
+  { slug: 'orthodontic',  label_ko: '교정',           label_en: 'Orthodontic',        label_zh: '正畸',     label_ja: '矯正', description_ko: '치아 교정',                     description_en: 'Tooth alignment',                     domain: 'dental',         display_order: 15 },
+];
+
+export const mechanismBySlug = Object.fromEntries(mechanisms.map((m) => [m.slug, m]));
