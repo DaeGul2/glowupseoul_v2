@@ -5,6 +5,7 @@ import Hero from '../components/Hero.jsx';
 import PublicFeedTicker from '../components/PublicFeedTicker.jsx';
 import TreatmentCard from '../components/TreatmentCard.jsx';
 import DeviceCategories from '../components/DeviceCategories.jsx';
+import RecentMatches from '../components/RecentMatches.jsx';
 import WhatsAppCTA from '../components/WhatsAppCTA.jsx';
 import { useReveal } from '../utils/useReveal.js';
 
@@ -337,6 +338,7 @@ export default function HomePage() {
       <PressMarquee />
       <Editorial />
       <PublicFeedTicker />
+      <RecentMatches />
       <BentoCategories />
       <DeviceSection />
       <MagazineSteps />

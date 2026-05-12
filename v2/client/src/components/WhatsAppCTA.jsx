@@ -1,5 +1,27 @@
 // Per CLAUDE.md: native scheme + web fallback (no wa.me).
 const PHONE = '+82-10-6487-1060';
+const PHONE_DIGITS = PHONE.replace(/[^0-9]/g, '');
+
+/**
+ * Open WhatsApp with a pre-filled message.
+ * Mobile → native scheme. Desktop → native attempt + web fallback if no app.
+ * Use this from any component that has a fully composed message string.
+ */
+export function openWhatsApp(text) {
+  const encoded = encodeURIComponent(text || '');
+  const native = `whatsapp://send?phone=${PHONE_DIGITS}&text=${encoded}`;
+  const web    = `https://web.whatsapp.com/send?phone=${PHONE_DIGITS}&text=${encoded}`;
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/.test(navigator.userAgent);
+  if (isMobile) { window.location.href = native; return; }
+  let opened = false;
+  const onBlur = () => { opened = true; };
+  window.addEventListener('blur', onBlur, { once: true });
+  window.location.href = native;
+  setTimeout(() => {
+    window.removeEventListener('blur', onBlur);
+    if (!opened) window.open(web, '_blank');
+  }, 1500);
+}
 
 export function buildWhatsAppLinks({ hospitalName, procedureName, priceKrw, originalPrice, downtimeDays, painLevel }) {
   const lines = [

@@ -3,7 +3,8 @@ import db from '../data/db.js';
 import { matchOfferings } from '../utils/matching.js';
 import { synthesizeMatch, getClinicReviews } from '../utils/api.js';
 import { navigate } from '../App.jsx';
-import { buildWhatsAppLinks } from '../components/WhatsAppCTA.jsx';
+import { openWhatsApp } from '../components/WhatsAppCTA.jsx';
+import { buildCaseMessage, buildEntryFromLive } from '../utils/caseMessage.js';
 import AiSynthLoading, { AiPickSkeleton } from '../components/AiSynthLoading.jsx';
 import ReviewAvatar from '../components/ReviewAvatar.jsx';
 
@@ -49,49 +50,20 @@ function toApiPrefs(prefs) {
   };
 }
 
-function buildPrefilledMessage({ matches, prefs, ai, synth }) {
-  const concernLabels = (prefs.concernIds || []).map((id) => db.concernById[id]?.name_ko).filter(Boolean);
-  const lines = [
-    '[Glow Up Seoul · AI scan + match]',
-    '',
-    synth?.overall && `▸ Romie\'s overall read:\n  "${synth.overall}"`,
-    ai?.narrative && `▸ Scan: ${ai.narrative}`,
-    ai?.metrics && `▸ Metrics — clarity ${ai.metrics.skin_clarity} · symmetry ${ai.metrics.symmetry} · under-eye ${ai.metrics.under_eye_darkness}`,
-    `▸ Concerns: ${concernLabels.join(', ') || '—'}`,
-    `▸ Budget: up to ₩${(prefs.budgetMax || 0).toLocaleString()}`,
-    `▸ Max downtime: ${prefs.downtimeMax} days`,
-    `▸ Pain tolerance: ${prefs.painMax}/5`,
-    `▸ Style: ${prefs.styleTarget}/5`,
-    `▸ Language: ${prefs.language?.toUpperCase()}`,
-    prefs.tripStart && `▸ Trip: ${prefs.tripStart} → ${prefs.tripEnd || '?'}`,
-    prefs.notes && `▸ Notes: ${prefs.notes}`,
-    '',
-    'Top matches:',
-    ...matches.slice(0, 5).map((m, i) => {
-      const { hospital, brand, procedure, hp, discount_pct } = m.offering;
-      const price = hp.price_disclosed ? `₩${hp.starting_price_krw.toLocaleString()}${discount_pct > 0 ? ` (-${discount_pct}%)` : ''}` : 'consultation';
-      const pick = synth?.top_picks?.find((p) => p.match_id === hp.id);
-      const why = pick ? `\n   why: ${pick.rationale}` : '';
-      return `${i + 1}. ${brand.name_ko} — ${hp.local_name_ko} · ${price}${why}`;
-    }),
-    '',
-    synth?.closing || 'Could you help me prioritize and confirm availability?',
-  ].filter(Boolean);
-  return lines.join('\n');
-}
-
-function openWhatsApp(text) {
-  const links = buildWhatsAppLinks({});
-  const phone = links.native.match(/phone=(\d+)/)[1];
-  const native = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`;
-  const web = `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
-  const isMobile = /Mobi|Android|iPhone|iPad|iPod/.test(navigator.userAgent);
-  if (isMobile) { window.location.href = native; return; }
-  let opened = false;
-  const blur = () => { opened = true; };
-  window.addEventListener('blur', blur, { once: true });
-  window.location.href = native;
-  setTimeout(() => { window.removeEventListener('blur', blur); if (!opened) window.open(web, '_blank'); }, 1500);
+// Compose a live "case" object from the current scan flow state, so the
+// `buildCaseMessage` formatter can produce the same structured 5-section message
+// the consultant sees from any homepage case detail modal.
+function buildLiveCase({ matches, prefs, ai, synth }) {
+  const concernLabels = (prefs.concernIds || [])
+    .map((id) => db.concernById[id]?.name_en)
+    .filter(Boolean);
+  return buildEntryFromLive({
+    ai, synth, matches,
+    prefs: {
+      ...prefs,
+      concern_labels: concernLabels,
+    },
+  });
 }
 
 export default function ResultsPage({ snapshot, ai, prefs, onRestart }) {
@@ -118,10 +90,12 @@ export default function ResultsPage({ snapshot, ai, prefs, onRestart }) {
     return () => { cancelled = true; ctl.abort(); };
   }, [prefs, ai, matches.length]);
 
-  const message = useMemo(
-    () => (prefs ? buildPrefilledMessage({ matches, prefs, ai, synth }) : ''),
+  // Live entry object — re-usable for both EN/ZH WhatsApp send + future persistence.
+  const liveEntry = useMemo(
+    () => (prefs && matches.length > 0 ? buildLiveCase({ matches, prefs, ai, synth }) : null),
     [matches, prefs, ai, synth]
   );
+  const sendLive = (lang) => liveEntry && openWhatsApp(buildCaseMessage({ entry: liveEntry, lang }));
 
   if (!prefs) {
     return (
@@ -224,10 +198,25 @@ export default function ResultsPage({ snapshot, ai, prefs, onRestart }) {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
-              <button className="gs-cta" onClick={() => openWhatsApp(message)} disabled={synthLoading}>
-                Send all to WhatsApp →
+            <div className="gs-case-inquiry-actions" style={{ marginTop: 20 }}>
+              <button className="gs-case-inquiry-btn" onClick={() => sendLive('en')} disabled={synthLoading || !liveEntry}>
+                <span className="gs-case-inquiry-flag">🇬🇧</span>
+                <span className="gs-case-inquiry-text">
+                  <span className="gs-case-inquiry-label">Send my scan to WhatsApp</span>
+                  <span className="gs-case-inquiry-sub">English · full case</span>
+                </span>
+                <span className="gs-case-inquiry-arrow">→</span>
               </button>
+              <button className="gs-case-inquiry-btn" onClick={() => sendLive('zh')} disabled={synthLoading || !liveEntry}>
+                <span className="gs-case-inquiry-flag">🇨🇳</span>
+                <span className="gs-case-inquiry-text">
+                  <span className="gs-case-inquiry-label">发送到 WhatsApp</span>
+                  <span className="gs-case-inquiry-sub">中文 · 完整资料</span>
+                </span>
+                <span className="gs-case-inquiry-arrow">→</span>
+              </button>
+            </div>
+            <div style={{ marginTop: 14, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <button className="gs-cta gs-cta--outline" onClick={onRestart}>Refine my answers</button>
             </div>
           </div>
@@ -275,7 +264,7 @@ export default function ResultsPage({ snapshot, ai, prefs, onRestart }) {
               {aiPickedMatches.map((m, idx) => {
                 const { hp, procedure, hospital, brand, discount_pct } = m.offering;
                 const pick = pickById(hp.id);
-                const single = `Hi Romie — I'm interested in ${hp.local_name_ko} at ${brand.name_ko} (₩${hp.starting_price_krw?.toLocaleString() || 'consult'}).${pick ? ` You said: "${pick.rationale}"` : ''}`;
+                const single = `Hi Romie — I'm interested in ${hp.local_name_ko} at ${brand.name_ko} (₩${hp.starting_price_krw?.toLocaleString() || 'consult'}).${pick ? ` You said: "${pick.rationale}"` : ''}\n\n(See my full scan in the previous message.)`;
                 return (
                   <article key={hp.id} className="gs-ai-pick">
                     <div className="gs-ai-pick-rank">{String(idx + 1).padStart(2, '0')}</div>
@@ -454,7 +443,24 @@ export default function ResultsPage({ snapshot, ai, prefs, onRestart }) {
       <section className="gs-cta-strip">
         <h2>Romie reads <em>every</em> shortlist personally.</h2>
         <p>Send your AI synthesis + match to WhatsApp and you'll hear back within 24 hours in your language.</p>
-        <button className="gs-cta" onClick={() => openWhatsApp(message)}>Talk to your Concierge</button>
+        <div className="gs-case-inquiry-actions" style={{ justifyContent: 'center', maxWidth: 720, margin: '0 auto' }}>
+          <button className="gs-case-inquiry-btn" onClick={() => sendLive('en')} disabled={!liveEntry}>
+            <span className="gs-case-inquiry-flag">🇬🇧</span>
+            <span className="gs-case-inquiry-text">
+              <span className="gs-case-inquiry-label">Send to WhatsApp</span>
+              <span className="gs-case-inquiry-sub">English version</span>
+            </span>
+            <span className="gs-case-inquiry-arrow">→</span>
+          </button>
+          <button className="gs-case-inquiry-btn" onClick={() => sendLive('zh')} disabled={!liveEntry}>
+            <span className="gs-case-inquiry-flag">🇨🇳</span>
+            <span className="gs-case-inquiry-text">
+              <span className="gs-case-inquiry-label">发送到 WhatsApp</span>
+              <span className="gs-case-inquiry-sub">中文版本</span>
+            </span>
+            <span className="gs-case-inquiry-arrow">→</span>
+          </button>
+        </div>
       </section>
     </>
   );

@@ -10,10 +10,20 @@ function ageLabel(iso) {
 }
 
 export default function PublicFeedTicker() {
-  const entries = db.publicFeedEntries.filter((e) => e.is_visible);
+  const [entries, setEntries] = useState(() => db.getRecentMatches(20));
   const [i, setI] = useState(0);
 
+  // Live subscribe — newly added entries (from completed scans) bump the rotation.
   useEffect(() => {
+    const unsub = db.subscribeFeed(() => {
+      setEntries(db.getRecentMatches(20));
+      setI(0); // jump to the freshest entry
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (entries.length === 0) return;
     const t = setInterval(() => setI((x) => (x + 1) % entries.length), 4500);
     return () => clearInterval(t);
   }, [entries.length]);
