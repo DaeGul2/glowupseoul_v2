@@ -2,6 +2,7 @@ import { useEffect, useState, createContext, useContext } from 'react';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
 import ScanModal from './components/ScanModal.jsx';
+import PartnerFloating from './components/PartnerFloating.jsx';
 import db from './data/db.js';
 import { matchOfferings } from './utils/matching.js';
 import HomePage from './pages/HomePage.jsx';
@@ -156,6 +157,8 @@ export default function App() {
       {route.name === 'partner'   && <PartnerApplyPage />}
       <Footer />
       <ScanModal open={scanOpen} onClose={() => setScanOpen(false)} onSubmit={onScanSubmit} />
+      <PartnerFloating />
+
     </ScanContext.Provider>
   );
 }

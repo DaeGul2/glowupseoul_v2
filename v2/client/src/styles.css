@@ -687,6 +687,193 @@ button { font-family: inherit; cursor: pointer; }
 .gs-match-card .price-orig { font-size: 11px; color: var(--text-muted); text-decoration: line-through; }
 .gs-cta--mini { padding: 8px 16px; font-size: 11px; letter-spacing: 0.12em; }
 
+/* ============== PARTNER FLOATING FAB (Korean B2B, bottom-right) ============== */
+.gs-pf-wrap {
+  position: fixed; bottom: 24px; right: 24px; z-index: 70;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
+  pointer-events: none; /* children re-enable */
+}
+.gs-pf-wrap > * { pointer-events: auto; }
+
+/* ---- 접힌 알약 FAB ---- */
+.gs-pf-fab {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 12px 18px 12px 14px;
+  background: var(--bg-ink); color: #fff;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 14px 36px -10px rgba(0,0,0,0.35), 0 4px 12px -2px rgba(184,145,106,0.18);
+  transition: transform 0.3s var(--ease), background 0.3s var(--ease), padding 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  font-family: var(--sans);
+}
+.gs-pf-fab:hover {
+  background: var(--accent); border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px -10px rgba(184,145,106,0.55);
+}
+.gs-pf-fab-sym {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--gold-light); color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.gs-pf-fab-text { display: flex; flex-direction: column; gap: 0; line-height: 1.1; text-align: left; }
+.gs-pf-fab-line1 {
+  font-family: var(--serif-ko); font-weight: 500; font-size: 15px;
+  letter-spacing: -0.01em;
+}
+.gs-pf-fab-line2 {
+  font-family: var(--serif-ko); font-size: 11px;
+  color: var(--gold-light); letter-spacing: 0.02em;
+}
+.gs-pf-fab-plus {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,255,255,0.10);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 300; color: var(--gold-light);
+  transition: transform 0.3s var(--ease);
+}
+.gs-pf-fab:hover .gs-pf-fab-plus { transform: rotate(90deg); }
+
+/* "살아있다" 한 번 살짝 펄스 (open 안 됐을 때) */
+.gs-pf-fab--hint {
+  animation: gsFabHint 1.6s var(--ease) 2;
+}
+@keyframes gsFabHint {
+  0% { transform: translateY(0); box-shadow: 0 14px 36px -10px rgba(0,0,0,0.35); }
+  30% { transform: translateY(-6px); box-shadow: 0 22px 44px -10px rgba(184,145,106,0.45); }
+  100% { transform: translateY(0); box-shadow: 0 14px 36px -10px rgba(0,0,0,0.35); }
+}
+
+/* ---- 펼친 카드 ---- */
+.gs-pf-card {
+  position: relative;
+  width: min(420px, calc(100vw - 48px));
+  padding: 32px 28px 24px;
+  background: var(--bg-ink); color: #fff;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,0.5);
+  animation: gsFabPop 0.32s var(--ease);
+}
+@keyframes gsFabPop {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+.gs-pf-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
+  opacity: 0.6;
+}
+.gs-pf-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
+  border: none; cursor: pointer;
+  font-size: 18px; line-height: 1;
+  transition: background 0.2s, color 0.2s;
+}
+.gs-pf-close:hover { background: #fff; color: var(--text); }
+
+.gs-pf-flag {
+  display: inline-block; padding: 5px 10px;
+  background: rgba(232,212,168,0.10);
+  border: 1px solid rgba(232,212,168,0.30);
+  border-radius: 999px;
+  font-family: var(--sans);
+  font-size: 9px; letter-spacing: 0.20em; text-transform: uppercase;
+  color: var(--gold-light); font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.gs-pf-h {
+  font-family: var(--serif-ko); font-weight: 500;
+  font-size: clamp(26px, 3.4vw, 34px);
+  line-height: 1.15; letter-spacing: -0.015em;
+  color: #fff;
+  word-break: keep-all;
+}
+.gs-pf-h em {
+  font-style: normal;
+  color: var(--gold-light);
+  background: linear-gradient(180deg, transparent 65%, rgba(232,212,168,0.20) 65%);
+  padding: 0 2px;
+}
+
+.gs-pf-sub {
+  font-family: var(--serif-ko);
+  font-size: 12px; letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.55);
+  margin: 14px 0 16px;
+  padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+
+.gs-pf-p {
+  font-family: var(--serif-ko);
+  font-size: 14px; line-height: 1.65;
+  color: rgba(255,255,255,0.78); font-weight: 400;
+  margin-bottom: 12px;
+  word-break: keep-all;
+}
+.gs-pf-p em { font-style: normal; font-weight: 500; color: #fff; }
+
+.gs-pf-cta-row {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-top: 18px;
+}
+.gs-pf-cta-primary {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--gold-light); color: var(--text);
+  border: none; border-radius: 4px; cursor: pointer;
+  font: inherit; font-family: var(--serif-ko); font-weight: 600;
+  font-size: 15px;
+  transition: background 0.2s, transform 0.2s;
+}
+.gs-pf-cta-primary:hover { background: #fff; transform: translateX(2px); }
+.gs-pf-cta-primary .arrow { font-size: 18px; }
+.gs-pf-cta-secondary {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px;
+  background: transparent; color: #fff;
+  border: 1px solid rgba(255,255,255,0.25); border-radius: 4px;
+  font: inherit; font-family: var(--serif-ko); font-weight: 500;
+  font-size: 14px;
+  text-decoration: none;
+  transition: border-color 0.2s, color 0.2s;
+}
+.gs-pf-cta-secondary:hover { border-color: var(--gold-light); color: var(--gold-light); }
+.gs-pf-cta-secondary .arrow { font-size: 16px; }
+
+.gs-pf-fineprint {
+  margin-top: 16px;
+  font-family: var(--serif-ko);
+  font-size: 11px; line-height: 1.5;
+  color: rgba(255,255,255,0.40);
+  letter-spacing: 0.02em;
+}
+
+/* 펼친 상태에선 FAB 글자 줄여서 단순 토글로 */
+.gs-pf-wrap--open .gs-pf-fab {
+  padding: 10px 22px;
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.75);
+  font-family: var(--serif-ko);
+  font-size: 13px;
+}
+.gs-pf-wrap--open .gs-pf-fab:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+@media (max-width: 700px) {
+  .gs-pf-wrap { bottom: 16px; right: 16px; left: 16px; align-items: stretch; }
+  .gs-pf-wrap > * { width: auto; }
+  .gs-pf-fab { justify-content: flex-start; }
+  .gs-pf-card { width: auto; max-width: none; padding: 28px 22px 20px; }
+  /* FAB 가 partner 페이지 본문 마지막 액션을 가리지 않도록 여백 확보 */
+  .gs-pa-nav { padding-bottom: 96px; }
+}
+
 /* ============== PARTNER CALLOUT (homepage · Korean B2B) ============== */
 .gs-partner-callout {
   position: relative; overflow: hidden;
@@ -872,6 +1059,11 @@ button { font-family: inherit; cursor: pointer; }
 }
 @media (max-width: 1000px) {
   .gs-pa-shell { grid-template-columns: 1fr; gap: 32px; padding: 0 24px; }
+  /* 모바일에선 sticky 풀음 — 단일 컬럼 위에서 본문 덮는 거 방지.
+     step 인디케이터 / Reach Romie footer 는 그대로 노출. */
+  .gs-pa-rail { position: static; top: auto; }
+  .gs-pa-rail-title { font-size: 32px; }
+  .gs-pa-rail-lede { margin-bottom: 20px; }
 }
 
 /* --- left rail --- */

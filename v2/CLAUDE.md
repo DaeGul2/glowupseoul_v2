@@ -1112,3 +1112,175 @@ CaseDetailModal 푸터의 보조 도구 (3 개 텍스트 버튼):
 ---
 
 *§17 갱신: 2026-05-12 (Live feed + Case detail + EN/ZH 상담사 인콰이어리). 다음 자연스러운 확장점 = §17-7 의 synth 영속화 + server-side `/api/feed` 도입.*
+
+---
+
+## 18. 2026-05-12 (이어서) — 파트너 등록 흐름 + 한국어 B2B FAB
+
+### 18-1. 사용자 발화
+
+**파트너 등록 페이지 신설**
+> "현재 우리 db 참고해서, 파트너사들도 우리한테 자기 병원 등록해달라고 본인들 정보 올릴수 있는 페이지도 만들어"
+
+→ 결정: schema 의 `brands` + `hospitals` + `hospital_procedures` 필드 그대로 따라가는 6-step 다단계 폼. 서버에 JSON 파일로 저장 + 운영자한테 WhatsApp 핸드오프 링크 자동 생성.
+
+**한국어 전용 B2B 홍보**
+> "우리 홈페이지 들어온 병원들이 파트너 계약맺을 수 있게(이건 근데 무조건 한국어로) 메인홈페이지에도 홍보해줘야지"
+
+→ 외국 환자용 영문 메인 흐름은 그대로, **한국어 전용** B2B 섹션 별도. Noto Serif KR 폰트 도입.
+
+**카피 톤 + 위치 피드백**
+> "멘트가 씨발 개 좆병신같음 ㄹㅇ ㅋㅋㅋ 한국인이 쓴거처럼 바꾸셈 ㅋㅋㅋ 그리고 이건 우측 하단에 floating될 수 있도록"
+
+→ 인라인 섹션 폐기, **우측 하단 floating FAB + 펼치는 카드**로 전환. 카피는 한국 의료계 자연 톤 ("원장님 / 외국 환자 응대 / 저희가 대신합니다"). 직역체 ("핸드픽 22개 클리닉에만 흘려보냅니다") 절대 X.
+
+**모바일 issue**
+> "핸드폰 모드일때 /partner 들어오면 reach romie 이쪽 계속 플로팅돼서 볼수가없음"
+> "아니 플로팅은 똑같이 원복해주고, 병원등록하기 누르면 화면이 겹친다니까"
+
+→ FAB 는 `/partner` 페이지에서도 보이게 (가드 풀음). 단 FAB 카드의 CTA 클릭 시 카드 자동 close → navigate 후 겹침 X. 모바일 sticky rail 만 풀어서 본문 덮는 것 방지.
+
+**Pending 상태 룰**
+> "파트너 신청한다고 바로 db등록되는게 아니라 pending상태로 있고 나중에 admin페이지에서 할거임"
+
+→ 제출은 `server/submissions/` JSON 으로만 떨어짐. **운영자가 직접 admin UI 에서 검토 후 `brands`/`hospitals`/`hospital_procedures` 에 import 결정**. 자동 등록 X. `hospitals.contract_status` 의 default `'pending'` 이 이 흐름 schema-level 보장.
+
+---
+
+### 18-2. 산출물
+
+```
+v2/server/
+├── routes/partner.js              POST /api/partner · GET /api/partner/admin?key=...
+└── submissions/                   파일 시스템 캐시 (gitignored 권장)
+                                   · partner_2026-05-12T...Z_brand_slug.json
+
+v2/client/src/
+├── pages/PartnerApplyPage.jsx     6-step 다단계 폼
+│                                   · 좌측 sticky progress rail (데스크탑) · 우측 step body
+│                                   · 모바일에선 sticky 풀음 (본문 덮는 것 방지)
+├── components/PartnerFloating.jsx 우측 하단 floating FAB (한국어 B2B)
+│                                   · 알약 → 펼친 카드 → 신청하기 / 통화 문의 CTA
+│                                   · sessionStorage dismiss · 7s hint pulse
+│                                   · 어디서나 떠있음 (다른 풀스크린 모달 열리면 z-index 로 자동 가림)
+└── utils/api.js                   submitPartner(payload) 추가
+```
+
+---
+
+### 18-3. 파트너 신청 → DB 등록 흐름 (PENDING 룰)
+
+```
+[클라]  PartnerApplyPage 폼 6단계 작성
+         · 모든 필드 schema.sql 의 brands + hospitals + hospital_procedures 와 1:1 매핑
+         · consent.terms + consent.data_use 필수 체크
+         ↓
+[클라]  POST /api/partner
+         ↓
+[서버]  routes/partner.js
+         ├─ shallowOk() 으로 필수 필드 검증
+         ├─ sanitize() — 길이 cap, enum 검증, 타입 강제
+         ├─ JSON 파일 저장: server/submissions/partner_TIMESTAMP_SLUG.json
+         ├─ 응답: { ok, id, file, admin_handoff_url, message }
+         └─ admin_handoff_url = WhatsApp 링크 (운영자가 클릭하면 새 지원자 요약 자동 깔림)
+         ↓
+[운영자] WhatsApp 으로 알림 받음 — 새 지원자 한 줄 요약
+         ↓
+[운영자] GET /api/partner/admin?key=ADMIN_KEY — 최근 100개 리스트 조회
+         ↓
+[운영자] 수기 검토 (안전 기록·면허·외국인 응대력)
+         ├─ 승인: brands → hospitals → hospital_procedures 에 수동 INSERT
+         │        hospital.contract_status = 'active' 로 설정
+         │        (현재는 client/src/data/*.js 미러에 직접 추가)
+         └─ 보류/거절: 파일 그대로 두거나 _archived/ 로 이동
+```
+
+**핵심 — 자동 등록 절대 X**:
+- `/api/partner` 는 *submission* 만 받음. brands / hospitals / hospital_procedures 테이블에 row 추가하지 않음.
+- 신청자가 신청 즉시 어디에도 노출되지 않음. 카테고리 페이지·매칭·홈 어디서도 안 보임.
+- `hospital.contract_status` 의 default `'pending'` 이 이를 schema-level 로 보장 (이미 §5 의 hospital_procedures 에 `negotiating` 5개가 그렇게 처리됨 — `matchOfferings()` 에서 `contract_status !== 'active'` 인 곳은 매칭 후보에서 컷).
+- 클라이언트 UI 어디에도 신청서 내용이 자동 표시 안 됨. 운영자가 directly `v2/client/src/data/brands.js` / `hospitals.js` / `hospitalProcedures.js` 에 row 추가해야만 노출.
+
+---
+
+### 18-4. 한국어 B2B 톤 룰 (잊지 않게)
+
+다음은 영문 직역으로 한국 의료계에 어색한 표현 → 자연 톤:
+
+| ✕ 직역체 | ✓ 자연 톤 |
+|---|---|
+| "병원이신가요?" | **"원장님,"** |
+| "외국 환자 매칭, 저희가 합니다" | **"외국 환자 응대, 저희가 대신합니다"** |
+| "보건복지부 등록 외국인 환자 유치 에이전시" | "보건복지부 정식 등록 · 외국인 환자 유치 에이전시" |
+| "풀세트 컨시어지 트래픽을 흘려보냅니다" | "외국 환자를 한국 병원에 연결해드립니다" |
+| "핸드픽 22개 클리닉에만" | "강남·청담·부산 22개 병원과 함께" |
+| "환자 저니 전체를 운영합니다" | "환자 모객부터 사후 관리까지 — 전 과정을 직접 운영합니다" |
+| "병원은 진료에만 집중하시면 됩니다" | "원장님은 진료에만 집중하시면 됩니다" |
+| "먼저 상담받기" (병원이 상담받는 거 거꾸로) | **"먼저 통화로 문의"** |
+| "수기 검토 · 자동 등록 없음" | "자동 등록 아님 · 운영팀 직접 심사" |
+| "평균 48시간 회신" | "평균 2일 내 회신" |
+
+**일반 원칙**
+- 호칭은 "원장님" (한국 의료계 표준)
+- "응대" / "통화" / "문의" 같은 비즈니스 한국어 자연 사용
+- 영문 비즈니스 용어 (concierge / journey / hand-pick) 무리하게 한국어 직역하지 말고 풀어쓰기
+- 시간 표현은 한국식 ("2일" 이 "48시간" 보다 자연)
+
+---
+
+### 18-5. UI 디테일
+
+**floating FAB** (`gs-pf-fab`)
+- `position: fixed; bottom: 24px; right: 24px; z-index: 70`
+- 다크 BG 알약 · 골드 원형 ✦ 심볼 · "병원이세요? / 파트너 등록 안내" · `+` 회전 인디케이터
+- 7초 뒤 한 번 살짝 펄스 (위로 6px, 골드 그림자 1.6s × 2회) — 살아있다는 시그널
+- 호버: 골드 BG + `+` 90° 회전
+- z-index 70 → ScanModal(100) / CaseDetailModal(110) 같은 풀스크린 모달 열리면 자동으로 그 아래 깔림 (의도된 동작)
+
+**펼친 카드**
+- 다크 BG + 상단 1px 골드 그라데이션 라인
+- 우상단 X (sessionStorage dismiss)
+- 한국어 Noto Serif KR (헤드라인 + 본문)
+- 강조 어구는 옅은 골드 underline highlight
+- 메인 CTA: 골드 BG "파트너 신청하기 →" — **클릭 시 setOpen(false) → navigate('/partner')** (카드 자동 닫힘 → 새 페이지에서 겹침 X)
+- 보조 CTA: outline "먼저 통화로 문의 →" — WhatsApp 한국어 프리필 메시지 ("[글러업서울 · 파트너 문의] 안녕하세요...")
+- 미세글: "◇ 자동 등록 아님 · 운영팀 직접 심사 · 평균 2일 내 회신"
+
+**모바일 (≤700px)**
+- FAB 가 좌우 16px 가득 채움
+- 카드 펼치면 풀폭
+- partner 페이지 본문의 `.gs-pa-nav { padding-bottom: 96px }` 추가 — FAB 가 마지막 액션 버튼 가리지 않게
+
+**모바일 (≤1000px) — partner 페이지**
+- 좌측 rail `position: static` (sticky 풀음) — 단일 컬럼 위에서 본문 덮지 않게
+- step 인디케이터 + Reach Romie footer 는 그대로 노출 (모바일에서도 진행 단계 + 보조 CTA 확인 가능)
+
+---
+
+### 18-6. 결정 로그 추가
+
+| 결정 | 한 줄 이유 |
+|------|-----------|
+| **별도 floating FAB** (인라인 섹션 X) | 외국 환자용 메인 흐름 방해 X. 한국 클리닉 운영자만 자연스럽게 시야에 들어옴. |
+| **Noto Serif KR 도입** | Cormorant Garamond 의 한국어 fallback 못생김. 한국어 헤드라인 임팩트 + Inter / Pretendard sans fallback. |
+| **자동 등록 절대 X · 운영자 수동 import** | 의료 도메인 → 자동 등록은 책임 리스크 + 품질 통제 불가. `hospitals.contract_status === 'active'` 만 매칭 후보 — schema-level 가드. |
+| **server/submissions/ 파일 저장** (DB INSERT 아님) | 운영자가 검토 전엔 어디에도 노출되지 않아야. 파일은 운영자만 보는 raw inbox. |
+| **admin_handoff_url 자동 생성** | 운영자가 모바일에서 새 지원자 알림 즉시 받기 — WhatsApp 한 클릭. |
+| **sessionStorage dismiss** (localStorage 아님) | session 동안만 안 보이게. 다음 방문 시 다시 떠서 conversion 기회. |
+| **FAB CTA → 카드 자동 close** | partner 페이지 navigate 후 카드가 위에 남아있으면 화면 겹침. setOpen(false) 가 사용자 보고한 issue 의 직접 원인 fix. |
+| **모바일 sticky rail 풀음** | 단일 컬럼 grid 에서 sticky 가 본문 위 600px 가량 덮음. static 으로 변경. |
+
+---
+
+### 18-7. 알려진 한계 / TODO
+
+- [ ] **Admin UI 미구현** — 현재 운영자가 `GET /api/partner/admin?key=...` JSON 응답을 직접 읽어야 함. 향후 `/admin/partners` 라우트 + 카드 그리드 + "Approve → import to DB" 버튼.
+- [ ] **운영자 알림 자동화** — 현재는 응답의 admin_handoff_url 을 신청자가 받는데, 신청자가 그걸 안 누르면 운영자가 모름. 별도 webhook / email / SMS forward 필요.
+- [ ] **submissions/ git 처리** — 현재 server/.gitignore 에 안 들어가있음. PII 포함 가능하므로 추가 필요.
+- [ ] **이메일 검증** — 현재 이메일 형식 단순 검증 없음 (length cap 만). Zod 같은 schema validator 도입 고려.
+- [ ] **중복 신청 핸들링** — 같은 브랜드명으로 여러 번 신청 시 합치는 룰 없음. 운영자가 수기로 정리.
+- [ ] **다국어 신청 폼** — 현재 폼 라벨은 영문 (한국 운영자 직접 입력하는 케이스도 있음). 한국어 라벨 토글 또는 자동 감지 도입.
+
+---
+
+*§18 갱신: 2026-05-12 (Partner application + Korean B2B FAB). 룰 핵심: **자동 등록 X · 운영자가 admin UI 에서 검토 후 import**.*
