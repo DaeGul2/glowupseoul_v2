@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage.jsx';
 import CategoryPage from './pages/CategoryPage.jsx';
 import TreatmentDetailPage from './pages/TreatmentDetailPage.jsx';
 import HospitalDetailPage from './pages/HospitalDetailPage.jsx';
+import DeviceDetailPage from './pages/DeviceDetailPage.jsx';
 import ResultsPage from './pages/ResultsPage.jsx';
 import AboutPage from './pages/AboutPage.jsx';
 import HowItWorksPage from './pages/HowItWorksPage.jsx';
@@ -21,6 +22,7 @@ function parseHash() {
   if (parts[0] === 'category' && parts[1]) return { name: 'category', slug: parts[1] };
   if (parts[0] === 'treatment' && parts[1]) return { name: 'treatment', slug: parts[1] };
   if (parts[0] === 'clinic' && parts[1]) return { name: 'clinic', slug: parts[1] };
+  if (parts[0] === 'device' && parts[1]) return { name: 'device', slug: parts[1] };
   if (parts[0] === 'results') return { name: 'results' };
   if (parts[0] === 'about' || parts[0] === 'about-us') return { name: 'about' };
   if (parts[0] === 'how-it-works' || parts[0] === 'how') return { name: 'how' };
@@ -69,6 +71,7 @@ export default function App() {
       {route.name === 'category'  && <CategoryPage slug={route.slug} />}
       {route.name === 'treatment' && <TreatmentDetailPage slug={route.slug} />}
       {route.name === 'clinic'    && <HospitalDetailPage slug={route.slug} />}
+      {route.name === 'device'    && <DeviceDetailPage slug={route.slug} />}
       {route.name === 'results'   && <ResultsPage snapshot={scanResult?.snapshot} ai={scanResult?.ai} prefs={scanResult?.prefs} onRestart={flow.restart} />}
       {route.name === 'about'     && <AboutPage />}
       {route.name === 'how'       && <HowItWorksPage />}

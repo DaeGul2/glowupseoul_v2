@@ -10,6 +10,7 @@ import { brands, brandBySlug, brandById } from './brands.js';
 import { hospitals, hospitalBySlug, hospitalById } from './hospitals.js';
 import { hospitalProcedures, hpByHospital, hpByProcedure } from './hospitalProcedures.js';
 import { publicFeedEntries } from './publicFeed.js';
+import { devices, deviceBySlug } from './devices.js';
 
 // ---------- Query helpers (병원 + 시술 join 한 row 만들기) ----------
 
@@ -94,6 +95,50 @@ export const db = {
     );
     return [...concernIds].map((id) => concernById[id]).filter(Boolean);
   },
+
+  // ---------- Device-axis queries ----------
+  // For a device, return all hospital_procedures rows whose device_brands intersect
+  // its known brand strings, joined with procedure + hospital.
+  devicesWithStats() {
+    return devices.map((d) => {
+      const brandSet = new Set(d.brands);
+      const matched = hospitalProcedures.filter((hp) =>
+        hp.offered && (hp.device_brands || []).some((b) => brandSet.has(b))
+      );
+      const clinicIds = new Set(matched.map((hp) => hp.hospital_id));
+      const prices = matched
+        .filter((hp) => hp.price_disclosed && hp.starting_price_krw)
+        .map((hp) => hp.starting_price_krw);
+      const priceMin = prices.length ? Math.min(...prices) : null;
+      const priceMax = prices.length ? Math.max(...prices) : null;
+      const heroProcedure = procedureBySlug[d.hero_procedure_slug] || null;
+      return {
+        device: d,
+        match_count: matched.length,
+        clinic_count: clinicIds.size,
+        price_min: priceMin,
+        price_max: priceMax,
+        hero_procedure: heroProcedure,
+      };
+    });
+  },
+
+  offeringsForDevice(deviceSlug) {
+    const d = deviceBySlug[deviceSlug];
+    if (!d) return [];
+    const brandSet = new Set(d.brands);
+    return hospitalProcedures
+      .filter((hp) => hp.offered && (hp.device_brands || []).some((b) => brandSet.has(b)))
+      .map((hp) => ({
+        hp,
+        procedure: procedureById[hp.procedure_id],
+        hospital: hospitalById[hp.hospital_id],
+        brand: brandById[hospitalById[hp.hospital_id].brand_id],
+        discount_pct: hp.original_price_krw && hp.starting_price_krw ? Math.round((1 - hp.starting_price_krw / hp.original_price_krw) * 100) : 0,
+      }));
+  },
+
+  devices, deviceBySlug,
 
   proceduresForConcern(concernId) {
     return concernProcedures

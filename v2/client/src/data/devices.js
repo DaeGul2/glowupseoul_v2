@@ -1,0 +1,113 @@
+// Device-name taxonomy — foreign patients ask for treatments by *brand name*
+// ("can I get Ulthera at Hershe?") not by clinical mechanism ("HIFU").
+//
+// Each entry groups one or more device_brands strings (matched against
+// hospital_procedures.device_brands) and points at a "hero" procedure to deep-link to.
+// Stays in sync with src/data/mechanisms.js + src/data/procedures.js manually.
+
+export const devices = [
+  {
+    slug: 'ulthera',
+    name_en: 'Ulthera',     name_ko: '울쎄라',     name_zh: '超声刀',
+    mechanism: 'hifu',       mechanism_label_en: 'HIFU · non-invasive lifting',
+    brands: ['Ulthera SPT', 'Ulthera Prime', 'Ulthera'],
+    hero_procedure_slug: 'hifu_face',
+    blurb: 'The original FDA-cleared focused ultrasound, SMAS-layer lift.',
+    image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=80',
+    badge: 'iconic',
+  },
+  {
+    slug: 'shurink',
+    name_en: 'Shurink',     name_ko: '슈링크',     name_zh: '舒立金',
+    mechanism: 'hifu',       mechanism_label_en: 'HIFU · K-favored',
+    brands: ['Shurink', 'Shurink Universe'],
+    hero_procedure_slug: 'hifu_face',
+    blurb: 'Korean HIFU favored for fewer side effects and quick recovery.',
+    image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=900&q=80',
+  },
+  {
+    slug: 'thermage',
+    name_en: 'Thermage FLX', name_ko: '써마지 FLX', name_zh: 'Thermage',
+    mechanism: 'rf',         mechanism_label_en: 'Monopolar RF · skin tightening',
+    brands: ['Thermage FLX', 'Thermage CPT'],
+    hero_procedure_slug: 'rf_thermage',
+    blurb: 'Single-session monopolar RF — collagen contraction.',
+    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=900&q=80',
+    badge: 'premium',
+  },
+  {
+    slug: 'inmode',
+    name_en: 'InMode',       name_ko: '인모드',     name_zh: 'InMode',
+    mechanism: 'rf',         mechanism_label_en: 'RF + muscle stim · combo',
+    brands: ['InMode Forma', 'InMode Morpheus8'],
+    hero_procedure_slug: 'inmode',
+    blurb: 'Bipolar RF + EM stim — fat, tightening, toning combined.',
+    image: 'https://images.unsplash.com/photo-1522337360-f1a92ca40fb1?auto=format&fit=crop&w=900&q=80',
+  },
+  {
+    slug: 'picosure',
+    name_en: 'PicoSure',     name_ko: '피코슈어',   name_zh: '皮秒激光',
+    mechanism: 'laser_pico', mechanism_label_en: 'Pico laser · pigment + tone',
+    brands: ['PicoSure', 'PicoWay', 'Pico Plus'],
+    hero_procedure_slug: 'picosure_pico',
+    blurb: 'Ultra-short pulse laser for pigment, tattoo, skin tone.',
+    image: 'https://images.unsplash.com/photo-1612349316228-b3c3f3c4f8f1?auto=format&fit=crop&w=900&q=80',
+  },
+  {
+    slug: 'co2_fractional',
+    name_en: 'CO2 Fractional', name_ko: 'CO2 프락셔널', name_zh: 'CO2点阵',
+    mechanism: 'laser_co2',  mechanism_label_en: 'Ablative resurfacing · scars',
+    brands: ['Lutronic eCO2', 'SmartXide'],
+    hero_procedure_slug: 'frax_co2',
+    blurb: 'Fractional ablative resurfacing for acne scars and pores.',
+    image: 'https://images.unsplash.com/photo-1559599101-f09722fb4948?auto=format&fit=crop&w=900&q=80',
+  },
+  {
+    slug: 'coolsculpting',
+    name_en: 'CoolSculpting', name_ko: '쿨스컬프팅', name_zh: '酷塑',
+    mechanism: 'cryolipo',   mechanism_label_en: 'Cryolipolysis · fat freezing',
+    brands: ['Zeltiq CoolSculpting'],
+    hero_procedure_slug: 'cryolipo_body',
+    blurb: 'Non-invasive fat reduction via controlled cooling.',
+    image: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=900&q=80',
+  },
+  {
+    slug: 'emsculpt',
+    name_en: 'EMSCULPT NEO', name_ko: '엠스컬프트', name_zh: 'EMSCULPT',
+    mechanism: 'em_muscle',  mechanism_label_en: 'EM stim · muscle + fat',
+    brands: ['BTL EMSCULPT NEO'],
+    hero_procedure_slug: 'emsculpt',
+    blurb: 'Electromagnetic muscle stimulation — build + reduce.',
+    image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80',
+  },
+  {
+    slug: 'rejuran',
+    name_en: 'Rejuran',      name_ko: '리쥬란',     name_zh: '婴儿针',
+    mechanism: 'skinbooster', mechanism_label_en: 'Salmon PN · regen',
+    brands: ['Rejuran I', 'Rejuran Healer'],
+    hero_procedure_slug: 'rejuran_healer',
+    blurb: 'Salmon DNA-derived PN — skin regeneration injection.',
+    image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=900&q=80',
+    badge: 'k-favorite',
+  },
+  {
+    slug: 'juvelook',
+    name_en: 'Juvelook',     name_ko: '쥬베룩',     name_zh: '少女针',
+    mechanism: 'skinbooster', mechanism_label_en: 'PDLA + HA · collagen + hydration',
+    brands: ['Juvelook'],
+    hero_procedure_slug: 'skinbooster_juvelook',
+    blurb: 'PDLA + HA combined for collagen + hydration.',
+    image: 'https://images.unsplash.com/photo-1571066811602-716837d681de?auto=format&fit=crop&w=900&q=80',
+  },
+  {
+    slug: 'hydrafacial',
+    name_en: 'HydraFacial',  name_ko: '아쿠아필 · 하이드라페이셜', name_zh: '海菲秀',
+    mechanism: null,         mechanism_label_en: 'Hydradermabrasion · facial',
+    brands: ['HydraFacial'],
+    hero_procedure_slug: 'aquapeel_facial',
+    blurb: 'Hydradermabrasion + extraction medical facial.',
+    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=900&q=80',
+  },
+];
+
+export const deviceBySlug = Object.fromEntries(devices.map((d) => [d.slug, d]));
