@@ -244,7 +244,7 @@
     "source": "google"
   },
   "soi_강남점": {
-    "fetchedAt": 1778553573615,
+    "fetchedAt": 1778749148083,
     "placeId": "ChIJVVo2KxijfDURI9uIFSj3MRw",
     "data": {
       "placeId": "ChIJVVo2KxijfDURI9uIFSj3MRw",
@@ -272,35 +272,11 @@
           "language": "en",
           "relative": "a year ago",
           "publishedAt": "2024-10-23T00:55:42.148133Z"
-        },
-        {
-          "author": "y kyo",
-          "photo": "https://lh3.googleusercontent.com/a-/ALV-UjW7syORuJt3eYcdoq3XmFicwDcxtidWHV1Ec9Z0hztPW3_p-Rc=s128-c0x00000000-cc-rp-mo",
-          "rating": 5,
-          "text": "I discussed the treatment details in advance via LINE, and they spoke very fluent Japanese, responded quickly, and communicated smoothly. ☺️\n\nThe day before, they informed me that a Japanese interpreter would not be available and that they would be using a translation app to guide me. ✨\n\nThe clinic was very clean and smelled wonderful. 🌿\nThe sofas were large, so even if there were multiple patients, I could comfortably sit and wait. 🦥\n\nThe restroom was outside the clinic, but it was just outside the entrance, and it was practically a private restroom. 😊\nThe hand soap and hand cream were also from famous Korean brands. 🫧\n\nThe counselor typed very quickly, and the consultation went smoothly. ✌🏽\nThey were fully aware of my LINE consultation, explained all the precautions and benefits, and patiently answered my questions. 🥺\nEven though we were communicating via text, they were so patient and detailed that it almost felt like an apology. ☺️\n\nEsthetician? The staff and nurses were all so kind and attentive, it felt like I was at a high-end beauty salon. 💕\n\nAnd the deputy director was so handsome, I was able to endure the pain of the manual injections. lol\n\nOn our way out, he gave each of us a heating pad, saying it was cold. 😆\n\nThe clinic is located near Nonhyeon Station, a little outside the center of Gangnam, but it's only a one-minute walk from the exit, so it's definitely a clinic I'd like to visit when I visit Korea. 💄✨",
-          "language": "en",
-          "relative": "5 months ago",
-          "publishedAt": "2025-12-03T11:52:07.572349869Z"
-        },
-        {
-          "author": "木村舞",
-          "photo": "https://lh3.googleusercontent.com/a/ACg8ocIhdM-ilRQF8-CExfpb_ON8mrTyOkq3dXQJDyoRpBDX8L2KyA=s128-c0x00000000-cc-rp-mo",
-          "rating": 5,
-          "text": "The clinic is conveniently located just a 30-second walk from Nonhyeon Station and is clean.\nBoth the staff and the director are very nice. ◎\nThis time I went for a fat-dissolving injection event, and it was very affordable and I'm very satisfied!\nThe before and after photos of my shoulder filler here are incredibly beautiful.\nThey're also famous for pelvic, buttock, protruding ear, forehead, and lip fillers, so I'd like to go for a filler treatment next time. ♡",
-          "language": "en",
-          "relative": "3 months ago",
-          "publishedAt": "2026-01-15T09:14:40.807444131Z"
-        },
-        {
-          "author": "M M",
-          "photo": "https://lh3.googleusercontent.com/a/ACg8ocKJ3XlL3l5SRiTW9eodhuUI_dtEkMuN_uzW2XWADnwXdNiN_Q=s128-c0x00000000-cc-rp-mo",
-          "rating": 5,
-          "text": "I was interested in collagen injections and found this clinic after searching on Instagram. They offered a wider selection of collagen and fillers than in Japan, and suggested the one that would suit my face. They also informed me of the price each time during the consultation, so I was able to receive the treatment with peace of mind. I was considering collagen injections in the hollows under my eyes, but decided to combine Scultra with collagen, which can also lift the entire face and treat nasolabial folds. The injections were painful, but I'm happy with the results. I'm looking forward to seeing the changes in a few months. Thank you for your care!",
-          "language": "en",
-          "relative": "5 months ago",
-          "publishedAt": "2025-12-12T07:32:23.592054667Z"
         }
-      ]
+      ],
+      "review_lang_breakdown": {
+        "en": 2
+      }
     },
     "source": "google"
   },

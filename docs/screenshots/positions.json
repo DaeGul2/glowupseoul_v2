@@ -1,0 +1,158 @@
+{
+  "01_home": {
+    "file": "01_home.png",
+    "page_height": 12686,
+    "slots": [
+      {
+        "selector": ".gs-bento-bg",
+        "label": "A",
+        "desc": "카테고리 hero_image_url / thumbnail_url",
+        "rect": [
+          50,
+          3931.8,
+          662,
+          448
+        ],
+        "index": 0
+      },
+      {
+        "selector": ".gs-bento-bg",
+        "label": "A",
+        "desc": "카테고리 hero_image_url / thumbnail_url",
+        "rect": [
+          728,
+          3931.8,
+          323,
+          216
+        ],
+        "index": 1
+      },
+      {
+        "selector": ".gs-bento-bg",
+        "label": "A",
+        "desc": "카테고리 hero_image_url / thumbnail_url",
+        "rect": [
+          1067,
+          3931.8,
+          323,
+          216
+        ],
+        "index": 2
+      },
+      {
+        "selector": ".gs-bento-bg",
+        "label": "A",
+        "desc": "카테고리 hero_image_url / thumbnail_url",
+        "rect": [
+          728,
+          4163.8,
+          662,
+          216
+        ],
+        "index": 3
+      },
+      {
+        "selector": ".gs-bento-bg",
+        "label": "A",
+        "desc": "카테고리 hero_image_url / thumbnail_url",
+        "rect": [
+          50,
+          4395.8,
+          323,
+          216
+        ],
+        "index": 4
+      },
+      {
+        "selector": ".gs-bento-bg",
+        "label": "A",
+        "desc": "카테고리 hero_image_url / thumbnail_url",
+        "rect": [
+          389,
+          4395.8,
+          323,
+          216
+        ],
+        "index": 5
+      },
+      {
+        "selector": ".gs-bento-bg",
+        "label": "A",
+        "desc": "카테고리 hero_image_url / thumbnail_url",
+        "rect": [
+          728,
+          4395.8,
+          323,
+          216
+        ],
+        "index": 6
+      },
+      {
+        "selector": ".gs-bento-bg",
+        "label": "A",
+        "desc": "카테고리 hero_image_url / thumbnail_url",
+        "rect": [
+          1067,
+          4395.8,
+          323,
+          216
+        ],
+        "index": 7
+      }
+    ]
+  },
+  "02_category": {
+    "file": "02_category.png",
+    "page_height": 1607,
+    "slots": [
+      {
+        "selector": ".gs-treatment-card .thumb, .gs-treatment-card-thumb",
+        "label": "B",
+        "desc": "시술 thumbnail_url",
+        "rect": [
+          48,
+          494.9,
+          421.3,
+          505.6
+        ],
+        "index": 0
+      }
+    ]
+  },
+  "03_treatment": {
+    "file": "03_treatment.png",
+    "page_height": 2682,
+    "slots": [
+      {
+        "selector": ".gs-detail-hero",
+        "label": "A",
+        "desc": "시술 thumbnail_url",
+        "rect": [
+          80,
+          87,
+          1280,
+          563
+        ],
+        "index": 0
+      }
+    ]
+  },
+  "04_hospital": {
+    "file": "04_hospital.png",
+    "page_height": 3213,
+    "slots": [
+      {
+        "selector": ".gs-clinic-hero",
+        "label": "A",
+        "desc": "병원 hero_image_url",
+        "rect": [
+          0,
+          87,
+          1440,
+          360
+        ],
+        "index": 0
+      }
+    ]
+  }
+}

@@ -115,6 +115,8 @@ function BentoCategories() {
             const procs = db.proceduresByCategory(c.slug);
             const offerings = procs.reduce((sum, p) => sum + db.hospitalCountForProcedure(p.id), 0);
             const L = BENTO_LAYOUT[c.slug] || { size: 'std', sym: '✦', img: '' };
+            // Admin-uploaded image wins; fall back to the hardcoded layout image, then nothing.
+            const imageUrl = c.hero_image_url || c.thumbnail_url || L.img || '';
             return (
               <button
                 key={c.slug}
@@ -122,7 +124,7 @@ function BentoCategories() {
                 data-size={L.size}
                 onClick={() => navigate(`/category/${c.slug}`)}
               >
-                <div className="gs-bento-bg" style={{ backgroundImage: `url(${L.img})` }} />
+                <div className="gs-bento-bg" style={{ backgroundImage: `url(${imageUrl})` }} />
                 <div className="gs-bento-tint" />
                 <div className="gs-bento-content">
                   <div className="gs-bento-top">
@@ -133,8 +135,14 @@ function BentoCategories() {
                     <span className="gs-bento-name-en">{c.name_en}</span>
                     <span className="gs-bento-name-ko">{c.name_ko}</span>
                     <div className="gs-bento-meta">
-                      <span>{procs.length} treatments</span>
-                      <span>· {offerings} offerings</span>
+                      {procs.length > 0 ? (
+                        <>
+                          <span>{procs.length} treatments</span>
+                          <span>· {offerings} offerings</span>
+                        </>
+                      ) : (
+                        <span>Coming soon</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -343,12 +351,17 @@ export default function HomePage() {
       .slice(0, 5)
   ), [empty]);
 
+  // Partial-empty: catalog has categories (운영자가 채우기 시작) but no procedures/hospitals yet.
+  // Show categories anyway so the operator can verify their work in real time.
+  const hasCategories = db.procedureCategories.length > 0;
+
   if (empty) {
     return (
       <>
         <Hero />
         <PressMarquee />
         <Editorial />
+        {hasCategories && <BentoCategories />}
         <div className="gs-empty-state">
           <div className="gs-empty-state-mark">✦</div>
           <h2>The catalog is <em>being populated.</em></h2>

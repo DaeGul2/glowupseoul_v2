@@ -25,6 +25,7 @@ TEXT        = RGBColor(0x2A, 0x2A, 0x2A)
 TEXT_SOFT   = RGBColor(0x5A, 0x5A, 0x5A)
 TEXT_MUTED  = RGBColor(0x8A, 0x8A, 0x8A)
 GOLD        = RGBColor(0xC9, 0xA0, 0x63)
+GOLD_DARK   = RGBColor(0x9A, 0x77, 0x44)
 GOLD_LIGHT  = RGBColor(0xE8, 0xD4, 0xB2)
 WARN        = RGBColor(0xC4, 0x55, 0x4D)
 WARN_BG     = RGBColor(0xFA, 0xEC, 0xEA)
@@ -403,6 +404,165 @@ def step_slide(n, total, *, step_label, step_title, est_time,
     return s
 
 # ===============================================================
+# Usage map helper — "이 사진은 사이트 어디에 나오나"
+# ===============================================================
+def usage_slide(n, total, *, label, title, summary, slots, pages):
+    """
+    slots: list of (id, name, size, note)
+    pages: list of (page_name, route, items) where items = list of (slot_id, location_desc)
+    """
+    s = prs.slides.add_slide(BLANK)
+    add_bg(s); add_left_marker(s); add_brand_mark(s); add_page_no(s, n, total)
+    add_eyebrow(s, label)
+    add_h1(s, title)
+    add_subtitle(s, summary, y=Inches(2.1))
+
+    # Left column — photo slots
+    lx, ly = Inches(0.7), Inches(2.95)
+    lw = Inches(5.5)
+    add_text(s, lx, ly, lw, Inches(0.35),
+             "📷  사진 슬롯 (admin 입력)", size=12, bold=True, color=TEXT, auto_grow=False)
+    cy = ly + Inches(0.45)
+    for sid, sname, ssize, snote in slots:
+        # card
+        add_rect(s, lx, cy, lw, Inches(0.8), WHITE, line=LINE)
+        add_rect(s, lx, cy, Inches(0.05), Inches(0.8), GOLD)
+        # number badge
+        add_rect(s, lx + Inches(0.2), cy + Inches(0.18), Inches(0.35), Inches(0.35), GOLD)
+        add_text(s, lx + Inches(0.2), cy + Inches(0.2), Inches(0.35), Inches(0.32),
+                 sid, size=14, bold=True, color=WHITE,
+                 align=PP_ALIGN.CENTER, font=EN_FONT, auto_grow=False)
+        # name + size
+        add_text(s, lx + Inches(0.7), cy + Inches(0.12), lw - Inches(0.8), Inches(0.3),
+                 sname, size=12, bold=True, color=TEXT, auto_grow=False)
+        add_text(s, lx + Inches(0.7), cy + Inches(0.38), lw - Inches(0.8), Inches(0.22),
+                 ssize, size=9.5, color=GOLD, italic=True, auto_grow=False)
+        # hint
+        add_text(s, lx + Inches(0.7), cy + Inches(0.58), lw - Inches(0.8), Inches(0.22),
+                 snote, size=9.5, color=TEXT_MUTED, auto_grow=False)
+        cy += Inches(0.92)
+
+    # Right column — site usage
+    rx, ry = Inches(6.6), Inches(2.95)
+    rw = Inches(6.0)
+    add_text(s, rx, ry, rw, Inches(0.35),
+             "🌐  사이트의 어디에 보여요?", size=12, bold=True, color=TEXT, auto_grow=False)
+    cy = ry + Inches(0.45)
+    for page_name, route, items in pages:
+        # page header
+        add_rect(s, rx, cy, rw, Inches(0.42), BG_SOFT)
+        add_text(s, rx + Inches(0.2), cy + Inches(0.08), rw - Inches(0.4), Inches(0.28),
+                 page_name, size=11, bold=True, color=TEXT, auto_grow=False)
+        add_text(s, rx + Inches(0.2), cy + Inches(0.27), rw - Inches(0.4), Inches(0.18),
+                 route, size=9, color=TEXT_MUTED, italic=True,
+                 font=EN_FONT, auto_grow=False)
+        cy += Inches(0.5)
+        # items
+        for sid, desc in items:
+            # slot id badge
+            add_rect(s, rx + Inches(0.1), cy + Inches(0.04), Inches(0.28), Inches(0.28), GOLD_LIGHT)
+            add_text(s, rx + Inches(0.1), cy + Inches(0.06), Inches(0.28), Inches(0.25),
+                     sid, size=11, bold=True, color=GOLD_DARK,
+                     align=PP_ALIGN.CENTER, font=EN_FONT, auto_grow=False)
+            # description
+            add_text(s, rx + Inches(0.5), cy + Inches(0.04), rw - Inches(0.6), Inches(0.32),
+                     desc, size=10.5, color=TEXT_SOFT, auto_grow=False)
+            cy += Inches(0.38)
+        cy += Inches(0.1)
+    return s
+
+# ===============================================================
+# Photo usage slide — annotated screenshot of real site
+# ===============================================================
+SCREEN_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'docs', 'screenshots', 'annotated'))
+
+def photo_usage_slide(n, total, *, label, title, lede,
+                      slots, images=None, fallback_note=None):
+    """
+    slots: list of dicts {label, name, size, where}
+    images: list of (file_basename_without_ext, caption) — files under docs/screenshots/annotated/
+    fallback_note: shown when images is empty/missing — explain why no screenshot.
+    """
+    s = prs.slides.add_slide(BLANK)
+    add_bg(s); add_left_marker(s); add_brand_mark(s); add_page_no(s, n, total)
+    add_eyebrow(s, label)
+    add_h1(s, title)
+    add_subtitle(s, lede, y=Inches(2.1))
+
+    # Left column — slot list
+    lx, ly = Inches(0.7), Inches(2.95)
+    lw = Inches(4.6)
+    add_text(s, lx, ly, lw, Inches(0.35),
+             "📷  사진 슬롯 (admin 입력)", size=12, bold=True, color=TEXT, auto_grow=False)
+
+    cy = ly + Inches(0.45)
+    card_h = Inches(0.95)
+    for slot in slots:
+        add_rect(s, lx, cy, lw, card_h, WHITE, line=LINE)
+        add_rect(s, lx, cy, Inches(0.05), card_h, GOLD)
+        # circle badge (rendered as filled rect because pptx doesn't have round)
+        badge_size = Inches(0.42)
+        bx = lx + Inches(0.18)
+        by = cy + (card_h - badge_size) / 2
+        add_rect(s, bx, by, badge_size, badge_size, GOLD)
+        add_text(s, bx, by + Inches(0.03), badge_size, Inches(0.36),
+                 slot['label'], size=18, bold=True, color=WHITE,
+                 align=PP_ALIGN.CENTER, font=EN_FONT, auto_grow=False)
+        # text block
+        tx = bx + badge_size + Inches(0.18)
+        tw = lw - (tx - lx) - Inches(0.15)
+        add_text(s, tx, cy + Inches(0.12), tw, Inches(0.3),
+                 slot['name'], size=12, bold=True, color=TEXT, auto_grow=False)
+        add_text(s, tx, cy + Inches(0.4), tw, Inches(0.25),
+                 slot['size'], size=10, color=GOLD, italic=True, auto_grow=False)
+        add_text(s, tx, cy + Inches(0.62), tw, Inches(0.28),
+                 slot['where'], size=10, color=TEXT_MUTED, auto_grow=False)
+        cy += card_h + Inches(0.12)
+
+    # Right column — image(s) or note
+    rx, ry = Inches(5.55), Inches(2.95)
+    rw = Inches(7.3)
+    add_text(s, rx, ry, rw, Inches(0.35),
+             "🌐  실제 사이트 화면 — 박스가 표시된 곳에 사진이 들어가요",
+             size=12, bold=True, color=TEXT, auto_grow=False)
+
+    avail_top = ry + Inches(0.45)
+    avail_h   = Inches(3.6)   # leave room below for image bottom
+    caption_h = Inches(0.25)
+    if images:
+        n = len(images)
+        slot_total_h = avail_h / n
+        slot_img_h   = slot_total_h - caption_h - Inches(0.08)
+        for i, (basename, caption) in enumerate(images):
+            img_path = os.path.join(SCREEN_DIR, f'{basename}.png')
+            if not os.path.exists(img_path):
+                continue
+            from PIL import Image as PILImage
+            with PILImage.open(img_path) as p:
+                w_px, h_px = p.width, p.height
+            ratio = w_px / h_px
+            # fit width first
+            target_w = rw
+            target_h = target_w / ratio
+            # cap height if it would exceed slot
+            if target_h > slot_img_h:
+                target_h = slot_img_h
+                target_w = target_h * ratio
+            ix = rx + (rw - target_w) / 2
+            iy = avail_top + slot_total_h * i
+            s.shapes.add_picture(img_path, ix, iy, width=target_w, height=target_h)
+            if caption:
+                cap_y = iy + target_h + Inches(0.04)
+                add_text(s, rx, cap_y, rw, caption_h,
+                         caption, size=9.5, color=TEXT_MUTED, italic=True,
+                         align=PP_ALIGN.CENTER, auto_grow=False)
+    elif fallback_note:
+        add_rect(s, rx, avail_top, rw, Inches(2.4), BG_SOFT)
+        add_text(s, rx + Inches(0.3), avail_top + Inches(0.3), rw - Inches(0.6), Inches(2.0),
+                 fallback_note, size=12, color=TEXT_SOFT, line_spacing=1.55, auto_grow=False)
+    return s
+
+# ===============================================================
 # Step slides
 # ===============================================================
 @reg
@@ -424,6 +584,23 @@ def step1(n, total):
         warn=("카테고리는 새로 만들지 마세요",
               "8개가 사이트 분류 체계의 뼈대입니다. 추가/삭제하면 흔들립니다.",
               GOLD, GOLD_LIGHT, "✦"),
+    )
+
+@reg
+def step1_usage(n, total):
+    photo_usage_slide(n, total,
+        label="STEP 1 · 카테고리 사진 — 사이트 어디에 보이나",
+        title="카테고리 사진이 보이는 곳",
+        lede="admin에서 올린 카테고리 사진은 홈의 'Browse by area' 그리드에 그대로 나옵니다.",
+        slots=[
+            {"label": "A", "name": "thumbnail_url",
+             "size": "권장 800×800",
+             "where": "BentoCategories 카드의 작은 사진 (fallback)"},
+            {"label": "A", "name": "hero_image_url",
+             "size": "권장 1600×900",
+             "where": "카드의 메인 배경 사진 — 우선 사용"},
+        ],
+        images=[("01_home", "홈 페이지 → 'Browse by area' 섹션 (8 카드 모두 카테고리 hero/thumbnail)")],
     )
 
 @reg
@@ -471,6 +648,26 @@ def step3(n, total):
         warn=("한국어 + 영어 이름 모두 채우기",
               "외국인 환자는 영어, 운영자는 한국어로 봅니다.",
               GOLD, GOLD_LIGHT, "✦"),
+    )
+
+@reg
+def step3_usage(n, total):
+    photo_usage_slide(n, total,
+        label="STEP 3 · 시술 사진 — 사이트 어디에 보이나",
+        title="시술 사진이 보이는 곳",
+        lede="시술 thumbnail 은 카드 형태로 거의 모든 페이지에서 노출됩니다. hero/gallery 는 시술 상세 페이지에서.",
+        slots=[
+            {"label": "A", "name": "thumbnail_url",
+             "size": "권장 800×600",
+             "where": "카테고리 그리드 / 매칭 결과 / AI 추천 카드 — 거의 모든 곳"},
+            {"label": "B", "name": "thumbnail_url (또는 gallery_urls[0])",
+             "size": "권장 1600×900",
+             "where": "시술 상세 페이지 상단 hero 큰 사진"},
+        ],
+        images=[
+            ("02_category", "카테고리 페이지 → 시술 그리드 카드 (A: thumbnail_url)"),
+            ("03_treatment", "시술 상세 페이지 → 상단 hero (B: thumbnail_url 또는 gallery 첫 장)"),
+        ],
     )
 
 @reg
@@ -555,6 +752,26 @@ def step5a(n, total):
               "기본값은 '대기 중'. 활성으로 바꾸지 않으면 사이트에 절대 안 보입니다. 가장 흔한 실수.",),
     )
 
+@reg
+def step5a_usage(n, total):
+    photo_usage_slide(n, total,
+        label="STEP 5-1 · 병원 사진 — 사이트 어디에 보이나",
+        title="병원 사진이 보이는 곳",
+        lede="병원 hero 는 병원 상세 페이지 상단의 큰 사진. thumbnail 은 비교 카드에서.",
+        slots=[
+            {"label": "A", "name": "hero_image_url",
+             "size": "권장 1600×900",
+             "where": "병원 상세 페이지 상단의 큰 배경 사진"},
+            {"label": "—", "name": "thumbnail_url",
+             "size": "권장 800×600",
+             "where": "시술 상세 페이지의 병원 비교 카드 · 디바이스 페이지"},
+            {"label": "—", "name": "gallery_urls",
+             "size": "권장 1200×800 × 5장",
+             "where": "병원 상세 페이지 갤러리 섹션 (데이터 채워야 표시)"},
+        ],
+        images=[("04_hospital", "병원 상세 페이지 → 상단 hero (A: hero_image_url)")],
+    )
+
 # ===============================================================
 # STEP 5-2
 # ===============================================================
@@ -579,6 +796,31 @@ def step5b(n, total):
         warn=("사진이 가장 중요",
               "이름·경력만 있고 사진이 없으면 신뢰도가 떨어져요. 병원에서 사진 받아오는 게 우선.",
               GOLD, GOLD_LIGHT, "✦"),
+    )
+
+@reg
+def step5b_usage(n, total):
+    photo_usage_slide(n, total,
+        label="STEP 5-2 · 의사 사진 — 사이트 어디에 보이나",
+        title="의사 사진이 보이는 곳",
+        lede="병원 편집 화면에서 추가한 의사 사진은 병원 상세 페이지의 의사 카드 그리드에 나옵니다.",
+        slots=[
+            {"label": "—", "name": "portrait_url",
+             "size": "권장 600×600 (정사각형)",
+             "where": "병원 상세 페이지의 의사 카드 (프로필 사진)"},
+            {"label": "—", "name": "hero_url",
+             "size": "권장 1600×900",
+             "where": "의사 상세 페이지의 hero (향후 페이지)"},
+            {"label": "—", "name": "gallery_urls",
+             "size": "권장 1200×800 × 여러 장",
+             "where": "의사 상세 페이지의 갤러리 (향후)"},
+        ],
+        fallback_note=(
+            "지금 사이트는 의사 데이터가 비어 있어서 화면 캡쳐가 없어요. "
+            "병원 편집 페이지의 '의사' 패널에서 의사를 추가하시면 — 그 병원 상세 페이지에 "
+            "자동으로 의사 카드가 나타납니다. "
+            "포트레잇 사진 한 장만 있어도 외국인 환자에게 가장 큰 신뢰 시그널이 돼요."
+        ),
     )
 
 # ===============================================================
@@ -672,6 +914,28 @@ def step5d(n, total):
         add_text(s, Inches(8.2), cy, Inches(4.5), Inches(0.4),
                  t, size=11, color=TEXT_SOFT, auto_grow=False)
         cy += Inches(0.4)
+
+@reg
+def step5d_usage(n, total):
+    photo_usage_slide(n, total,
+        label="STEP 5-4 · 전후사진 — 사이트 어디에 보이나",
+        title="B&A 사진이 보이는 곳",
+        lede="병원 편집 화면에서 추가한 before/after 짝은 그 병원 상세 페이지의 B&A 섹션에 카드 형태로 나옵니다.",
+        slots=[
+            {"label": "—", "name": "before_url",
+             "size": "권장 1000×1000 (정사각형 권장)",
+             "where": "병원 상세 페이지 B&A 섹션 — 좌측 (시술 전)"},
+            {"label": "—", "name": "after_url",
+             "size": "권장 1000×1000 (정사각형 권장)",
+             "where": "병원 상세 페이지 B&A 섹션 — 우측 (시술 후)"},
+        ],
+        fallback_note=(
+            "지금 사이트는 B&A 데이터가 비어 있어서 화면 캡쳐가 없어요. "
+            "병원 편집 페이지의 'B&A' 패널에서 추가한 전후사진은 → 자동으로 그 병원 상세 페이지의 B&A 섹션에 노출됩니다. "
+            "⚠ 등록 전 반드시 환자 서면 동의를 확인하세요 (한국 개인정보보호법). "
+            "동의가 의심스러우면 '비공개' 로 등록 후 동의 받고 공개 전환."
+        ),
+    )
 
 # ===============================================================
 # STEP 6 실시간 피드
@@ -889,9 +1153,16 @@ def build():
     total = len(SLIDES)
     for i, fn in enumerate(SLIDES, 1):
         fn(i, total)
-    out = os.path.join(os.path.dirname(__file__), "..", "docs", "admin_guidebook.pptx")
-    out = os.path.normpath(out)
-    prs.save(out)
+    base = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "docs"))
+    out = os.path.join(base, "admin_guidebook.pptx")
+    try:
+        prs.save(out)
+    except PermissionError:
+        # File is locked (PowerPoint open?) — save with a versioned name instead.
+        alt = os.path.join(base, "admin_guidebook_v2.pptx")
+        prs.save(alt)
+        out = alt
+        print(f"[note] target file locked, wrote alternate: {alt}")
     print(f"[OK] saved: {out}")
     print(f"     slides: {total}")
 
