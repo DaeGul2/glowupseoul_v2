@@ -2710,3 +2710,166 @@ button { font-family: inherit; cursor: pointer; }
   .gs-cat-card { padding: 36px 24px 28px; min-height: 220px; }
   .gs-cta-strip { padding: 96px 24px; }
 }
+
+/* ============== BIOMETRIC CONSENT (scan modal step 01) ============== */
+.gs-consent-stage { display: flex; flex-direction: column; gap: 22px; }
+.gs-consent-heading {
+  font-family: var(--serif); font-size: clamp(28px, 3.4vw, 40px); font-weight: 500;
+  line-height: 1.15; margin: 0; letter-spacing: -0.01em;
+}
+.gs-consent-heading em { font-style: italic; color: var(--accent); }
+.gs-consent-lede {
+  color: var(--text-soft); font-size: 14px; line-height: 1.65; max-width: 720px; margin: 0;
+}
+.gs-consent-skip-inline {
+  background: none; border: none; padding: 0; color: var(--accent);
+  text-decoration: underline; cursor: pointer; font: inherit;
+}
+.gs-consent-skip-inline:hover { color: var(--text); }
+
+.gs-consent-flow {
+  display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 12px;
+  align-items: stretch; background: var(--bg-soft); padding: 18px; border-radius: 6px;
+  border: 1px solid var(--border-soft);
+}
+.gs-consent-flow-step { display: flex; gap: 10px; align-items: start; min-width: 0; }
+.gs-consent-flow-num {
+  width: 24px; height: 24px; flex-shrink: 0;
+  border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+}
+.gs-consent-flow-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gs-consent-flow-body strong { font-size: 13px; color: var(--text); font-weight: 600; }
+.gs-consent-flow-body span { font-size: 11.5px; color: var(--text-muted); line-height: 1.5; }
+.gs-consent-flow-arrow { color: var(--border); font-size: 16px; align-self: center; }
+
+.gs-consent-checkboxes { display: flex; flex-direction: column; gap: 10px; }
+.gs-consent-details-toggle {
+  background: none; border: none; padding: 0;
+  color: var(--text-soft); font-size: 12px; cursor: pointer;
+  text-align: left; align-self: flex-start;
+  text-decoration: underline; text-decoration-color: var(--border);
+  text-underline-offset: 3px;
+}
+.gs-consent-details-toggle:hover { color: var(--accent); text-decoration-color: var(--accent); }
+.gs-consent-row--single { padding: 20px; }
+.gs-consent-row {
+  display: flex; gap: 14px; align-items: start;
+  padding: 16px; border: 1px solid var(--border-soft); border-radius: 6px;
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.gs-consent-row:hover { border-color: var(--border); }
+.gs-consent-row.checked { border-color: var(--accent); background: rgba(201, 160, 99, 0.04); }
+.gs-consent-row input[type="checkbox"] {
+  margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--accent);
+  cursor: pointer;
+}
+.gs-consent-row-title { font-size: 14px; color: var(--text); font-weight: 500; margin-bottom: 6px; }
+.gs-consent-row-sub { font-size: 12.5px; color: var(--text-soft); line-height: 1.6; }
+
+.gs-consent-region {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 14px 16px; background: var(--bg-soft); border-radius: 6px;
+  border: 1px solid var(--border-soft);
+}
+.gs-consent-region-label { font-size: 12px; color: var(--text-soft); }
+.gs-consent-region-warn {
+  margin-top: 6px; padding: 10px 12px;
+  background: rgba(200, 50, 50, 0.06); border-left: 3px solid var(--rose, #c83232);
+  font-size: 12.5px; color: var(--text); line-height: 1.55; border-radius: 0 4px 4px 0;
+}
+
+.gs-consent-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.gs-consent-actions .gs-cta:disabled { opacity: 0.45; cursor: not-allowed; }
+.gs-consent-footer {
+  font-size: 11.5px; color: var(--text-muted); line-height: 1.6; margin: 0;
+}
+.gs-consent-footer a { color: var(--accent); text-decoration: underline; }
+
+@media (max-width: 720px) {
+  .gs-consent-flow { grid-template-columns: 1fr; }
+  .gs-consent-flow-arrow { transform: rotate(90deg); justify-self: center; }
+}
+
+/* ============== AI banner — inline medical disclaimer ============== */
+.gs-ai-banner-disclaimer {
+  margin-top: 10px; padding: 8px 10px;
+  background: rgba(20, 18, 14, 0.04); border-left: 2px solid var(--accent);
+  font-size: 11.5px; color: var(--text-soft); line-height: 1.55; border-radius: 0 3px 3px 0;
+}
+
+/* ============== BOOT SPLASH (catalog hydrate) ============== */
+.gs-boot {
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px;
+  background: var(--bg); padding: 24px;
+}
+.gs-boot-mark {
+  font-size: 32px; color: var(--accent);
+  animation: gsBootPulse 1.6s ease-in-out infinite;
+}
+@keyframes gsBootPulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.95); }
+  50%      { opacity: 1;   transform: scale(1.08); }
+}
+.gs-boot-line { color: var(--text); }
+.gs-boot-sub  { color: var(--text-soft); font-size: 13px; }
+.gs-boot-bar {
+  width: 160px; height: 2px; background: var(--border-soft);
+  overflow: hidden; border-radius: 1px; margin-top: 4px;
+}
+.gs-boot-bar span {
+  display: block; width: 40%; height: 100%; background: var(--accent);
+  animation: gsBootSlide 1.4s ease-in-out infinite;
+}
+@keyframes gsBootSlide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* ============== CATALOG-EMPTY NOTICE (prod initial state) ============== */
+.gs-empty-state {
+  max-width: 720px; margin: 80px auto;
+  padding: 48px 40px;
+  text-align: center;
+  background: var(--bg-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+}
+.gs-empty-state-mark { font-size: 32px; color: var(--accent); margin-bottom: 16px; }
+.gs-empty-state h2 {
+  font-family: var(--serif); font-size: clamp(28px, 3.4vw, 40px);
+  font-weight: 500; line-height: 1.15; margin: 0 0 12px;
+}
+.gs-empty-state h2 em { font-style: italic; color: var(--accent); }
+.gs-empty-state p {
+  color: var(--text-soft); font-size: 14px; line-height: 1.7;
+  max-width: 540px; margin: 8px auto;
+}
+
+/* ============== MEDICAL DISCLAIMER CARD (results / case detail) ============== */
+.gs-med-disclaimer {
+  display: grid; grid-template-columns: 32px 1fr; gap: 16px; align-items: start;
+  max-width: 1480px; margin: 32px auto;
+  padding: 20px 24px;
+  background: var(--bg-soft); border-left: 3px solid var(--accent);
+  border-radius: 0 6px 6px 0;
+}
+.gs-med-disclaimer-icon {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.gs-med-disclaimer-body { font-size: 12.5px; color: var(--text-soft); line-height: 1.7; }
+.gs-med-disclaimer-body strong { color: var(--text); font-weight: 600; }
+.gs-med-disclaimer-body a { color: var(--accent); text-decoration: underline; }
+.gs-med-disclaimer-title {
+  font-family: var(--serif); font-style: italic; font-size: 18px;
+  color: var(--text); margin-bottom: 4px; font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .gs-med-disclaimer { grid-template-columns: 1fr; padding: 16px 18px; margin: 24px 16px; }
+  .gs-med-disclaimer-icon { display: none; }
+}

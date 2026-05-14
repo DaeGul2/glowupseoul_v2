@@ -329,8 +329,10 @@ export default function HomePage() {
     ogType: 'website',
   });
 
+  const empty = db.isEmpty();
+
   const trending = useMemo(() => (
-    db.procedures
+    empty ? [] : db.procedures
       .map((p) => {
         const offerings = db.offeringsForProcedure(p.id);
         const eventCount = offerings.filter((o) => o.hp.has_active_event).length;
@@ -339,7 +341,31 @@ export default function HomePage() {
       })
       .sort((a, b) => b.score - a.score)
       .slice(0, 5)
-  ), []);
+  ), [empty]);
+
+  if (empty) {
+    return (
+      <>
+        <Hero />
+        <PressMarquee />
+        <Editorial />
+        <div className="gs-empty-state">
+          <div className="gs-empty-state-mark">✦</div>
+          <h2>The catalog is <em>being populated.</em></h2>
+          <p>
+            Glow Up Seoul is preparing its 22 partner clinics for launch.
+            The concierge is already on — message Romie on WhatsApp and she'll personally walk you through your options
+            while the directory comes online.
+          </p>
+          <p style={{ marginTop: 20 }}>
+            <a href={`https://wa.me/821064871060`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
+              WhatsApp +82 10 6487 1060 →
+            </a>
+          </p>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

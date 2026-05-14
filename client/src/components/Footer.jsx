@@ -15,6 +15,8 @@ export default function Footer() {
               <button onClick={() => navigate('/how-it-works')}>How it works</button>
               <button onClick={() => navigate('/about')}>About</button>
               <button onClick={() => navigate('/faq')}>FAQ</button>
+              <button onClick={() => navigate('/privacy')}>Privacy</button>
+              <button onClick={() => navigate('/terms')}>Terms</button>
               <button onClick={() => navigate('/partner')} style={{ color: 'var(--accent)', fontWeight: 500 }}>For clinics · Apply →</button>
             </div>
           </div>

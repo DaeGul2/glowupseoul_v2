@@ -3,6 +3,7 @@
 import {
   Brand, Hospital, HospitalProcedure,
   Procedure, ProcedureCategory, Concern,
+  ConcernProcedure, Mechanism,
   PublicFeedEntry, Op,
 } from '../db/models.js';
 import { hasDbConfig } from '../db/sequelize.js';
@@ -107,6 +108,79 @@ export const hospitalDetailHandler = wrap(async (req, res) => {
     order: [['is_signature', 'DESC'], ['id', 'ASC']],
   });
   res.json({ hospital, offerings });
+});
+
+// Bootstrap — single round-trip on app boot. Returns every collection the
+// client needs to render the catalog (categories, concerns, procedures,
+// brands, hospitals, hospital_procedures, concern_procedures). Public-feed
+// has its own endpoint (different access pattern).
+export const bootstrapHandler = wrap(async (req, res) => {
+  if (!guardDb(res)) return;
+
+  const [
+    mechanisms,
+    categories,
+    concerns,
+    procedures,
+    brands,
+    hospitals,
+    hospital_procedures,
+    concern_procedures,
+  ] = await Promise.all([
+    Mechanism.findAll({
+      where: { is_active: true },
+      order: [['display_order', 'ASC']],
+    }),
+    ProcedureCategory.findAll({
+      where: { is_active: true },
+      order: [['display_order', 'ASC'], ['id', 'ASC']],
+    }),
+    Concern.findAll({
+      where: { is_active: true },
+      order: [['display_order', 'ASC'], ['id', 'ASC']],
+    }),
+    Procedure.findAll({
+      where: { is_active: true, deleted_at: null },
+      order: [['id', 'ASC']],
+    }),
+    Brand.findAll({
+      where: { is_active: true, deleted_at: null },
+      order: [['id', 'ASC']],
+    }),
+    Hospital.findAll({
+      where: { is_active: true, deleted_at: null, contract_status: 'active' },
+      order: [['id', 'ASC']],
+    }),
+    HospitalProcedure.findAll({
+      where: { offered: true },
+      order: [['id', 'ASC']],
+    }),
+    ConcernProcedure.findAll({
+      order: [['concern_id', 'ASC'], ['procedure_id', 'ASC']],
+    }),
+  ]);
+
+  res.set('Cache-Control', 'no-store');
+  res.json({
+    mechanisms,
+    categories,
+    concerns,
+    procedures,
+    brands,
+    hospitals,
+    hospital_procedures,
+    concern_procedures,
+    counts: {
+      mechanisms: mechanisms.length,
+      categories: categories.length,
+      concerns: concerns.length,
+      procedures: procedures.length,
+      brands: brands.length,
+      hospitals: hospitals.length,
+      hospital_procedures: hospital_procedures.length,
+      concern_procedures: concern_procedures.length,
+    },
+  });
 });
 
 export const feedRecentHandler = wrap(async (req, res) => {

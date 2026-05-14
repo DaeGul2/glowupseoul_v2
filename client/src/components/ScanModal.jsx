@@ -1,21 +1,40 @@
 import { useEffect, useState } from 'react';
 import FaceScanner from './FaceScanner.jsx';
 import PreferenceForm from './PreferenceForm.jsx';
+import BiometricConsentStage, { hasValidConsent } from './BiometricConsentStage.jsx';
 import db from '../data/db.js';
 
 export default function ScanModal({ open, onClose, onSubmit }) {
-  const [step, setStep] = useState('scan');
+  // 'consent' → 'scan' → 'form'. We may skip 'consent' if it was already
+  // given earlier in this tab session, and we may skip 'scan' if the user
+  // declined the biometric processing.
+  const [step, setStep] = useState('consent');
   const [snapshot, setSnapshot] = useState(null);
   const [ai, setAi] = useState(null);
+  const [scanDeclined, setScanDeclined] = useState(false);
 
   useEffect(() => {
-    if (open) { setStep('scan'); setSnapshot(null); setAi(null); }
+    if (open) {
+      setSnapshot(null);
+      setAi(null);
+      setScanDeclined(false);
+      setStep(hasValidConsent() ? 'scan' : 'consent');
+    }
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
   if (!open) return null;
 
+  function onConsentAccept() { setStep('scan'); }
+  function onConsentDecline() {
+    // User opted out of biometric processing — skip the scan entirely and
+    // jump straight to the preference form. No image is captured.
+    setScanDeclined(true);
+    setSnapshot(null);
+    setAi(null);
+    setStep('form');
+  }
   function onScanComplete(payload) {
     setSnapshot(payload?.snapshot || null);
     setAi(payload?.ai || null);
@@ -34,15 +53,31 @@ export default function ScanModal({ open, onClose, onSubmit }) {
       <div className="gs-modal-card">
         <button className="gs-modal-close" onClick={onClose} aria-label="Close">×</button>
         <div className="gs-modal-steps">
-          <span className={step === 'scan' ? 'active' : ''}>01 · Scan</span>
-          <span className={step === 'form' ? 'active' : ''}>02 · Your Story</span>
-          <span>03 · Match</span>
+          <span className={step === 'consent' ? 'active' : ''}>01 · Consent</span>
+          <span className={step === 'scan' ? 'active' : ''}>02 · Scan</span>
+          <span className={step === 'form' ? 'active' : ''}>03 · Your Story</span>
+          <span>04 · Match</span>
         </div>
+
+        {step === 'consent' && (
+          <BiometricConsentStage onAccept={onConsentAccept} onDecline={onConsentDecline} />
+        )}
 
         {step === 'scan' && <FaceScanner onComplete={onScanComplete} onSkip={onSkip} />}
 
         {step === 'form' && (
           <div className="gs-form-stage">
+            {scanDeclined && (
+              <div className="gs-ai-banner" style={{ background: 'var(--bg-soft)' }}>
+                <div className="gs-ai-banner-icon">◇</div>
+                <div className="gs-ai-banner-body">
+                  <div className="eyebrow">✦ Scan skipped</div>
+                  <h4>We'll work from your preferences alone.</h4>
+                  <p>No problem — your concierge will rely on the form below. You can request a scan
+                  later by re-opening this modal.</p>
+                </div>
+              </div>
+            )}
             {snapshot && (
               <div className="gs-snapshot-preview">
                 <img src={snapshot} alt="Your scan" />
@@ -74,6 +109,10 @@ export default function ScanModal({ open, onClose, onSubmit }) {
                       <div>Youthful vol. <strong>{ai.metrics.youthful_volume}</strong></div>
                     </div>
                   )}
+                  <p className="gs-ai-banner-disclaimer">
+                    ◇ Aesthetic-preference signals only. <strong>Not a medical diagnosis.</strong> Final treatment
+                    decisions require an in-person consultation with a licensed physician.
+                  </p>
                   {ai._mock && (
                     <p style={{ marginTop: 8, fontSize: 11, color: 'var(--rose)' }}>
                       ⚠ mock response — set OPENAI_API_KEY in server/.env for real analysis.

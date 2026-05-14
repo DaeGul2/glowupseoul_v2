@@ -12,6 +12,7 @@ import {
   procedureDetailHandler,
   hospitalsHandler,
   hospitalDetailHandler,
+  bootstrapHandler,
   feedRecentHandler,
 } from './routes/catalog.js';
 import {
@@ -57,6 +58,7 @@ app.post('/api/partner', partnerSubmitHandler);
 app.get('/api/partner/admin', partnerListHandler);
 
 // Catalog (RDS-backed reads)
+app.get('/api/catalog/bootstrap',            bootstrapHandler);
 app.get('/api/catalog/categories',           categoriesHandler);
 app.get('/api/catalog/concerns',             concernsHandler);
 app.get('/api/catalog/procedures',           proceduresHandler);

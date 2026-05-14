@@ -209,6 +209,17 @@ export default function CaseDetailModal({ entry, open, onClose }) {
           {synth?.closing && (
             <p className="gs-case-closing">{synth.closing}</p>
           )}
+
+          <div className="gs-med-disclaimer" style={{ margin: '24px 0 0' }} role="note" aria-label="Medical disclaimer">
+            <div className="gs-med-disclaimer-icon" aria-hidden="true">✦</div>
+            <div className="gs-med-disclaimer-body">
+              <div className="gs-med-disclaimer-title">Not medical advice.</div>
+              Glow Up Seoul is a foreign-patient concierge, <strong>not a medical provider</strong>. The match and
+              rationale above reflect aesthetic preference categories and are <strong>not a diagnosis or
+              prescription</strong>. Final treatment decisions require an in-person consultation with a licensed
+              physician at the chosen clinic.
+            </div>
+          </div>
         </section>
 
         {/* === INQUIRY ACTIONS — send THIS case to WhatsApp === */}

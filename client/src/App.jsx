@@ -18,6 +18,8 @@ import HowItWorksPage from './pages/HowItWorksPage.jsx';
 import ServicesPage from './pages/ServicesPage.jsx';
 import FAQPage from './pages/FAQPage.jsx';
 import PartnerApplyPage from './pages/PartnerApplyPage.jsx';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
+import TermsPage from './pages/TermsPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import AdminApp from './admin/AdminApp.jsx';
 
@@ -73,6 +75,10 @@ function SiteRoutes() {
       <Route path="/faq"             element={<FAQPage />} />
       <Route path="/partner"         element={<PartnerApplyPage />} />
       <Route path="/for-clinics"     element={<PartnerApplyPage />} />
+      <Route path="/privacy"         element={<PrivacyPolicyPage />} />
+      <Route path="/privacy-policy"  element={<PrivacyPolicyPage />} />
+      <Route path="/terms"           element={<TermsPage />} />
+      <Route path="/terms-of-service" element={<TermsPage />} />
       <Route path="*"                element={<NotFoundPage />} />
     </Routes>
   );
@@ -87,13 +93,64 @@ function ResultsRoute()   {
   return <ResultsPage snapshot={flow?.result?.snapshot} ai={flow?.result?.ai} prefs={flow?.result?.prefs} onRestart={flow?.restart} />;
 }
 
+function BootSplash() {
+  return (
+    <div className="gs-boot">
+      <div className="gs-boot-mark">✦</div>
+      <div className="gs-boot-line">
+        <em style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 28 }}>
+          Glow Up Seoul
+        </em>
+      </div>
+      <div className="gs-boot-sub">Loading the catalog…</div>
+      <div className="gs-boot-bar"><span /></div>
+    </div>
+  );
+}
+
+function BootError({ message, onRetry }) {
+  return (
+    <div className="gs-boot">
+      <div className="gs-boot-mark" style={{ color: 'var(--rose, #c83232)' }}>!</div>
+      <div className="gs-boot-line">
+        <em style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 22 }}>
+          We couldn't reach the catalog.
+        </em>
+      </div>
+      <div className="gs-boot-sub" style={{ maxWidth: 480, textAlign: 'center', lineHeight: 1.6 }}>
+        {message || 'The catalog service is temporarily unavailable.'}{' '}
+        Please try again in a moment.
+      </div>
+      <button className="gs-cta" onClick={onRetry} style={{ marginTop: 12 }}>Retry</button>
+    </div>
+  );
+}
+
 export default function App() {
   const location = useLocation();
   const [scanOpen, setScanOpen]     = useState(false);
   const [scanResult, setScanResult] = useState(null); // { snapshot, prefs, ai }
+  const [bootState, setBootState]   = useState('loading'); // 'loading' | 'ready' | 'error'
+  const [bootError, setBootError]   = useState(null);
 
-  // Pull live public-feed entries from RDS once on mount.
-  useEffect(() => { db.hydratePublicFeed(); }, []);
+  // Hydrate catalog (RDS) on mount. Live-feed hydrate kicks in parallel.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await db.hydrate();
+        if (cancelled) return;
+        setBootState('ready');
+        db.hydratePublicFeed().catch(() => {});
+      } catch (e) {
+        if (cancelled) return;
+        console.error('[boot] catalog hydrate failed', e);
+        setBootError(e?.message || 'Failed to load catalog');
+        setBootState('error');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Scroll-to-top on every route change.
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [location.pathname]);
@@ -215,10 +272,14 @@ export default function App() {
     }
   }
 
-  // Admin gets its own chrome (no Header/Footer).
+  // Admin gets its own chrome (no Header/Footer) and doesn't need the public
+  // catalog — it fetches RDS directly via /api/admin/* with its own auth.
   if (location.pathname.startsWith('/admin')) {
     return <AdminApp />;
   }
+
+  if (bootState === 'loading') return <BootSplash />;
+  if (bootState === 'error')   return <BootError message={bootError} onRetry={() => window.location.reload()} />;
 
   return (
     <ScanContext.Provider value={flow}>

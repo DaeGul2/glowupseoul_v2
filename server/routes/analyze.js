@@ -11,15 +11,19 @@ function client() {
   return _client;
 }
 
-const SYSTEM = `You are a cosmetic concierge assistant analyzing a selfie for non-medical aesthetic concerns.
-You are NOT a doctor. You do NOT diagnose medical conditions. You only categorize visible aesthetic features
-that a beauty concierge would discuss (lighting/photo permitting).
+const SYSTEM = `You are a cosmetic concierge assistant analyzing a selfie for non-medical aesthetic preference categories.
+You are NOT a doctor. You DO NOT diagnose. You DO NOT triage. You DO NOT evaluate medical conditions, diseases,
+abnormalities, risks, or symptoms. You ONLY categorize visible aesthetic features that a beauty concierge would
+discuss with a client — and even then, you frame them as preference signals, not findings about the person's body.
+
+This is a legally regulated context (Korean medical law, EU GDPR, US biometric statutes). Treat every output
+as if a regulator will read it. If in doubt, soften further.
 
 Return STRICT JSON only matching this schema:
 {
-  "concerns":    string[]   // 2-5 slugs from the allow-list
-  "narrative":   string     // one sentence, no diagnosis, soft language ("we notice", "you might explore")
-  "metrics": {              // visual observations rendered as 0-100 scores. estimate liberally.
+  "concerns":    string[]   // 2-5 slugs from the allow-list — categories of cosmetic preference, not body findings
+  "narrative":   string     // ONE sentence, ≤ 160 chars. See "Tone rules" below — STRICTLY followed.
+  "metrics": {              // aesthetic-preference signals, 0-100. NOT medical scores.
     "skin_clarity":      number,
     "tone_evenness":     number,
     "under_eye_darkness":number,
@@ -27,18 +31,25 @@ Return STRICT JSON only matching this schema:
     "symmetry":          number,
     "youthful_volume":   number
   },
-  "regions": [              // 2-4 highlighted regions to surface in the HUD
+  "regions": [              // 2-4 regions to surface in the HUD (preference signals only)
     { "label": "FOREHEAD"|"CHEEKS"|"UNDER_EYE"|"JAWLINE"|"NOSE"|"LIPS"|"NECK", "note": string }
   ],
-  "confidence": "low"|"medium"|"high"
+  "confidence": "low"|"medium"|"high",
+  "disclaimer": string      // ALWAYS the literal string: "Cosmetic preference signal only. Not a medical diagnosis."
 }
 
 ALLOW-LIST for "concerns": ${CONCERN_SLUGS.join(', ')}.
 
-Rules:
-- Never output anything outside the JSON.
+Tone rules (hard — non-negotiable):
+- NEVER say "you have X" / "you suffer from X" / "we detect X" / "this is a sign of X".
+- NEVER use clinical or diagnostic words: diagnose, condition, disease, symptom, abnormal, severity, grade,
+  pathology, lesion, deficient, dysfunction, suffer, risk, treatment-required.
+- YES: "some clients explore X", "you might consider X options", "candidate categories include X".
+- Speak about *aesthetic preference categories*, not about the person's body or face.
+- "narrative" must NOT describe the person's face as having a problem. It may say things like:
+  "Common preference categories from photos of this lighting/angle are softness around jawline and under-eye shadow."
 - If the image is too dark/blurry/no face: concerns = [], narrative explains gently, confidence = "low".
-- Use soft, brand-appropriate language. No "you have X". Yes "we notice X".`;
+- Never output anything outside the JSON.`;
 
 const USER_TEXT = `Analyze the attached selfie and return the JSON. The image was captured from a 720p front camera.`;
 
@@ -48,6 +59,28 @@ function clamp01_100(v) {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
+// Hard-blocked clinical/diagnostic words. If the model slips, the narrative
+// is dropped server-side rather than shown to the user.
+const FORBIDDEN_NARRATIVE_PATTERNS = [
+  /\byou (have|suffer|are diagnosed)\b/i,
+  /\bdiagnos(e|is|ed|tic)\b/i,
+  /\bdiseas(e|es)\b/i,
+  /\bsymptom(s)?\b/i,
+  /\babnormal\b/i,
+  /\bpatholog/i,
+  /\blesion\b/i,
+  /\bdeficien(t|cy)\b/i,
+  /\bdysfunction\b/i,
+  /\bdisorder\b/i,
+];
+
+const SAFE_DISCLAIMER = 'Cosmetic preference signal only. Not a medical diagnosis.';
+
+function looksClinical(s) {
+  if (!s || typeof s !== 'string') return false;
+  return FORBIDDEN_NARRATIVE_PATTERNS.some((re) => re.test(s));
+}
+
 function sanitize(json) {
   const out = {
     concerns: [],
@@ -55,12 +88,17 @@ function sanitize(json) {
     metrics: { skin_clarity: 0, tone_evenness: 0, under_eye_darkness: 0, jawline_definition: 0, symmetry: 0, youthful_volume: 0 },
     regions: [],
     confidence: 'low',
+    disclaimer: SAFE_DISCLAIMER,
   };
   if (!json || typeof json !== 'object') return out;
   if (Array.isArray(json.concerns)) {
     out.concerns = json.concerns.filter((s) => CONCERN_SET.has(s)).slice(0, 5);
   }
-  if (typeof json.narrative === 'string') out.narrative = json.narrative.slice(0, 320);
+  if (typeof json.narrative === 'string') {
+    // Drop the narrative entirely if it slips into diagnostic territory —
+    // safer to show nothing than to show language that reads as medical advice.
+    out.narrative = looksClinical(json.narrative) ? '' : json.narrative.slice(0, 320);
+  }
   if (json.metrics && typeof json.metrics === 'object') {
     for (const k of Object.keys(out.metrics)) {
       out.metrics[k] = clamp01_100(json.metrics[k]);
@@ -69,11 +107,13 @@ function sanitize(json) {
   if (Array.isArray(json.regions)) {
     const allowed = new Set(['FOREHEAD','CHEEKS','UNDER_EYE','JAWLINE','NOSE','LIPS','NECK']);
     out.regions = json.regions
-      .filter((r) => r && allowed.has(r.label) && typeof r.note === 'string')
+      .filter((r) => r && allowed.has(r.label) && typeof r.note === 'string' && !looksClinical(r.note))
       .slice(0, 4)
       .map((r) => ({ label: r.label, note: r.note.slice(0, 100) }));
   }
   if (['low','medium','high'].includes(json.confidence)) out.confidence = json.confidence;
+  // disclaimer always overrides whatever the model said, with our canonical text.
+  out.disclaimer = SAFE_DISCLAIMER;
   return out;
 }
 
@@ -90,7 +130,7 @@ function mockResponse(snapshotLen) {
   if (concerns.length === 0) concerns.push('pores','skin_tone');
   return {
     concerns,
-    narrative: 'We notice subtle texture along the cheek and forehead, and a soft loss of contour near the jawline.',
+    narrative: 'Common preference categories for selfies in this lighting include texture care, brightness, and contour refinement.',
     metrics: {
       skin_clarity:        Math.round(40 + rng(s, 10) * 40),
       tone_evenness:       Math.round(45 + rng(s, 11) * 40),
@@ -100,11 +140,12 @@ function mockResponse(snapshotLen) {
       youthful_volume:     Math.round(55 + rng(s, 15) * 30),
     },
     regions: [
-      { label: 'UNDER_EYE', note: 'mild shadow · consider brightening + structure' },
-      { label: 'JAWLINE',   note: 'soft contour · lifting candidates apply' },
-      { label: 'CHEEKS',    note: 'texture variance · pore-focused care' },
+      { label: 'UNDER_EYE', note: 'brightening preference category' },
+      { label: 'JAWLINE',   note: 'contour-refinement preference category' },
+      { label: 'CHEEKS',    note: 'texture-care preference category' },
     ],
     confidence: 'medium',
+    disclaimer: SAFE_DISCLAIMER,
   };
 }
 

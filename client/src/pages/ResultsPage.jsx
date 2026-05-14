@@ -237,6 +237,22 @@ export default function ResultsPage({ snapshot, ai, prefs, onRestart }) {
         </section>
       )}
 
+      {/* ============ MEDICAL DISCLAIMER — always visible ============ */}
+      {matches.length > 0 && (
+        <div className="gs-med-disclaimer" role="note" aria-label="Medical disclaimer">
+          <div className="gs-med-disclaimer-icon" aria-hidden="true">✦</div>
+          <div className="gs-med-disclaimer-body">
+            <div className="gs-med-disclaimer-title">This is a concierge shortlist — not medical advice.</div>
+            {synth?.disclaimer || 'Not medical advice. Final treatment decisions require consultation with a licensed physician.'}
+            {' '}Glow Up Seoul is a Ministry of Health &amp; Welfare-registered foreign-patient
+            attraction agency; we are <strong>not a medical provider</strong> and do not diagnose, prescribe, or
+            perform procedures. AI output reflects <strong>aesthetic preference categories only</strong>, can be
+            wrong, and is not a substitute for an in-person consultation with a licensed physician.
+            {' '}<a href="/terms" target="_blank" rel="noreferrer">Read full terms →</a>
+          </div>
+        </div>
+      )}
+
       {/* ============ AI SELECTION — synth top_picks ============ */}
       {matches.length > 0 && (
         <section className="gs-section gs-ai-selection">
