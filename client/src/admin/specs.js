@@ -142,6 +142,9 @@ export const KINDS = [
 
   // ── 콘텐츠 (사용자 화면에 직접 노출) ─────────────────────────────────
   { kind: 'public_feed_entries',   label: '실시간 피드',          section: 'content', help: '메인 페이지에 흐르는 \"M. in Singapore — HIFU\" 식의 사회적 증거 ticker.' },
+
+  // ── 운영 모니터링 ────────────────────────────────────────────────────
+  { kind: 'scan_events',           label: 'AI 스캔 내역',          section: 'ops',     help: 'analyze/synthesize 호출 로그. IP·토큰·비용·status 시간순. 대시보드 요약은 /admin/dashboard 상단.' },
 ];
 
 // 사이드바 섹션 메타 (라벨 + 한 줄 설명 + 표시 순서).
@@ -150,6 +153,7 @@ export const KIND_SECTIONS = [
   { key: 'matrix',  label: '매트릭스 (관계 매핑)', hint: '마스터들 간의 연결 큐레이션. 매칭 품질이 여기서.' },
   { key: 'clinic',  label: '병원 · 인력',         hint: '병원 + 의사 + B&A. 외국 환자 신뢰 시그널.' },
   { key: 'content', label: '콘텐츠 (사용자 화면)', hint: '메인 ticker 등 운영자가 직접 시드하는 노출 콘텐츠.' },
+  { key: 'ops',     label: '운영 · 모니터링',     hint: 'API 호출 로그, 비용 추적 등 운영 가시화 도구.' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────
@@ -573,6 +577,33 @@ export const SPECS = {
       { name: 'relevance', label: '관련도', type: 'select', options: RELEV_OPTS, optionLabels: RELEV_LABELS, required: true, default: 'primary' },
       { name: 'rationale_ko', label: '추천 이유 (한국어)', type: 'textarea', help: '왜 이 시술이 이 고민에 맞는지 한 줄. 매칭 결과 카드에 노출될 수 있음.' },
       { name: 'rationale_en', label: '추천 이유 (영어)',  type: 'textarea' },
+    ],
+  },
+
+  // ===================================================================
+  // scan_events — AI 스캔 호출 로그 (analyze + synthesize). Read-only.
+  // 생성/수정 X (analyze/synthesize 라우트가 자동 기록). 운영자는 목록만.
+  // ===================================================================
+  scan_events: {
+    titleField: 'id',
+    listLabel: 'AI 스캔 내역',
+    listIntro: 'OpenAI analyze · synthesize 호출 로그. 각 행 = 1회 호출. IP 별 5분 쿨다운 적용. 비용·토큰·duration·status 까지 기록. 누적 비용 합계는 대시보드 상단 카드 참조.',
+    readOnly: true,
+    list: ['id', 'created_at', 'event_type', 'ip', 'model', 'tokens_in', 'tokens_out', 'cost_usd', 'duration_ms', 'status_code'],
+    cols: [
+      { name: 'id',            label: '#',           type: 'number' },
+      { name: 'created_at',    label: '시각 (KST)',   type: 'datetime' },
+      { name: 'event_type',    label: '종류',         type: 'select', options: ['analyze','synthesize'], help: 'analyze = 얼굴 스캔, synthesize = Romie 추천 합성' },
+      { name: 'ip',            label: 'IP',           type: 'text', help: 'X-Forwarded-For 첫 번째 값 (nginx 통과)' },
+      { name: 'session_token', label: '세션 토큰',     type: 'text' },
+      { name: 'user_agent',    label: 'User Agent',   type: 'textarea' },
+      { name: 'model',         label: '모델',         type: 'text' },
+      { name: 'tokens_in',     label: '입력 토큰',     type: 'number' },
+      { name: 'tokens_out',    label: '출력 토큰',     type: 'number' },
+      { name: 'cost_usd',      label: '비용 (USD)',   type: 'number' },
+      { name: 'duration_ms',   label: '응답 시간 (ms)', type: 'number' },
+      { name: 'status_code',   label: 'HTTP',         type: 'number', help: '200 = 성공, 500 = 서버 에러' },
+      { name: 'error',         label: '에러',         type: 'textarea' },
     ],
   },
 

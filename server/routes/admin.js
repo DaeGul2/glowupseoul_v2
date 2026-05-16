@@ -159,6 +159,12 @@ const MODELS = {
       { model: Device,    as: 'device',    attributes: ['id', 'slug', 'name_ko', 'name_en'] },
     ],
   },
+  // Scan events — read-only list (생성은 analyze/synthesize 라우트가 자동).
+  scan_events: {
+    M: ScanEvent,
+    cols: [],            // 읽기 전용 — UI 가 폼 생성 안 함
+    order: [['created_at', 'DESC']],
+  },
   // mechanisms is mostly seeded + lookup; expose read so FkPicker can hydrate.
   mechanisms: {
     M: Mechanism,
@@ -273,6 +279,7 @@ const FILTERS = {
   devices:             ['mechanism_slug', 'badge', 'is_active'],
   procedure_devices:   ['procedure_id', 'device_id', 'relevance'],
   public_feed_entries: ['source_type', 'is_visible', 'is_seed'],
+  scan_events:         ['event_type', 'status_code', 'ip', 'model'],
 };
 
 export const adminList = wrap(async (req, res) => {
