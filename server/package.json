@@ -1,16 +1,24 @@
 {
-  "name": "glowupseoul-server",
-  "version": "0.1.0",
+  "name": "glowupseoul-v2-server",
+  "version": "0.2.0",
+  "private": true,
   "type": "module",
-  "main": "index.js",
   "scripts": {
     "dev": "node --watch index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "db:migrate": "node scripts/migrate.js",
+    "db:extend": "node scripts/extend.js",
+    "db:seed-from-mock": "node scripts/seed-from-mock.js",
+    "db:reset": "node scripts/migrate.js --schema && node scripts/migrate.js --seeds && node scripts/seed-from-mock.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "openai": "^4.67.0"
+    "express": "^4.21.0",
+    "mysql2": "^3.11.0",
+    "openai": "^4.67.0",
+    "sequelize": "^6.37.4",
+    "@aws-sdk/client-s3": "^3.682.0",
+    "@aws-sdk/s3-request-presigner": "^3.682.0"
   }
 }
