@@ -119,6 +119,30 @@ CREATE TABLE IF NOT EXISTS ba_photos (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
+-- scan_events — AI 스캔 이벤트 로그 (비용 추적 + IP rate limit + admin 통계).
+-- analyze + synthesize 두 종류. 토큰 수 / 비용 / IP / session 기록.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS scan_events (
+  id            INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  event_type    VARCHAR(16)  NOT NULL,                 -- 'analyze' | 'synthesize'
+  ip            VARCHAR(45),                            -- IPv4/IPv6 (X-Forwarded-For)
+  session_token VARCHAR(120),
+  user_agent    VARCHAR(255),
+  model         VARCHAR(64),                            -- 'gpt-4o-mini' 등
+  tokens_in     INT,
+  tokens_out    INT,
+  cost_usd      DECIMAL(10,6),                          -- 0.000220 같은 미세 비용
+  duration_ms   INT,
+  status_code   SMALLINT     NOT NULL DEFAULT 200,
+  error         TEXT,
+  created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT chk_scan_event_type CHECK (event_type IN ('analyze','synthesize')),
+  INDEX idx_scan_ip_at (ip, created_at),
+  INDEX idx_scan_at    (created_at),
+  INDEX idx_scan_type  (event_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
 -- concerns.category_id — 고민을 procedure_categories 8개 중 하나에 매핑.
 -- 카테고리는 procedure 와 공유 (통합 분류 축). UI 그룹핑 + 운영자 큐레이션
 -- 편의용. 매칭 로직엔 영향 없음 (concern_procedures 가 여전히 메인 매핑).

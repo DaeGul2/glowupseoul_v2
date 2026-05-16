@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { analyzeHandler } from './routes/analyze.js';
 import { synthesizeHandler } from './routes/synthesize.js';
+import { rateLimitAnalyzeIp } from './utils/scanTracking.js';
 import { reviewsHandler } from './routes/reviews.js';
 import { partnerSubmitHandler, partnerListHandler } from './routes/partner.js';
 import {
@@ -20,7 +21,7 @@ import {
 import {
   requireAdmin,
   adminList, adminGet, adminCreate, adminUpdate, adminDelete,
-  adminPresignUpload, adminStats,
+  adminPresignUpload, adminStats, adminScanStats,
 } from './routes/admin.js';
 import {
   listSubmissions, getSubmission, approveSubmission, rejectSubmission,
@@ -34,6 +35,10 @@ import { hasS3Config } from './s3.js';
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const MAX_BODY_MB = Number(process.env.MAX_BODY_MB) || 8;
+
+// Behind nginx — req.ip 가 진짜 client IP 로 잡히게.
+// 1 = nginx 한 단만 신뢰 (안전). 여러 hop 이면 숫자 늘리기.
+app.set('trust proxy', 1);
 
 const corsOrigin = (process.env.CORS_ORIGIN || '*').trim();
 app.use(cors({
@@ -52,8 +57,8 @@ app.get('/api/health', async (_req, res) => {
   });
 });
 
-// AI + concierge
-app.post('/api/analyze', analyzeHandler);
+// AI + concierge — analyze 는 IP 당 5분 1회 제한 (SCAN_COOLDOWN_SEC 으로 조절).
+app.post('/api/analyze', rateLimitAnalyzeIp, analyzeHandler);
 app.post('/api/synthesize', synthesizeHandler);
 app.get('/api/reviews/:slug', reviewsHandler);
 app.post('/api/partner', partnerSubmitHandler);
@@ -81,6 +86,7 @@ app.get('/robots.txt',  robotsHandler);
 
 // Admin (X-Admin-Key gated)
 app.get   ('/api/admin/stats',                                  requireAdmin, adminStats);
+app.get   ('/api/admin/scan-stats',                             requireAdmin, adminScanStats);
 app.post  ('/api/admin/upload/presign',                         requireAdmin, adminPresignUpload);
 // Partner submissions (must come BEFORE the generic /:kind catch-all)
 app.get   ('/api/admin/partner-submissions',                    requireAdmin, listSubmissions);

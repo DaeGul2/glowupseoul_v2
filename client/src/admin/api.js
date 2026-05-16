@@ -31,6 +31,7 @@ async function request(method, path, body) {
 export const adminApi = {
   // Health/stats
   stats:           () => request('GET', '/api/admin/stats'),
+  scanStats:       () => request('GET', '/api/admin/scan-stats'),
 
   // Generic CRUD per kind
   list:    (kind, q = {}) => {

@@ -4,6 +4,7 @@ import {
   Procedure, ProcedureCategory, Concern, ConcernProcedure,
   Doctor, BAPhoto, PublicFeedEntry,
   Device, ProcedureDevice, Mechanism,
+  ScanEvent, sequelize, Op,
 } from '../db/models.js';
 import { hasDbConfig } from '../db/sequelize.js';
 import { presignPut, hasS3Config } from '../s3.js';
@@ -389,5 +390,63 @@ export const adminStats = wrap(async (_req, res) => {
               hospital_procedures: hp, public_feed_entries: feed,
               devices, procedure_devices: pd },
     s3_configured: hasS3Config(),
+  });
+});
+
+// — Scan stats: 호출 횟수 + 누적 비용 + 최근 호출 — admin dashboard 가 보여줌.
+export const adminScanStats = wrap(async (_req, res) => {
+  const now = new Date();
+  const startToday = new Date(now); startToday.setHours(0,0,0,0);
+  const start7d  = new Date(now.getTime() - 7  * 86400 * 1000);
+  const start30d = new Date(now.getTime() - 30 * 86400 * 1000);
+
+  async function bucket(since) {
+    const where = since ? { created_at: { [Op.gte]: since } } : {};
+    const [analyzeRows, synthRows] = await Promise.all([
+      ScanEvent.findOne({
+        attributes: [
+          [sequelize.fn('COUNT', sequelize.col('id')), 'n'],
+          [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('cost_usd')), 0), 'cost'],
+          [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('tokens_in')), 0),  'tin'],
+          [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('tokens_out')), 0), 'tout'],
+        ],
+        where: { ...where, event_type: 'analyze' },
+        raw: true,
+      }),
+      ScanEvent.findOne({
+        attributes: [
+          [sequelize.fn('COUNT', sequelize.col('id')), 'n'],
+          [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('cost_usd')), 0), 'cost'],
+          [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('tokens_in')), 0),  'tin'],
+          [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('tokens_out')), 0), 'tout'],
+        ],
+        where: { ...where, event_type: 'synthesize' },
+        raw: true,
+      }),
+    ]);
+    return {
+      analyze:    { count: Number(analyzeRows.n) || 0, cost_usd: Number(analyzeRows.cost) || 0,
+                    tokens_in: Number(analyzeRows.tin) || 0, tokens_out: Number(analyzeRows.tout) || 0 },
+      synthesize: { count: Number(synthRows.n) || 0, cost_usd: Number(synthRows.cost) || 0,
+                    tokens_in: Number(synthRows.tin) || 0, tokens_out: Number(synthRows.tout) || 0 },
+      total_count:    (Number(analyzeRows.n) || 0) + (Number(synthRows.n) || 0),
+      total_cost_usd: (Number(analyzeRows.cost) || 0) + (Number(synthRows.cost) || 0),
+    };
+  }
+
+  const [today, last7d, last30d, allTime] = await Promise.all([
+    bucket(startToday), bucket(start7d), bucket(start30d), bucket(null),
+  ]);
+
+  const recent = await ScanEvent.findAll({
+    attributes: ['id','event_type','ip','model','tokens_in','tokens_out','cost_usd','duration_ms','status_code','created_at'],
+    order: [['created_at', 'DESC']],
+    limit: 30,
+  });
+
+  res.json({
+    today, last_7d: last7d, last_30d: last30d, all_time: allTime,
+    recent,
+    cooldown_sec: Number(process.env.SCAN_COOLDOWN_SEC || 300),
   });
 });

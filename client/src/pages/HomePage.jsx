@@ -161,7 +161,7 @@ function Editorial() {
       <Reveal>
         <div className="gs-editorial-media">
           <div className="gs-editorial-tag"><em>est.</em>2022 · Ministry of Health registered</div>
-          <img src="https://images.unsplash.com/photo-1618255485625-c4adbed6c989?auto=format&fit=crop&w=1200&q=85" alt="Concierge" referrerPolicy="no-referrer" />
+          <img src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1400&q=85" alt="Concierge" referrerPolicy="no-referrer" />
         </div>
       </Reveal>
     </section>

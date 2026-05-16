@@ -64,14 +64,20 @@ npm ci
 npm run build
 # 빌드 결과 = client/dist → nginx 가 서빙
 
-echo "── 9. nginx 설정 적용 ────────────────────────────────"
+echo "── 9. nginx 가 dist 까지 traverse 할 수 있게 ─────────"
+# Ubuntu 24.04 의 기본 /home/$USER 권한 (0750) 이 www-data 의 traverse 를
+# 막아 dist/index.html stat() 가 EACCES → 500 으로 떨어짐. others 의 x 비트만
+# 풀어주면 안에 파일들의 r 권한이 그대로 보호되면서 nginx 가 들어갈 수 있음.
+chmod o+x "$HOME"
+
+echo "── 10. nginx 설정 적용 ───────────────────────────────"
 sudo cp "$APP_DIR/deploy/nginx-glowupseoul.conf" /etc/nginx/sites-available/glowupseoul
 sudo ln -sf /etc/nginx/sites-available/glowupseoul /etc/nginx/sites-enabled/glowupseoul
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
 
-echo "── 10. PM2 로 server 시작 ────────────────────────────"
+echo "── 11. PM2 로 server 시작 ────────────────────────────"
 cd "$APP_DIR"
 pm2 start deploy/ecosystem.config.cjs --update-env || pm2 reload deploy/ecosystem.config.cjs --update-env
 pm2 save

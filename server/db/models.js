@@ -476,6 +476,29 @@ export const BAPhoto = sequelize.define('BAPhoto', {
 }, { tableName: 'ba_photos' });
 
 // -------------------------------------------------------------------
+// Scan events — AI 스캔 호출 로그 (비용 / IP / rate limit 용)
+// -------------------------------------------------------------------
+export const ScanEvent = sequelize.define('ScanEvent', {
+  id:            { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  event_type:    { type: DataTypes.STRING(16), allowNull: false, validate: { isIn: [['analyze','synthesize']] } },
+  ip:            DataTypes.STRING(45),
+  session_token: DataTypes.STRING(120),
+  user_agent:    DataTypes.STRING(255),
+  model:         DataTypes.STRING(64),
+  tokens_in:     DataTypes.INTEGER,
+  tokens_out:    DataTypes.INTEGER,
+  cost_usd:      DataTypes.DECIMAL(10, 6),
+  duration_ms:   DataTypes.INTEGER,
+  status_code:   { type: DataTypes.SMALLINT, allowNull: false, defaultValue: 200 },
+  error:         DataTypes.TEXT,
+}, {
+  tableName: 'scan_events',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: false,
+});
+
+// -------------------------------------------------------------------
 // Devices (brand-name taxonomy — Ulthera, Shurink, Thermage …)
 // -------------------------------------------------------------------
 export const Device = sequelize.define('Device', {

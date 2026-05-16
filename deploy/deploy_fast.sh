@@ -55,6 +55,15 @@ else
   echo "  -> skip server npm ci (no server changes)"
 fi
 
+# ===== DB schema extend (idempotent) =====
+# server 변경 또는 schema 파일 변경 시 db:extend 실행. 새 ALTER/CREATE 적용.
+step "[B-2] DB schema extend (idempotent)"
+if [ "$SERVER_CHANGED" = "true" ] || [ "$DEPLOY_CHANGED" = "true" ]; then
+  ( cd "$SERVER_DIR" && npm run db:extend 2>&1 | tail -20 ) || warn "db:extend skipped/failed (check logs)"
+else
+  echo "  -> skip db:extend"
+fi
+
 # ===== Client deps + build =====
 step "[C] Client deps"
 if [ "$CLIENT_CHANGED" = "true" ] || [ ! -d "$CLIENT_DIR/node_modules" ]; then

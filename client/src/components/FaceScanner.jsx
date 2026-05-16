@@ -253,7 +253,12 @@ export default function FaceScanner({ onComplete, onSkip }) {
       pushLog(`✓ ${result.concerns?.length || 0} concerns identified · confidence ${result.confidence}`);
     } catch (e) {
       setAiError(e.message);
-      pushLog('! analysis API offline — continuing with preferences only');
+      if (e?.code === 'rate_limited') {
+        const min = Math.ceil((e.retryAfterSec || 300) / 60);
+        pushLog(`! rate limit · please retry in ~${min} min — using preferences only`);
+      } else {
+        pushLog('! analysis API offline — continuing with preferences only');
+      }
     } finally {
       // Wait at least 1.6s in analyzing phase so the animation lands well
       const elapsed = performance.now() - (analyzeStartRef.current || performance.now());

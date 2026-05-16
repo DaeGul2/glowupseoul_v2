@@ -8,6 +8,14 @@ export async function analyzeSnapshot(snapshot, { signal } = {}) {
     body: JSON.stringify({ snapshot }),
     signal,
   });
+  if (r.status === 429) {
+    // Rate-limited (IP cooldown). Server returns { error, message, retry_after_sec }.
+    const j = await r.json().catch(() => ({}));
+    const err = new Error(j.message || 'Please wait before requesting another scan.');
+    err.code = 'rate_limited';
+    err.retryAfterSec = j.retry_after_sec || Number(r.headers.get('Retry-After')) || 300;
+    throw err;
+  }
   if (!r.ok) throw new Error(`analyze HTTP ${r.status}`);
   return r.json();
 }

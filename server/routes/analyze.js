@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { CONCERN_SLUGS, CONCERN_SET } from '../concerns.js';
+import { logScan } from '../utils/scanTracking.js';
 
 let _client = null;
 function client() {
@@ -150,6 +151,8 @@ function mockResponse(snapshotLen) {
 }
 
 export async function analyzeHandler(req, res) {
+  const startedAt = Date.now();
+  const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
   try {
     const { snapshot } = req.body || {};
     if (!snapshot || typeof snapshot !== 'string' || !snapshot.startsWith('data:image/')) {
@@ -164,11 +167,14 @@ export async function analyzeHandler(req, res) {
       // No real key — return mock so the UX is fully testable end-to-end.
       const mock = mockResponse(snapshot.length);
       mock._mock = true;
+      // Log mock event too (0 cost) so admin can see mock usage in dev.
+      logScan({ eventType: 'analyze', req, model: 'mock', usage: {},
+                durationMs: Date.now() - startedAt, statusCode: 200 });
       return res.json(mock);
     }
 
     const completion = await oai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      model: MODEL,
       temperature: 0.3,
       max_tokens: 600,
       response_format: { type: 'json_object' },
@@ -190,9 +196,14 @@ export async function analyzeHandler(req, res) {
     } catch {
       parsed = {};
     }
+    // Persist event (fire-and-forget — failure won't break user flow)
+    logScan({ eventType: 'analyze', req, model: MODEL, usage: completion.usage || {},
+              durationMs: Date.now() - startedAt, statusCode: 200 });
     return res.json(sanitize(parsed));
   } catch (e) {
     console.error('[analyze] error', e?.message || e);
+    logScan({ eventType: 'analyze', req, model: MODEL, usage: {},
+              durationMs: Date.now() - startedAt, statusCode: 500, error: e?.message });
     return res.status(500).json({ error: 'analysis failed', detail: e?.message });
   }
 }

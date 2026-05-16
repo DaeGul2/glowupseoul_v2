@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { logScan } from '../utils/scanTracking.js';
 
 let _client = null;
 function client() {
@@ -168,6 +169,8 @@ function sanitize(json, lang) {
 }
 
 export async function synthesizeHandler(req, res) {
+  const startedAt = Date.now();
+  const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
   try {
     const { ai = null, prefs = {}, matches = [] } = req.body || {};
     if (!Array.isArray(matches) || matches.length === 0) {
@@ -176,6 +179,8 @@ export async function synthesizeHandler(req, res) {
 
     const oai = client();
     if (!oai) {
+      logScan({ eventType: 'synthesize', req, model: 'mock', usage: {},
+                durationMs: Date.now() - startedAt, statusCode: 200 });
       return res.json(mockSynthesis({ ai, prefs, matches }));
     }
 
@@ -184,7 +189,7 @@ export async function synthesizeHandler(req, res) {
     const user = buildUserMessage({ ai, prefs, matches });
 
     const completion = await oai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      model: MODEL,
       temperature: 0.4,
       max_tokens: 700,
       response_format: { type: 'json_object' },
@@ -200,9 +205,13 @@ export async function synthesizeHandler(req, res) {
     } catch {
       parsed = {};
     }
+    logScan({ eventType: 'synthesize', req, model: MODEL, usage: completion.usage || {},
+              durationMs: Date.now() - startedAt, statusCode: 200 });
     return res.json(sanitize(parsed, prefs.language));
   } catch (e) {
     console.error('[synthesize] error', e?.message || e);
+    logScan({ eventType: 'synthesize', req, model: MODEL, usage: {},
+              durationMs: Date.now() - startedAt, statusCode: 500, error: e?.message });
     return res.status(500).json({ error: 'synthesis failed', detail: e?.message });
   }
 }
