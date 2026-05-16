@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import db from '../data/db.js';
 import { navigate, useScanFlow } from '../App.jsx';
 import { useSeo } from '../utils/seo.js';
@@ -6,9 +7,78 @@ import Hero from '../components/Hero.jsx';
 import PublicFeedTicker from '../components/PublicFeedTicker.jsx';
 import TreatmentCard from '../components/TreatmentCard.jsx';
 import DeviceCategories from '../components/DeviceCategories.jsx';
+import TreatmentCategories from '../components/TreatmentCategories.jsx';
 import RecentMatches from '../components/RecentMatches.jsx';
 import WhatsAppCTA from '../components/WhatsAppCTA.jsx';
 import { useReveal } from '../utils/useReveal.js';
+
+// — Statement: single big editorial sentence on dark/cream band.
+//   Like Aesop's "What is in a name?" sections or fashion ed-spreads.
+function Statement({ tone = 'cream' }) {
+  return (
+    <section className={`gs-statement ${tone === 'dark' ? 'gs-statement--dark' : ''}`}>
+      <div className="gs-statement-inner">
+        <div>
+          <div className="gs-mark"><strong>02</strong> / Mission</div>
+          <motion.h2
+            className="gs-statement-text"
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+          >
+            Not a booking app.<br />
+            <em>A personal concierge —</em><br />
+            just for you.
+          </motion.h2>
+          <div className="gs-meta-row">
+            <span>Founded <strong>2022</strong></span>
+            <span>22 <strong>partner clinics</strong></span>
+            <span>EN · 中文 · 日本語 · Bahasa</span>
+          </div>
+        </div>
+        <motion.div
+          className="gs-statement-aside"
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+        >
+          One message on WhatsApp. We've spent a decade evaluating <strong>10,000+</strong>
+          Korean clinics. Romie hand-picks 2–3 that fit your skin, your time, your language.
+          No directory. No marketplace. No noise.
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// — Massive editorial marquee — replaces the timid "as featured in" track.
+//   Big Fraunces type scrolling. Items split across two rows running opposite
+//   directions for editorial feel (handled by CSS animation).
+function StatementMarquee() {
+  const items = [
+    { t: 'Ministry of Health', em: 'registered' },
+    { t: '500+', em: 'patients matched' },
+    { t: '98%', em: 'satisfaction' },
+    { t: '22', em: 'clinics, hand-picked' },
+    { t: '25+', em: 'countries' },
+    { t: '24-hour', em: 'WhatsApp reply' },
+  ];
+  const row = items.concat(items).concat(items);
+  return (
+    <div className="gs-marquee-xl" aria-hidden="true">
+      <div className="gs-marquee-xl-track">
+        {row.map((it, i) => (
+          <span className="gs-marquee-xl-item" key={i}>
+            {it.t}&nbsp;<em>{it.em}</em>
+            <span className="sep" />
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const PRESS = [
   'VOGUE Korea',
@@ -74,7 +144,7 @@ function Editorial() {
     <section className="gs-editorial">
       <Reveal>
         <div className="gs-editorial-text">
-          <div className="gs-eyebrow">◈  A concierge, not a marketplace</div>
+          <div className="gs-mark"><strong>01</strong> / Approach</div>
           <h2>Choosing a clinic should not be a <em>research project.</em></h2>
           <p>
             You shouldn't have to read 40 Naver reviews in a language you don't speak to figure out whether a clinic's <em>"natural"</em> actually looks natural in photos.
@@ -103,10 +173,17 @@ function BentoCategories() {
   return (
     <section className="gs-bento">
       <Reveal>
-        <div className="gs-bento-head">
-          <div className="gs-eyebrow">◇  Browse by area</div>
-          <h2>What brings<br />you <em>here?</em></h2>
-          <p>Tell us where you'd like to focus — Romie narrows down treatments and clinics for you.</p>
+        <div className="gs-ed-head">
+          <div>
+            <div className="gs-mark"><strong>03</strong> / Areas</div>
+            <h2>Where shall we<br /><em>begin?</em></h2>
+            <div className="gs-meta-row">
+              <span>Index <strong>08</strong></span>
+              <span>Domains <strong>{cats.length}</strong></span>
+              <span>Updated <strong>weekly</strong></span>
+            </div>
+          </div>
+          <p className="gs-ed-sub">Eight areas of care. Tap to narrow — Romie does the rest in WhatsApp.</p>
         </div>
       </Reveal>
       <Reveal>
@@ -156,18 +233,64 @@ function BentoCategories() {
   );
 }
 
-function DeviceSection() {
+function TreatmentSection() {
+  const procCount = db.procedures.filter((p) => db.offeringsForProcedure(p.id).length > 0).length;
   return (
-    <section className="gs-bento" style={{ paddingBottom: 140 }}>
+    <section className="gs-bento" style={{ paddingTop: 100, paddingBottom: 60 }}>
       <Reveal>
-        <div className="gs-bento-head">
-          <div className="gs-eyebrow">⬡  By device</div>
-          <h2>Or by <em>name.</em></h2>
-          <p>Patients often arrive asking by brand — <em style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', color: 'var(--text)' }}>"Can I get Ulthera at Hershe?"</em>. Here's where our 22 partners stand by device.</p>
+        <div className="gs-ed-head">
+          <div>
+            <div className="gs-mark"><strong>04</strong> / Treatments</div>
+            <h2>What you came <em>here for.</em></h2>
+            <div className="gs-meta-row">
+              <span>Catalog <strong>{procCount}</strong></span>
+              <span>Hand-curated <strong>by Romie</strong></span>
+              <span>Updated <strong>weekly</strong></span>
+            </div>
+          </div>
+          <div>
+            <p className="gs-ed-sub">
+              Some arrive knowing exactly what they want — HIFU lifting, a thread lift,
+              an acne scar plan. Scroll the catalog directly.
+            </p>
+            <div className="gs-quote-line">
+              <p className="gs-quote-line-text">
+                Most patients still book by name they've heard. We let you skip the search.
+              </p>
+            </div>
+          </div>
         </div>
       </Reveal>
       <Reveal>
-        <DeviceCategories />
+        <TreatmentCategories limit={16} variant="scroll" />
+      </Reveal>
+    </section>
+  );
+}
+
+function DeviceSection() {
+  const devCount = (db.devices || []).length;
+  return (
+    <section className="gs-bento" style={{ paddingTop: 60, paddingBottom: 140 }}>
+      <Reveal>
+        <div className="gs-ed-head">
+          <div>
+            <div className="gs-mark"><strong>05</strong> / Devices</div>
+            <h2>Or by the <em>name</em><br />you heard.</h2>
+            <div className="gs-meta-row">
+              <span>Devices <strong>{devCount}</strong></span>
+              <span>FDA · <strong>verified subset</strong></span>
+              <span>Clinic match <strong>per-device</strong></span>
+            </div>
+          </div>
+          <p className="gs-ed-sub">
+            "Can I get Ulthera at Hershe?" Yes — and here is where every partner
+            stands by device. The strict ones are flagged.
+          </p>
+        </div>
+      </Reveal>
+      <Reveal>
+        <DeviceCategories variant="scroll" />
       </Reveal>
     </section>
   );
@@ -179,7 +302,7 @@ function MagazineSteps() {
       <div className="gs-mag-steps-inner">
         <Reveal>
           <div className="gs-section-head" style={{ textAlign: 'left', marginBottom: 64, maxWidth: 760, marginLeft: 0 }}>
-            <div className="gs-eyebrow">✦  How it works</div>
+            <div className="gs-mark"><strong>06</strong> / Process</div>
             <h2 style={{ textAlign: 'left' }}>Five quiet <em>steps.</em></h2>
             <p style={{ marginLeft: 0 }}>No app to install. No account. Most of it happens on WhatsApp.</p>
           </div>
@@ -210,7 +333,7 @@ function TierSplit() {
     <section style={{ padding: '120px 48px', background: 'var(--bg-soft)' }}>
       <Reveal>
         <div className="gs-section-head">
-          <div className="gs-eyebrow">◎  Service Tiers</div>
+          <div className="gs-mark"><strong>07</strong> / Tiers</div>
           <h2>Care &amp; <em>Premium Care.</em></h2>
           <p>Two tiers, one promise — <em style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic' }}>free</em> to you. Clinics pay us only when you book.</p>
         </div>
@@ -264,7 +387,7 @@ function MagazineTreatments({ trending }) {
     <section className="gs-mag-treatments" style={{ paddingTop: 140, paddingBottom: 140 }}>
       <Reveal>
         <div className="gs-section-head" style={{ textAlign: 'left', maxWidth: '100%', marginLeft: 0, marginBottom: 56 }}>
-          <div className="gs-eyebrow">◇  Trending this month</div>
+          <div className="gs-mark"><strong>08</strong> / Trending</div>
           <h2 style={{ textAlign: 'left' }}>Most-asked <em>procedures.</em></h2>
           <p style={{ marginLeft: 0 }}>Tap any card to compare across our partner clinics, or start an AI scan to get a personal shortlist.</p>
         </div>
@@ -313,7 +436,7 @@ function Finale() {
   return (
     <section className="gs-finale">
       <div className="gs-finale-l">
-        <div className="gs-eyebrow" style={{ color: 'var(--gold-light)' }}>✦  Begin</div>
+        <div className="gs-mark" style={{ color: 'rgba(232,212,168,0.6)' }}><strong style={{ color: 'var(--gold-light)' }}>10</strong> / Begin</div>
         <h2>Not sure where to <em>start?</em></h2>
         <p>Run a 5-second AI face scan, or send Romie a single message on WhatsApp. We reply within 24 hours in EN / 中文 / 日本語 / Bahasa.</p>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -383,11 +506,13 @@ export default function HomePage() {
   return (
     <>
       <Hero />
-      <PressMarquee />
+      <Statement tone="cream" />
+      <StatementMarquee />
       <Editorial />
       <PublicFeedTicker />
       <RecentMatches />
       <BentoCategories />
+      <TreatmentSection />
       <DeviceSection />
       <MagazineSteps />
       <TierSplit />

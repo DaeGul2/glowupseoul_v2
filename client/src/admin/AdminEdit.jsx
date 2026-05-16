@@ -344,6 +344,8 @@ function Field({ col, value, onChange, owner }) {
           value={value}
           onChange={onChange}
           table={col.table}
+          refField={col.refField || 'id'}
+          refLabel={col.refLabel || null}
           placeholder={`${col.label || col.name} 검색 (이름 또는 URL 식별자)`}
         />
         {col.table && (

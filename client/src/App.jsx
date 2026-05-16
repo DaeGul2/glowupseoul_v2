@@ -7,6 +7,7 @@ import PartnerFloating from './components/PartnerFloating.jsx';
 import db from './data/db.js';
 import { matchOfferings } from './utils/matching.js';
 import { persistMatchRequest } from './utils/api.js';
+import { useSmoothScroll } from './utils/useSmoothScroll.js';
 import HomePage from './pages/HomePage.jsx';
 import CategoryPage from './pages/CategoryPage.jsx';
 import TreatmentDetailPage from './pages/TreatmentDetailPage.jsx';
@@ -51,6 +52,7 @@ export const useScanFlow = () => useContext(ScanContext);
 function SiteShell({ children }) {
   return (
     <>
+      <div className="gs-cosmos" aria-hidden="true" />
       <Header />
       {children}
       <Footer />
@@ -133,6 +135,9 @@ export default function App() {
   const [bootState, setBootState]   = useState('loading'); // 'loading' | 'ready' | 'error'
   const [bootError, setBootError]   = useState(null);
 
+  // Lenis smooth scroll — disabled on mobile / reduced-motion automatically.
+  useSmoothScroll();
+
   // Hydrate catalog (RDS) on mount. Live-feed hydrate kicks in parallel.
   useEffect(() => {
     let cancelled = false;
@@ -187,6 +192,7 @@ export default function App() {
           downtime_max: prefs?.downtimeMax,
           language: prefs?.language,
           notes: prefs?.notes,
+          device_prefs: prefs?.devicePrefSlugs || [],
         },
         ai_scan: payload?.ai ? {
           narrative: payload.ai.narrative, confidence: payload.ai.confidence,

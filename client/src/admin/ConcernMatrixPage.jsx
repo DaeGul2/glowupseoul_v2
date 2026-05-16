@@ -18,21 +18,25 @@ const RELEV_BADGE = {
 };
 
 export default function ConcernMatrixPage() {
-  const [concerns, setConcerns] = useState([]);
-  const [pairs,    setPairs]    = useState([]);
-  const [busy,     setBusy]     = useState(true);
-  const [err,      setErr]      = useState(null);
-  const [filter,   setFilter]   = useState('');
+  const [concerns,  setConcerns]  = useState([]);
+  const [categories,setCategories]= useState([]);
+  const [pairs,     setPairs]     = useState([]);
+  const [busy,      setBusy]      = useState(true);
+  const [err,       setErr]       = useState(null);
+  const [filter,    setFilter]    = useState('');
+  const [collapsed, setCollapsed] = useState({});           // category_id → bool
 
   async function load() {
     setBusy(true); setErr(null);
     try {
-      const [a, b] = await Promise.all([
+      const [a, b, c] = await Promise.all([
         adminApi.list('concerns', { limit: 500 }),
         adminApi.list('concern_procedures', { limit: 1000 }),
+        adminApi.list('procedure_categories', { limit: 100 }),
       ]);
       setConcerns(a.rows || []);
       setPairs(b.rows || []);
+      setCategories(c.rows || []);
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -47,7 +51,6 @@ export default function ConcernMatrixPage() {
       if (!m.has(p.concern_id)) m.set(p.concern_id, []);
       m.get(p.concern_id).push(p);
     }
-    // relevance 순으로 sort: primary → secondary → adjunct
     const rank = { primary: 0, secondary: 1, adjunct: 2 };
     for (const arr of m.values()) {
       arr.sort((x, y) => (rank[x.relevance] ?? 9) - (rank[y.relevance] ?? 9));
@@ -55,12 +58,38 @@ export default function ConcernMatrixPage() {
     return m;
   }, [pairs]);
 
-  const filtered = filter
-    ? concerns.filter((c) => {
-        const hay = [c.slug, c.name_ko, c.name_en, c.name_zh].filter(Boolean).join(' ').toLowerCase();
-        return hay.includes(filter.toLowerCase());
-      })
-    : concerns;
+  // 카테고리별로 concern 그룹화. 카테고리 없는 concern 은 "(미분류)" 그룹.
+  const groups = useMemo(() => {
+    const filtered = filter
+      ? concerns.filter((c) => {
+          const hay = [c.slug, c.name_ko, c.name_en, c.name_zh].filter(Boolean).join(' ').toLowerCase();
+          return hay.includes(filter.toLowerCase());
+        })
+      : concerns;
+    const byCat = new Map();
+    for (const c of filtered) {
+      const key = c.category_id ?? '_uncat';
+      if (!byCat.has(key)) byCat.set(key, []);
+      byCat.get(key).push(c);
+    }
+    // 카테고리 순서대로 (display_order), 미분류는 맨 뒤
+    const cats = categories.slice().sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
+    const out = [];
+    for (const cat of cats) {
+      const list = byCat.get(cat.id);
+      if (!list || list.length === 0) continue;
+      out.push({ category: cat, concerns: list });
+      byCat.delete(cat.id);
+    }
+    if (byCat.has('_uncat')) {
+      out.push({ category: { id: '_uncat', name_ko: '(카테고리 미지정)', slug: '_uncat' }, concerns: byCat.get('_uncat') });
+    }
+    return out;
+  }, [concerns, categories, filter]);
+
+  function toggleCat(catId) {
+    setCollapsed((prev) => ({ ...prev, [catId]: !prev[catId] }));
+  }
 
   async function addPair({ concern_id, procedure_id, relevance, rationale_ko }) {
     if (!procedure_id) return alert('시술을 선택하세요.');
@@ -122,18 +151,32 @@ export default function ConcernMatrixPage() {
       {err && <div className="gs-admin-err">{err}</div>}
       {busy && <div className="gs-admin-loading">불러오는 중…</div>}
 
-      {!busy && filtered.map((c) => (
-        <ConcernCard
-          key={c.id}
-          concern={c}
-          rows={pairsByConcern.get(c.id) || []}
-          onAdd={addPair}
-          onRemove={removePair}
-          onChangeRelevance={changeRelevance}
-        />
-      ))}
+      {!busy && groups.map((g) => {
+        const total = g.concerns.length;
+        const mapped = g.concerns.reduce((sum, c) => sum + (pairsByConcern.get(c.id)?.length || 0), 0);
+        const isCollapsed = !!collapsed[g.category.id];
+        return (
+          <div key={g.category.id} className="gs-cm-group">
+            <button type="button" className="gs-cm-group-head" onClick={() => toggleCat(g.category.id)}>
+              <span className="gs-cm-group-caret">{isCollapsed ? '▸' : '▾'}</span>
+              <span className="gs-cm-group-title">{g.category.name_ko}</span>
+              <span className="gs-cm-group-meta">고민 {total}개 · 매핑 {mapped}건</span>
+            </button>
+            {!isCollapsed && g.concerns.map((c) => (
+              <ConcernCard
+                key={c.id}
+                concern={c}
+                rows={pairsByConcern.get(c.id) || []}
+                onAdd={addPair}
+                onRemove={removePair}
+                onChangeRelevance={changeRelevance}
+              />
+            ))}
+          </div>
+        );
+      })}
 
-      {!busy && filtered.length === 0 && (
+      {!busy && groups.length === 0 && (
         <div className="gs-admin-empty">일치하는 고민이 없습니다.</div>
       )}
     </div>

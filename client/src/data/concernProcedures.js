@@ -69,6 +69,32 @@ const raw = [
   ['aging_overall','stemcell_face','secondary','진피 재생'],
   // dental_align
   ['dental_align','invisalign','primary','투명 교정 1순위'],
+
+  // ── 신규 6 procedures (소이 등록 + 2026-05-16) ──
+  // filler_full_face_3d — 전 안면 부위 종합
+  ['volume_loss','filler_full_face_3d','primary','전 안면 부위 통합 — 부분 필러보다 자연스러운 3D'],
+  ['aging_overall','filler_full_face_3d','secondary','노화 부위 다발성 시 종합'],
+  // filler_hip_apple — 골반 라인
+  ['body_contour','filler_hip_apple','primary','애플 모양 힙 라인 형성'],
+  // filler_ear — 귀 처짐
+  ['aging_overall','filler_ear','adjunct','처진 귓불·말린 귀 윤곽 보정'],
+  // hifu_body — 바디 HIFU
+  ['body_contour','hifu_body','primary','복부·허벅지·팔뚝 비절개 탄력'],
+  ['fat_local','hifu_body','secondary','경증 지방 + 탄력 동시'],
+  // fat_dissolve_injection_face — 에스핏주사
+  ['face_size','fat_dissolve_injection_face','primary','이중턱·볼살 비수술 감소'],
+  ['fat_local','fat_dissolve_injection_face','primary','국소 지방 — 시술 부담 낮음'],
+  ['jawline','fat_dissolve_injection_face','secondary','이중턱 동반 시'],
+  // iv_therapy_generic — IV 수액
+  ['aging_overall','iv_therapy_generic','adjunct','내적 항노화 보조'],
+  ['skin_tone','iv_therapy_generic','adjunct','미백 수액 (글루타치온 등)'],
+
+  // ── 신규 2 procedures (벨리셀 등록 + 2026-05-16) ──
+  // botox_body — 종아리·승모근·어깨
+  ['body_contour','botox_body','primary','종아리·승모근·어깨 근육 부피 감소'],
+  // glp1_injection — 마운자로 류 다이어트
+  ['fat_local','glp1_injection','primary','GLP-1 식욕 억제 — 체중 감량 보조'],
+  ['body_contour','glp1_injection','secondary','전신 체중 감량'],
 ];
 
 export const concernProcedures = raw.map(([concernSlug, procSlug, relevance, rationale_ko]) => {

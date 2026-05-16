@@ -14,18 +14,40 @@ function priceTier(krw) {
 
 // [hospitalSlug, procedureSlug, { ...overrides }]
 const seed = [
-  // ============ 소이 (직각어깨 시그너처)
-  ['soi_강남점','square_shoulder_filler',{ price: 850000,  is_signature: true,  local_ko: '소이 직각어깨 필러', device: ['Juvederm Voluma'],  event: '5월 한정 -20%',   event_until: '2026-05-31', years: 9 }],
-  ['soi_강남점','hifu_face',              { price: 480000,  is_signature: false, local_ko: '소이 슈링크 600샷', device: ['Shurink Universe'], event: null, years: 7 }],
-  ['soi_강남점','botox_face_slimming',    { price: 120000,  is_signature: false, local_ko: '소이 사각턱',       device: ['Innotox'],          event: null, years: 9 }],
-  ['soi_강남점','aquapeel_facial',        { price: 89000,   is_signature: false, local_ko: '소이 아쿠아클린',   device: ['HydraFacial'],      event: null, years: 6 }],
-  ['soi_강남점','picosure_pico',          { price: 220000,  is_signature: false, local_ko: '소이 피코토닝',     device: ['PicoSure'],         event: null, years: 5 }],
+  // ============ 소이 — 실측 메뉴 15행 (SIGNATURE 5 + 일반 L2 10)
+  // 가격 전부 null (사이트에 "상담필요"), 장비/샷 옵션 비움 (시술 수준 룰).
+  // — SIGNATURE 5 (메뉴 SIGNATURE 그룹) —
+  ['soi_강남점','thread_lift_pdo',             { price: null, is_signature: true,  local_ko: '압토스 이중턱 실리프팅',    device: [], event: null, years: 9, disclosed: false }],
+  ['soi_강남점','filler_full_face_3d',         { price: null, is_signature: true,  local_ko: '3D 풀페이스 필러',           device: [], event: null, years: 9, disclosed: false }],
+  ['soi_강남점','square_shoulder_filler',      { price: null, is_signature: true,  local_ko: '소이 직각 어깨 필러',         device: [], event: null, years: 9, disclosed: false }],
+  ['soi_강남점','filler_hip_apple',            { price: null, is_signature: true,  local_ko: '소이 골반 필러 (애플 힙)',    device: [], event: null, years: 9, disclosed: false }],
+  ['soi_강남점','filler_ear',                  { price: null, is_signature: true,  local_ko: '미인 귀 필러',                 device: [], event: null, years: 9, disclosed: false }],
+  // — LIFTING 메뉴 (실리프팅 SIGNATURE 행으로 흡수, 2행) —
+  ['soi_강남점','hifu_face',                   { price: null, is_signature: false, local_ko: '안티에이징 리프팅 (울쎄라·써마지·마이크로EMS·프라임레이즈)', device: [], event: null, years: 7, disclosed: false }],
+  ['soi_강남점','hifu_body',                   { price: null, is_signature: false, local_ko: '바디 리프팅 (울핏)',           device: [], event: null, years: 5, disclosed: false }],
+  // — FILLER/BTX 메뉴 (3행) —
+  ['soi_강남점','filler_ha_cheek',             { price: null, is_signature: false, local_ko: '필러 (국산·쥬비덤·레스틸렌·벨로테로·줄기세포·울트라콜·쥬베룩·레디어스·엘란쎄·바디필러)', device: [], event: null, years: 9, disclosed: false }],
+  ['soi_강남점','botox_face_slimming',         { price: null, is_signature: false, local_ko: '보톡스 (국산·제오민 × 주름·턱·광대·관자·침샘·바디)', device: [], event: null, years: 9, disclosed: false }],
+  ['soi_강남점','fat_dissolve_injection_face', { price: null, is_signature: false, local_ko: '에스핏주사 (페이스 2cc · 바디 S-PL 100cc · 바디 에스핏 10cc)', device: [], event: null, years: 5, disclosed: false }],
+  // — SKIN 메뉴 (5행) —
+  ['soi_강남점','skinbooster_juvelook',        { price: null, is_signature: false, local_ko: '스킨부스터 (L샤인·엑소힐러·큐어스템·리쥬란·쥬베룩·릴리이드M·스킨바이브·비타란/리제반PN·올리디아)', device: [], event: null, years: 6, disclosed: false }],
+  ['soi_강남점','picosure_pico',               { price: null, is_signature: false, local_ko: '미백레이저 (프라임레이즈 색소·혈관, 포텐자)', device: [], event: null, years: 5, disclosed: false }],
+  ['soi_강남점','aquapeel_facial',             { price: null, is_signature: false, local_ko: '피부관리 (이온토·듀오하이드로젠·블랙필·생크림필·쎄라필·라라필·알라딘필링 얼/바·여드름압출·골드PTT+토닝)', device: [], event: null, years: 6, disclosed: false }],
+  ['soi_강남점','iv_therapy_generic',          { price: null, is_signature: false, local_ko: '수액 (다이어트·마늘·슈퍼백옥·신데렐라·미백플러스)', device: [], event: null, years: 5, disclosed: false }],
+  ['soi_강남점','stemcell_face',               { price: null, is_signature: false, local_ko: '줄기세포',                     device: [], event: null, years: 4, disclosed: false }],
 
-  // ============ 벨리셀
-  ['vellicell_강남점','hifu_face',         { price: 390000,  is_signature: true,  local_ko: '벨리셀 슈링크 600샷', device: ['Shurink'],         event: '5월 신규 -30%', event_until: '2026-05-31', years: 12 }],
-  ['vellicell_강남점','inmode',            { price: 280000,  is_signature: false, local_ko: '벨리셀 인모드 1회',  device: ['InMode Forma'],     event: null, years: 6 }],
-  ['vellicell_강남점','rf_thermage',       { price: 1700000, is_signature: false, local_ko: '벨리셀 써마지 900샷', device: ['Thermage FLX'],    event: null, years: 8 }],
-  ['vellicell_강남점','skinbooster_juvelook', { price: 290000, is_signature: false, local_ko: '벨리셀 쥬베룩', device: ['Juvelook'],            event: null, years: 4 }],
+  // ============ 벨리셀 — 실측 메뉴 10행 (통증케어 제외, 시술 수준 룰)
+  // 가격 전부 null (상담문의), 장비/샷 비움.
+  ['vellicell_강남점','botox_face_slimming',         { price: null, is_signature: false, local_ko: '페이스 보톡스',                          device: [], event: null, years: 12, disclosed: false }],
+  ['vellicell_강남점','botox_body',                  { price: null, is_signature: false, local_ko: '바디 보톡스 (종아리·승모근·어깨)',         device: [], event: null, years: 10, disclosed: false }],
+  ['vellicell_강남점','fat_dissolve_injection_face', { price: null, is_signature: false, local_ko: '지방분해 주사',                            device: [], event: null, years: 10, disclosed: false }],
+  ['vellicell_강남점','glp1_injection',              { price: null, is_signature: false, local_ko: '다이어트 주사제 (마운자로)',                device: [], event: null, years: 2,  disclosed: false }],
+  ['vellicell_강남점','filler_ha_cheek',             { price: null, is_signature: false, local_ko: '페이스 필러',                              device: [], event: null, years: 12, disclosed: false }],
+  ['vellicell_강남점','frax_co2',                    { price: null, is_signature: false, local_ko: '레이저리프팅 / 모공·흉터 개선 (프락셔널)', device: [], event: null, years: 8,  disclosed: false }],
+  ['vellicell_강남점','skinbooster_juvelook',        { price: null, is_signature: false, local_ko: '스킨부스터 (콜라겐 볼륨·재생 / 탄력·물광)', device: [], event: null, years: 6,  disclosed: false }],
+  ['vellicell_강남점','picosure_pico',               { price: null, is_signature: false, local_ko: '색소치료 (기미·잡티·여드름·점·문신)',         device: [], event: null, years: 9,  disclosed: false }],
+  ['vellicell_강남점','aquapeel_facial',             { price: null, is_signature: false, local_ko: '메디컬 스킨케어',                          device: [], event: null, years: 8,  disclosed: false }],
+  ['vellicell_강남점','iv_therapy_generic',          { price: null, is_signature: false, local_ko: '디톡스 & 바이탈 수액테라피',                device: [], event: null, years: 6,  disclosed: false }],
 
   // ============ 아윤
   ['ayun_청담점','hifu_face',              { price: 550000,  is_signature: true,  local_ko: '아윤 울쎄라 300샷', device: ['Ulthera Prime'],    event: null, years: 8 }],

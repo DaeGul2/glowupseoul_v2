@@ -3,6 +3,7 @@ import {
   Brand, Hospital, HospitalProcedure,
   Procedure, ProcedureCategory, Concern, ConcernProcedure,
   Doctor, BAPhoto, PublicFeedEntry,
+  Device, ProcedureDevice, Mechanism,
 } from '../db/models.js';
 import { hasDbConfig } from '../db/sequelize.js';
 import { presignPut, hasS3Config } from '../s3.js';
@@ -72,8 +73,9 @@ const MODELS = {
     M: Concern,
     cols: ['slug','name_ko','name_en','name_zh','name_ja',
            'description_ko','description_en','description_zh','description_ja',
-           'body_area','display_order','is_active'],
+           'body_area','category_id','display_order','is_active'],
     order: [['display_order','ASC'], ['id','ASC']],
+    include: [{ model: ProcedureCategory, as: 'category', attributes: ['id','slug','name_ko','name_en'] }],
   },
   hospital_procedures: {
     M: HospitalProcedure,
@@ -136,12 +138,69 @@ const MODELS = {
       { model: Procedure, as: 'procedure', attributes: ['id', 'slug', 'name_ko', 'name_en'] },
     ],
   },
+  devices: {
+    M: Device,
+    cols: ['slug','name_ko','name_en','name_zh','name_ja','mechanism_slug',
+           'manufacturer','country_of_origin',
+           'description_ko','description_en','description_zh','description_ja',
+           'badge','thumbnail_url','hero_image_url','gallery_urls','tags',
+           'display_order','is_active'],
+    order: [['display_order','ASC'], ['id','ASC']],
+    include: [{ model: Mechanism, as: 'mechanism', attributes: ['slug', 'label_ko', 'label_en'] }],
+  },
+  procedure_devices: {
+    M: ProcedureDevice,
+    cols: ['procedure_id','device_id','relevance',
+           'notes_ko','notes_en','notes_zh','notes_ja','display_order'],
+    order: [['procedure_id','ASC'], ['display_order','ASC']],
+    include: [
+      { model: Procedure, as: 'procedure', attributes: ['id', 'slug', 'name_ko', 'name_en'] },
+      { model: Device,    as: 'device',    attributes: ['id', 'slug', 'name_ko', 'name_en'] },
+    ],
+  },
+  // mechanisms is mostly seeded + lookup; expose read so FkPicker can hydrate.
+  mechanisms: {
+    M: Mechanism,
+    cols: ['slug','label_ko','label_en','label_zh','label_ja',
+           'description_ko','description_en','description_zh','description_ja',
+           'domain','display_order','is_active'],
+    order: [['display_order','ASC'], ['slug','ASC']],
+  },
 };
 
 function pickCols(body, cols) {
   const out = {};
   for (const c of cols) if (c in body) out[c] = body[c];
   return out;
+}
+
+// Composite-PK helpers — Sequelize's findByPk doesn't support composite keys.
+// URLs look like "/api/admin/concern_procedures/<concern_id>-<procedure_id>".
+const COMPOSITE_PKS = {
+  concern_procedures: ['concern_id', 'procedure_id'],
+  procedure_devices:  ['procedure_id', 'device_id'],
+};
+
+function parseCompositeId(kind, id) {
+  const keys = COMPOSITE_PKS[kind];
+  if (!keys) return null;
+  const parts = String(id).split('-');
+  if (parts.length !== keys.length) return null;
+  const where = {};
+  for (let i = 0; i < keys.length; i += 1) {
+    const n = Number(parts[i]);
+    if (!Number.isInteger(n)) return null;
+    where[keys[i]] = n;
+  }
+  return where;
+}
+
+async function findRowByAnyPk(spec, kind, id, includeOpt) {
+  const composite = parseCompositeId(kind, id);
+  if (composite) {
+    return spec.M.findOne({ where: composite, include: includeOpt });
+  }
+  return spec.M.findByPk(id, { include: includeOpt });
 }
 
 // Synthesize a brand slug from a hospital name. Lowercase + safe chars + cap.
@@ -208,7 +267,10 @@ const FILTERS = {
   doctors:             ['hospital_id', 'brand_id', 'is_featured'],
   ba_photos:           ['hospital_id', 'procedure_id', 'doctor_id', 'visibility'],
   procedures:          ['category_id', 'domain', 'is_surgical'],
+  concerns:            ['category_id', 'body_area'],
   concern_procedures:  ['concern_id', 'procedure_id'],
+  devices:             ['mechanism_slug', 'badge', 'is_active'],
+  procedure_devices:   ['procedure_id', 'device_id', 'relevance'],
   public_feed_entries: ['source_type', 'is_visible', 'is_seed'],
 };
 
@@ -239,7 +301,7 @@ export const adminList = wrap(async (req, res) => {
 export const adminGet = wrap(async (req, res) => {
   const spec = MODELS[req.params.kind];
   if (!spec) return res.status(404).json({ error: 'unknown kind' });
-  const row = await spec.M.findByPk(req.params.id, { include: spec.include });
+  const row = await findRowByAnyPk(spec, req.params.kind, req.params.id, spec.include);
   if (!row) return res.status(404).json({ error: 'not found' });
   res.json({ row });
 });
@@ -263,7 +325,7 @@ export const adminCreate = wrap(async (req, res) => {
 export const adminUpdate = wrap(async (req, res) => {
   const spec = MODELS[req.params.kind];
   if (!spec) return res.status(404).json({ error: 'unknown kind' });
-  const row = await spec.M.findByPk(req.params.id);
+  const row = await findRowByAnyPk(spec, req.params.kind, req.params.id);
   if (!row) return res.status(404).json({ error: 'not found' });
   const body = req.body || {};
 
@@ -280,7 +342,7 @@ export const adminUpdate = wrap(async (req, res) => {
 export const adminDelete = wrap(async (req, res) => {
   const spec = MODELS[req.params.kind];
   if (!spec) return res.status(404).json({ error: 'unknown kind' });
-  const row = await spec.M.findByPk(req.params.id);
+  const row = await findRowByAnyPk(spec, req.params.kind, req.params.id);
   if (!row) return res.status(404).json({ error: 'not found' });
 
   // Prefer soft delete when a deleted_at column exists.
@@ -316,14 +378,16 @@ export const adminPresignUpload = wrap(async (req, res) => {
 // Stats — dashboard landing card
 // ----------------------------------------------------------
 export const adminStats = wrap(async (_req, res) => {
-  const [brands, hospitals, procedures, doctors, ba, hp, feed] = await Promise.all([
+  const [brands, hospitals, procedures, doctors, ba, hp, feed, devices, pd] = await Promise.all([
     Brand.count(), Hospital.count(), Procedure.count(),
     Doctor.count(), BAPhoto.count(), HospitalProcedure.count(),
     PublicFeedEntry.count(),
+    Device.count(), ProcedureDevice.count(),
   ]);
   res.json({
     counts: { brands, hospitals, procedures, doctors, ba_photos: ba,
-              hospital_procedures: hp, public_feed_entries: feed },
+              hospital_procedures: hp, public_feed_entries: feed,
+              devices, procedure_devices: pd },
     s3_configured: hasS3Config(),
   });
 });

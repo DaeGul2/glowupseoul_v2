@@ -16,6 +16,7 @@ import {
   Brand, Hospital, HospitalProcedure,
   Procedure, ProcedureCategory, Concern, ConcernProcedure,
   PublicFeedEntry,
+  Device, ProcedureDevice, Mechanism,
 } from '../db/models.js';
 import { hasDbConfig, closeSequelize } from '../db/sequelize.js';
 
@@ -32,6 +33,24 @@ const DRY = Boolean(argMap.dry);
 const ONLY = argMap.only ? new Set(String(argMap.only).split(',').map((s) => s.trim())) : null;
 const should = (name) => !ONLY || ONLY.has(name);
 
+// --hospital-slug=soi_강남점 → 해당 병원 1개의 brand/hospital/hp 만 시드.
+// procedures, concerns, concern_procedures, devices 등 카탈로그성은 영향 없음.
+const HOSPITAL_SLUG_FILTER = argMap['hospital-slug'] ? String(argMap['hospital-slug']) : null;
+function filterHospitals(list) {
+  if (!HOSPITAL_SLUG_FILTER) return list;
+  return list.filter((h) => h.slug === HOSPITAL_SLUG_FILTER);
+}
+function filterBrands(brandList, hospitals) {
+  if (!HOSPITAL_SLUG_FILTER) return brandList;
+  const targetBrandSlugs = new Set(hospitals.filter((h) => h.slug === HOSPITAL_SLUG_FILTER).map((h) => h.brand_slug));
+  return brandList.filter((b) => targetBrandSlugs.has(b.slug));
+}
+function filterHps(hpList, hospitals) {
+  if (!HOSPITAL_SLUG_FILTER) return hpList;
+  const targetHospitalIds = new Set(hospitals.filter((h) => h.slug === HOSPITAL_SLUG_FILTER).map((h) => h.id));
+  return hpList.filter((hp) => targetHospitalIds.has(hp.hospital_id));
+}
+
 async function load(rel) {
   return import(pathToFileURL(resolvePath(CLIENT_DATA, rel)).href);
 }
@@ -43,6 +62,7 @@ const dbIdBy = {
   procedureBySlug: new Map(),
   concernBySlug:   new Map(),
   categoryBySlug:  new Map(),
+  deviceBySlug:    new Map(),
 
   hospitalMockId:  new Map(),
   procedureMockId: new Map(),
@@ -55,10 +75,12 @@ function bulkOpts(updateCols) {
 
 async function importBrands() {
   const { brands } = await load('brands.js');
-  console.log(`brands: ${brands.length}`);
+  const { hospitals } = await load('hospitals.js');
+  const filtered = filterBrands(brands, hospitals);
+  console.log(`brands: ${filtered.length}${HOSPITAL_SLUG_FILTER ? ` (filter: --hospital-slug=${HOSPITAL_SLUG_FILTER})` : ''}`);
   if (DRY) return;
 
-  const rows = brands.map((b) => ({
+  const rows = filtered.map((b) => ({
     slug: b.slug, name_ko: b.name_ko, name_en: b.name_en,
     name_zh: b.name_zh, name_ja: b.name_ja,
     founding_doctor: b.founding_doctor,
@@ -81,10 +103,11 @@ async function importBrands() {
 
 async function importHospitals() {
   const { hospitals } = await load('hospitals.js');
-  console.log(`hospitals: ${hospitals.length}`);
+  const filtered = filterHospitals(hospitals);
+  console.log(`hospitals: ${filtered.length}${HOSPITAL_SLUG_FILTER ? ` (filter: --hospital-slug=${HOSPITAL_SLUG_FILTER})` : ''}`);
   if (DRY) return;
 
-  const rows = hospitals.map((h) => ({
+  const rows = filtered.map((h) => ({
     slug: h.slug,
     brand_id: dbIdBy.brandBySlug.get(h.brand_slug) || null,
     branch_name: h.branch_name,
@@ -135,8 +158,11 @@ async function importHospitals() {
 
   const inserted = await Hospital.findAll({ attributes: ['id', 'slug'] });
   inserted.forEach((h) => dbIdBy.hospitalBySlug.set(h.slug, h.id));
-  // mock-id → slug → db-id
-  hospitals.forEach((h) => dbIdBy.hospitalMockId.set(h.id, dbIdBy.hospitalBySlug.get(h.slug)));
+  // mock-id → slug → db-id (use the original hospitals list for mock-id mapping)
+  hospitals.forEach((h) => {
+    const dbId = dbIdBy.hospitalBySlug.get(h.slug);
+    if (dbId) dbIdBy.hospitalMockId.set(h.id, dbId);
+  });
 }
 
 async function importProcedures() {
@@ -150,7 +176,9 @@ async function importProcedures() {
 
   const rows = procedures.map((p) => ({
     slug: p.slug,
-    category_id: dbIdBy.categoryBySlug.get(p.category_slug) || null,
+    // Prefer category_slug (semantic); fall back to category_id (raw, mock-internal).
+    // Mock procedure_categories ids match DB ids (1=face, 2=eyes, ...) since both seed deterministically.
+    category_id: p.category_slug ? (dbIdBy.categoryBySlug.get(p.category_slug) || null) : (p.category_id || null),
     name_ko: p.name_ko, name_en: p.name_en, name_zh: p.name_zh, name_ja: p.name_ja,
     description_ko: p.description_ko, description_en: p.description_en,
     description_zh: p.description_zh, description_ja: p.description_ja,
@@ -197,15 +225,24 @@ async function importConcerns() {
   console.log(`concerns: ${concerns.length}`);
   if (DRY) return;
 
+  // categories may already be cached from importProcedures(); if --only=concerns
+  // is used alone, fetch them now.
+  if (dbIdBy.categoryBySlug.size === 0) {
+    const cats = await ProcedureCategory.findAll({ attributes: ['id', 'slug'] });
+    cats.forEach((c) => dbIdBy.categoryBySlug.set(c.slug, c.id));
+  }
+
   const rows = concerns.map((c) => ({
     slug: c.slug, name_ko: c.name_ko, name_en: c.name_en,
     name_zh: c.name_zh, name_ja: c.name_ja,
     description_en: c.description_en,
-    body_area: c.body_area, display_order: c.display_order || 0,
+    body_area: c.body_area,
+    category_id: c.category_slug ? (dbIdBy.categoryBySlug.get(c.category_slug) || null) : null,
+    display_order: c.display_order || 0,
     is_active: c.is_active !== false,
   }));
   await Concern.bulkCreate(rows, bulkOpts([
-    'name_ko','name_en','name_zh','name_ja','description_en','body_area','display_order','is_active',
+    'name_ko','name_en','name_zh','name_ja','description_en','body_area','category_id','display_order','is_active',
   ]));
 
   const inserted = await Concern.findAll({ attributes: ['id', 'slug'] });
@@ -215,11 +252,13 @@ async function importConcerns() {
 
 async function importHospitalProcedures() {
   const { hospitalProcedures } = await load('hospitalProcedures.js');
-  console.log(`hospital_procedures: ${hospitalProcedures.length}`);
+  const { hospitals } = await load('hospitals.js');
+  const filtered = filterHps(hospitalProcedures, hospitals);
+  console.log(`hospital_procedures: ${filtered.length}${HOSPITAL_SLUG_FILTER ? ` (filter: --hospital-slug=${HOSPITAL_SLUG_FILTER})` : ''}`);
   if (DRY) return;
 
   const rows = [];
-  for (const hp of hospitalProcedures) {
+  for (const hp of filtered) {
     const hid = dbIdBy.hospitalMockId.get(hp.hospital_id);
     const pid = dbIdBy.procedureMockId.get(hp.procedure_id);
     if (!hid || !pid) {
@@ -277,6 +316,115 @@ async function importConcernProcedures() {
   ]));
 }
 
+// Some legacy mock slugs in devices.js don't match the canonical
+// mechanism slugs in the DB lookup table. Translate at seed time so the
+// FK insert succeeds without rewriting devices.js (historical seed source).
+const MECHANISM_SLUG_ALIAS = {
+  laser_pico: 'laser_non_ablative',
+  laser_co2:  'laser_ablative',
+  cryolipo:   'cryolipolysis',
+  em_muscle:  'em_muscle_stim',
+  skinbooster:'injection_skin',
+};
+
+async function importDevices() {
+  const { devices } = await load('devices.js');
+  console.log(`devices: ${devices.length}`);
+  if (DRY) return;
+
+  // Confirm which mechanism slugs actually exist in DB before insert.
+  const dbMech = new Set((await Mechanism.findAll({ attributes: ['slug'] })).map((r) => r.slug));
+
+  const rows = devices.map((d, i) => {
+    const raw = d.mechanism || null;
+    const aliased = raw ? (MECHANISM_SLUG_ALIAS[raw] || raw) : null;
+    const mechanism_slug = aliased && dbMech.has(aliased) ? aliased : null;
+    if (raw && !mechanism_slug) {
+      console.warn(`  ⚠ device ${d.slug}: mechanism "${raw}" not found in DB — setting NULL`);
+    }
+    return {
+    slug: d.slug,
+    name_ko: d.name_ko, name_en: d.name_en, name_zh: d.name_zh, name_ja: d.name_ja,
+    mechanism_slug,
+    manufacturer: d.manufacturer || null,
+    country_of_origin: d.country_of_origin || null,
+    description_en: d.blurb || null,
+    description_ko: d.blurb_ko || null,
+    badge: d.badge || null,
+    thumbnail_url: d.image || null,
+    hero_image_url: d.image || null,
+    tags: d.brands || null,        // store legacy brand-name aliases as tags for matching
+    display_order: i + 1,
+    is_active: true,
+    };
+  });
+  await Device.bulkCreate(rows, bulkOpts([
+    'name_ko','name_en','name_zh','name_ja','mechanism_slug','manufacturer','country_of_origin',
+    'description_en','description_ko','badge','thumbnail_url','hero_image_url','tags',
+    'display_order','is_active',
+  ]));
+
+  const inserted = await Device.findAll({ attributes: ['id', 'slug'] });
+  inserted.forEach((d) => dbIdBy.deviceBySlug.set(d.slug, d.id));
+}
+
+async function importProcedureDevices() {
+  const { devices } = await load('devices.js');
+  // Build procedure_devices from each device's hero_procedure_slug (primary)
+  // plus any procedure whose `device_examples` JSON contains one of this
+  // device's brand aliases. Loose substring match, mirrors how the client
+  // associates them.
+  const { procedures } = await load('procedures.js');
+
+  // Make sure parent caches are populated (in case --only mode)
+  if (dbIdBy.procedureBySlug.size === 0) {
+    const ps = await Procedure.findAll({ attributes: ['id', 'slug'] });
+    ps.forEach((p) => dbIdBy.procedureBySlug.set(p.slug, p.id));
+  }
+  if (dbIdBy.deviceBySlug.size === 0) {
+    const ds = await Device.findAll({ attributes: ['id', 'slug'] });
+    ds.forEach((d) => dbIdBy.deviceBySlug.set(d.slug, d.id));
+  }
+
+  const rows = [];
+  const seen = new Set();
+  function add(procedureSlug, deviceSlug, relevance) {
+    const pid = dbIdBy.procedureBySlug.get(procedureSlug);
+    const did = dbIdBy.deviceBySlug.get(deviceSlug);
+    if (!pid || !did) return;
+    const key = `${pid}-${did}`;
+    if (seen.has(key)) return;     // first-write wins; primary > alternative
+    seen.add(key);
+    rows.push({ procedure_id: pid, device_id: did, relevance });
+  }
+
+  // First pass — primary links (hero_procedure_slug)
+  for (const d of devices) {
+    if (!d.hero_procedure_slug) continue;
+    add(d.hero_procedure_slug, d.slug, 'primary');
+  }
+
+  // Second pass — alternative links via procedure.device_examples ↔ device.brands
+  for (const p of procedures) {
+    const examples = Array.isArray(p.device_examples) ? p.device_examples : [];
+    if (examples.length === 0) continue;
+    const lcExamples = examples.map((s) => String(s).toLowerCase());
+    for (const d of devices) {
+      const aliases = (d.brands || []).map((s) => String(s).toLowerCase());
+      const match = aliases.some((a) =>
+        lcExamples.some((e) => e === a || e.includes(a) || a.includes(e))
+      );
+      if (match) add(p.slug, d.slug, 'alternative');
+    }
+  }
+
+  console.log(`procedure_devices: ${rows.length}`);
+  if (DRY) return;
+
+  if (rows.length === 0) return;
+  await ProcedureDevice.bulkCreate(rows, bulkOpts(['relevance']));
+}
+
 async function importPublicFeed() {
   const mod = await load('publicFeed.js');
   const seed = mod.publicFeedEntries || [];
@@ -316,6 +464,8 @@ async function main() {
     if (should('concerns'))            await importConcerns();
     if (should('hospital_procedures')) await importHospitalProcedures();
     if (should('concern_procedures'))  await importConcernProcedures();
+    if (should('devices'))             await importDevices();
+    if (should('procedure_devices'))   await importProcedureDevices();
     if (should('public_feed'))         await importPublicFeed();
     console.log(DRY ? '\n✓ dry-run (no writes)' : '\n✓ seed-from-mock complete');
   } catch (e) {

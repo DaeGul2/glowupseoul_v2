@@ -18,8 +18,8 @@ const thumbPool = [
 
 const seed = [
   // id, brand_slug, branch, area(district/neighborhood), languages, intl features, established, ba_count, claim, phone, kakao/wechat/whatsapp/line, contract_status, foreign_case_monthly
-  { brand: 'soi',          branch: '강남점',  district: '강남구', neighborhood: '역삼동',  city: '서울', languages: ['ko','en','zh'],         intl: true,  english: true,  est: 2014, ba: 1200, claim: '직각어깨 필러 누적 시술 8,000회+',                phone: '02-555-2424',  kakao: 'soiclinic24',     contract: 'active',     foreign: 90 },
-  { brand: 'vellicell',    branch: '강남점',  district: '강남구', neighborhood: '논현동',  city: '서울', languages: ['ko','en','zh','ja'],     intl: true,  english: false, est: 2012, ba: 800,  claim: '슈링크·인모드 누적 5만회',                       phone: '02-3018-3300', kakao: 'vellicell',       contract: 'active',     foreign: 60 },
+  { brand: 'soi',          branch: '강남점',  district: '서초구', neighborhood: '잠원동',  city: '서울', languages: ['ko','en','zh','ja'],     intl: true,  english: true,  est: 2014, ba: 1200, claim: '시그너처 5종 (압토스 이중턱·3D 풀페이스·직각어깨·골반·귀 필러) — 강남대로 잠원동',                phone: '02-555-2424',  kakao: 'soiclinic24',     contract: 'active',     foreign: 90, address: '서울특별시 서초구 강남대로 563 페이토플라자 7층' },
+  { brand: 'vellicell',    branch: '강남점',  district: '서초구', neighborhood: '서초동',  city: '서울', languages: ['ko','en','zh','ja'],     intl: true,  english: false, est: 2012, ba: 800,  claim: '강남역 10번 출구 1분 — 종합 피부과 · 일요일도 정상 진료 (10:00~17:00)',                       phone: '02-6282-8117', kakao: 'vellicell',       contract: 'active',     foreign: 60, address: '서울특별시 서초구 강남대로 407 OPUS 407, 3~4층' },
   { brand: 'ayun',         branch: '청담점',  district: '강남구', neighborhood: '청담동',  city: '서울', languages: ['ko','en','zh'],          intl: true,  english: false, est: 2015, ba: 450,  claim: '울쎄라 + 써마지 듀얼 라인업',                    phone: '02-512-7575',  kakao: 'ayunclinic',      contract: 'active',     foreign: 40 },
   { brand: 'dewyd',        branch: '강남점',  district: '강남구', neighborhood: '신사동',  city: '서울', languages: ['ko','en'],               intl: false, english: false, est: 2020, ba: 200,  claim: '수분·재생 페이셜 특화',                          phone: '02-518-1010',  kakao: 'dewyd',           contract: 'active',     foreign: 20 },
   { brand: 'lamiche',      branch: '청담점',  district: '강남구', neighborhood: '청담동',  city: '서울', languages: ['ko','en','zh'],          intl: true,  english: true,  est: 2011, ba: 950,  claim: 'VIP 멤버십 운영, 강남 16년',                     phone: '02-512-7799',  kakao: 'lamiche',         contract: 'active',     foreign: 110 },
@@ -54,8 +54,8 @@ export const hospitals = seed.map((s, i) => ({
   name_zh: '',
   name_ja: '',
   country: 'KR', city: s.city, district: s.district, neighborhood: s.neighborhood,
-  full_address_ko: `${s.city} ${s.district} ${s.neighborhood} (${s.brand} ${s.branch})`,
-  full_address_en: `${s.neighborhood}, ${s.district}, ${s.city}, Korea`,
+  full_address_ko: s.address || `${s.city} ${s.district} ${s.neighborhood} (${s.brand} ${s.branch})`,
+  full_address_en: s.address_en || `${s.neighborhood}, ${s.district}, ${s.city}, Korea`,
   lat: null, lng: null,
   phone: s.phone || null,
   email: null,

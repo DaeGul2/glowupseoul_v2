@@ -20,13 +20,18 @@ function loadOptions(kind) {
 // Reset a kind's cache after a create/update so the picker shows new rows.
 export function invalidateFkCache(kind) { _cache.delete(kind); }
 
-function labelFor(spec, row) {
-  if (!spec) return `#${row?.id}`;
-  const title = row?.[spec.titleField] ?? row?.name_ko ?? row?.name_en ?? row?.slug;
-  return title ? String(title) : `#${row?.id}`;
+function labelFor(spec, row, refLabel) {
+  if (!row) return '';
+  if (refLabel && row[refLabel] != null) return String(row[refLabel]);
+  if (!spec) return `#${row?.id ?? row?.slug}`;
+  const title = row?.[spec.titleField] ?? row?.label_ko ?? row?.name_ko ?? row?.name_en ?? row?.slug;
+  return title ? String(title) : `#${row?.id ?? row?.slug}`;
 }
 
-export default function FkPicker({ value, onChange, table, placeholder = 'Type to search…' }) {
+// refField — column to send back to parent (defaults to 'id'). Use 'slug'
+//            for lookup tables whose PK is a slug (e.g. mechanisms).
+// refLabel — column for display label override.
+export default function FkPicker({ value, onChange, table, placeholder = 'Type to search…', refField = 'id', refLabel = null }) {
   const spec = useMemo(() => getSpec(table), [table]);
   const [rows, setRows]   = useState([]);
   const [query, setQuery] = useState('');
@@ -49,8 +54,8 @@ export default function FkPicker({ value, onChange, table, placeholder = 'Type t
   }, []);
 
   const selected = useMemo(
-    () => (value == null ? null : rows.find((r) => r.id === value || String(r.id) === String(value)) || null),
-    [rows, value]
+    () => (value == null ? null : rows.find((r) => r[refField] === value || String(r[refField]) === String(value)) || null),
+    [rows, value, refField]
   );
 
   const matches = useMemo(() => {
@@ -59,6 +64,7 @@ export default function FkPicker({ value, onChange, table, placeholder = 'Type t
       ? rows.filter((r) => {
           const hay = [
             r.id, r.slug, r.name_ko, r.name_en, r.name_zh, r.name_ja,
+            r.label_ko, r.label_en,
             r.title_ko, r.local_name_ko,
           ].filter(Boolean).join(' ').toLowerCase();
           return hay.includes(q);
@@ -67,16 +73,21 @@ export default function FkPicker({ value, onChange, table, placeholder = 'Type t
     return pool.slice(0, 30);
   }, [rows, query]);
 
+  function shortId(r) {
+    const k = r[refField];
+    return refField === 'id' ? `#${k}` : String(k);
+  }
+
   return (
     <div className={`gs-fkp${open ? ' is-open' : ''}`} ref={wrap}>
       <div className="gs-fkp-summary" onClick={() => setOpen((v) => !v)}>
         {selected ? (
           <>
-            <span className="gs-fkp-label">{labelFor(spec, selected)}</span>
-            <span className="gs-fkp-id">#{selected.id}</span>
+            <span className="gs-fkp-label">{labelFor(spec, selected, refLabel)}</span>
+            <span className="gs-fkp-id">{shortId(selected)}</span>
           </>
         ) : (
-          <span className="gs-fkp-placeholder">{busy ? '불러오는 중…' : (value ? `#${value} (찾을 수 없음)` : '선택하세요 →')}</span>
+          <span className="gs-fkp-placeholder">{busy ? '불러오는 중…' : (value ? `${refField === 'id' ? '#' : ''}${value} (찾을 수 없음)` : '선택하세요 →')}</span>
         )}
         <span className="gs-fkp-caret">▾</span>
       </div>
@@ -107,12 +118,12 @@ export default function FkPicker({ value, onChange, table, placeholder = 'Type t
               matches.map((r) => (
                 <button
                   type="button"
-                  key={r.id}
-                  className={`gs-fkp-opt${selected?.id === r.id ? ' is-selected' : ''}`}
-                  onClick={() => { onChange(r.id); setOpen(false); setQuery(''); }}
+                  key={r[refField] ?? r.id ?? r.slug}
+                  className={`gs-fkp-opt${selected?.[refField] === r[refField] ? ' is-selected' : ''}`}
+                  onClick={() => { onChange(r[refField]); setOpen(false); setQuery(''); }}
                 >
-                  <span className="gs-fkp-opt-label">{labelFor(spec, r)}</span>
-                  <span className="gs-fkp-opt-sub">{r.slug ? `${r.slug} · #${r.id}` : `#${r.id}`}</span>
+                  <span className="gs-fkp-opt-label">{labelFor(spec, r, refLabel)}</span>
+                  <span className="gs-fkp-opt-sub">{r.slug && refField !== 'slug' ? `${r.slug} · #${r.id}` : shortId(r)}</span>
                 </button>
               ))
             )}

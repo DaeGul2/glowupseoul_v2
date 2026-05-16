@@ -1,3 +1,4 @@
+# === Dependencies / runtime / env ===
 node_modules/
 .env
 .env.local
@@ -6,18 +7,47 @@ node_modules/
 dist/
 build/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# IDE
+# === IDE / editor ===
 .vscode/
 .idea/
 *.swp
 *.swo
+*.tsbuildinfo
+*~
+*.bak
+*.orig
 
-# OS / Excel
+# === OS / Office temp / Excel locks ===
 Thumbs.db
+ehthumbs.db
 ~$*.xlsx
 ~$*.xls
 ~$*.docx
+~$*.pptx
 
-# Cloudflare tunnel
+# === Cloudflare tunnel ===
 .cloudflared.log
+
+# === Operator research / non-app artifacts — NOT for deployment ===
+# 병원별 운영자 리서치 (스크린샷·자료) — 운영팀 로컬 폴더, 앱 코드와 무관.
+data/
+
+# 이미 tracked 인 폴더는 그대로. 새로 정리하고 싶으면:
+#   git rm -r --cached docs/screenshots
+#   git commit -m "untrack docs/screenshots — operator research"
+# 그 후 아래 한 줄 활성화:
+# docs/screenshots/
+
+# === Test / coverage outputs ===
+coverage/
+.nyc_output/
+
+# === Hosting / framework caches ===
+.vercel/
+.next/
+out/

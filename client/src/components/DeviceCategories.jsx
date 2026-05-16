@@ -7,11 +7,12 @@ function fmtRange(min, max) {
   return min === max ? `₩${toMan(min)}` : `₩${toMan(min)} – ${toMan(max)}`;
 }
 
-export default function DeviceCategories() {
+export default function DeviceCategories({ variant = 'grid' }) {
   const stats = db.devicesWithStats().filter((s) => s.match_count > 0);
+  const containerClass = variant === 'scroll' ? 'gs-hscroll' : 'gs-device-grid';
 
   return (
-    <div className="gs-device-grid">
+    <div className={containerClass}>
       {stats.map((s, i) => {
         const d = s.device;
         return (

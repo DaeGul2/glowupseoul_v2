@@ -27,6 +27,7 @@ const I18N = {
       downtime:   'Max downtime',
       pain:       'Pain tolerance',
       style:      'Style preference',
+      devicePref: 'Preferred device(s)',
       notes:      'Notes',
       confidence: 'Confidence',
       observed:   'AI observed',
@@ -75,6 +76,7 @@ const I18N = {
       downtime:   '最大恢复期',
       pain:       '疼痛耐受',
       style:      '风格偏好',
+      devicePref: '偏好设备',
       notes:      '备注',
       confidence: '置信度',
       observed:   'AI 观察',
@@ -165,6 +167,9 @@ export function buildCaseMessage({ entry, lang = 'en' }) {
   if (prefs.style_target != null) {
     pushKV(t.label.style, `${prefs.style_label || ''} (${prefs.style_target}/5)`.trim());
   }
+  if (Array.isArray(prefs.device_pref_labels) && prefs.device_pref_labels.length) {
+    pushKV(t.label.devicePref, prefs.device_pref_labels.join(', '));
+  }
   if (prefs.notes) {
     push(`• ${t.label.notes}:`);
     push(`  "${prefs.notes}"`);
@@ -236,12 +241,21 @@ export function buildCaseMessage({ entry, lang = 'en' }) {
  * Build a case-shaped entry from live scan state (snapshot, ai analyze result, prefs, matches).
  * Used by ResultsPage where we have these inputs but no publicFeed entry yet.
  */
-export function buildEntryFromLive({ ai, prefs, matches, synth }) {
+export function buildEntryFromLive({ ai, prefs, matches, synth, devices = [] }) {
   const top = matches?.[0]?.offering;
   if (!top) return null;
   const { hp, procedure, hospital, brand, discount_pct } = top;
   const BUDGET_LABELS = { under_300: 'Under ₩300k', '300_800': '₩300k – ₩800k', '800_2000': '₩800k – ₩2M', '2000_5000': '₩2M – ₩5M', over_5000: 'Over ₩5M' };
   const STYLE_LABELS = ['Subtle', 'Soft', 'Balanced', 'Bold', 'Dramatic'];
+
+  // Resolve preferred device slugs to display labels (e.g. "Ulthera · Shurink").
+  const deviceBySlug = Object.fromEntries((devices || []).map((d) => [d.slug, d]));
+  const devicePrefLabels = (prefs.devicePrefSlugs || [])
+    .map((slug) => {
+      const d = deviceBySlug[slug];
+      if (!d) return slug;
+      return d.name_en && d.name_ko ? `${d.name_en} (${d.name_ko})` : (d.name_en || d.name_ko || slug);
+    });
 
   return {
     display_initial: 'You',
@@ -258,6 +272,7 @@ export function buildEntryFromLive({ ai, prefs, matches, synth }) {
         pain_max: prefs.painMax,
         style_target: prefs.styleTarget,
         style_label: STYLE_LABELS[(prefs.styleTarget || 3) - 1],
+        device_pref_labels: devicePrefLabels,
         language: prefs.language,
         notes: prefs.notes,
       },

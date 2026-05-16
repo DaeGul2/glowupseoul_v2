@@ -1,14 +1,19 @@
 // Match-history feed — what schema.sql calls `public_feed_entries`.
-// Each entry mirrors a real-world consent-given match: who (anonymized), what they wanted,
-// what Romie recommended. Used in:
-//   1. Thin ticker under the hero  (1 entry rotating)
-//   2. "Recently matched" editorial section on homepage (6 entries grid)
 //
-// When DB lands, this file becomes a thin fetch wrapper — schema fields are already aligned.
+// ⚠ Runtime source = RDS (table: public_feed_entries) via /api/feed/recent,
+//   hydrated by hydratePublicFeed() on boot. Plus locally-added entries from
+//   the current session (sessionStorage scan submissions). NO hardcoded mock
+//   entries are shown on the homepage anymore.
+//
+// The `seed` array below is kept as a *seed source* for server/scripts/seed-from-mock
+// only (operator-imported sample data). It is NOT loaded into the client at
+// runtime — entries starts empty and gets filled exclusively by hydratePublicFeed()
+// + addPublicFeedEntry().
 
 const now = Date.now();
 const minAgo = (m) => new Date(now - m * 60_000).toISOString();
 
+// Sample data for seed-from-mock import only. Client runtime does NOT show these.
 const seed = [
   {
     id: 'pf01',
@@ -202,11 +207,13 @@ const seed = [
   },
 ];
 
-// In-memory store. `_userAdded` flag separates real-time additions from seed.
-let entries = [...seed];
+// In-memory store. Starts EMPTY — populated only by hydratePublicFeed (DB rows)
+// and addPublicFeedEntry (user's own scan submissions in this session).
+let entries = [];
 let listeners = new Set();
 
 // localStorage persistence — survive page refresh for the user's own scans.
+// (Note: this is per-browser, not shared. The DB feed is the shared one.)
 const LS_KEY = 'gs_v2_public_feed_local';
 function loadLocal() {
   try {
@@ -222,46 +229,32 @@ function saveLocal(local) {
 
 if (typeof window !== 'undefined') {
   const local = loadLocal();
-  if (local.length) entries = [...local, ...seed];
+  if (local.length) entries = [...local];        // ← seed 더 이상 합치지 않음
 }
 
 export const publicFeedEntries = entries;
-
-// Fill multilingual label placeholders
-seed.forEach((e) => {
-  e.country_label_zh = e.country_label_en;
-  e.country_label_ja = e.country_label_en;
-  e.country_label_ko = e.country_label_en;
-  e.treatment_label_zh = e.treatment_label_en;
-  e.treatment_label_ja = e.treatment_label_en;
-  e.treatment_label_ko = e.treatment_label_en;
-  e.outcome_note_zh = e.outcome_note_en;
-  e.outcome_note_ja = e.outcome_note_en;
-  e.outcome_note_ko = e.outcome_note_en;
-  e.is_visible = true;
-  e.is_seed = true;
-  e.source_type = 'seed';
-});
 
 export function getPublicFeedEntries() {
   return entries.filter((e) => e.is_visible !== false);
 }
 
-// One-shot hydrate from RDS. Replaces the in-memory seed with rows from
-// /api/feed/recent so the homepage shows live entries (including ones added
-// via /api/match-requests). Falls back silently when the API isn't ready.
+// One-shot hydrate from RDS. The DB rows are the canonical source. If DB
+// returns empty, the homepage shows empty — no mock fallback.
 let _hydrated = false;
 export async function hydratePublicFeed() {
   if (_hydrated) return entries;
   if (typeof window === 'undefined') return entries;
   try {
     const res = await fetch('/api/feed/recent?limit=30');
-    if (!res.ok) return entries;
+    if (!res.ok) {
+      _hydrated = true;          // 명시적 응답이 왔으니 다시 polling 안 함
+      return entries;
+    }
     const json = await res.json();
-    if (!Array.isArray(json.entries) || json.entries.length === 0) return entries;
+    const rows = Array.isArray(json.entries) ? json.entries : [];
 
     // Adapt API row → existing client entry shape (RecentMatches / Ticker read these).
-    const adapted = json.entries.map((row) => ({
+    const adapted = rows.map((row) => ({
       id: row.id,
       display_initial: row.display_initial,
       country_code: row.country_code,
@@ -276,13 +269,15 @@ export async function hydratePublicFeed() {
       source_type: row.source_type,
     }));
 
-    // Keep any locally-added entries on top (user just submitted), then DB rows.
+    // Keep any locally-added entries on top (user just submitted in this session),
+    // then DB rows. DB-empty → only locally-added entries (or nothing) are shown.
     const local = entries.filter((e) => !e.is_seed && String(e.id).startsWith('local_'));
-    entries = [...local, ...adapted];
+    entries.splice(0, entries.length, ...local, ...adapted);
     listeners.forEach((fn) => { try { fn(entries); } catch {} });
     _hydrated = true;
   } catch {
-    // network failure → keep static seed
+    // network failure → keep whatever's in entries (probably just localStorage)
+    _hydrated = true;
   }
   return entries;
 }
@@ -296,7 +291,8 @@ export function addPublicFeedEntry(entry) {
     source_type: 'inquiry',
     displayed_at: entry.displayed_at || new Date().toISOString(),
   };
-  entries = [full, ...entries];
+  // Mutate the shared array in place so the `publicFeedEntries` export reference stays valid.
+  entries.unshift(full);
 
   if (typeof window !== 'undefined') {
     const local = loadLocal();
@@ -312,7 +308,9 @@ export function subscribeFeed(fn) {
 }
 
 export function clearLocalFeed() {
-  entries = entries.filter((e) => e.is_seed);
+  // Drop everything that isn't a DB-sourced row (= local additions only).
+  const kept = entries.filter((e) => e.source_type !== 'inquiry' && !String(e.id || '').startsWith('local_'));
+  entries.splice(0, entries.length, ...kept);
   if (typeof window !== 'undefined') saveLocal([]);
   listeners.forEach((fn) => { try { fn(entries); } catch {} });
 }

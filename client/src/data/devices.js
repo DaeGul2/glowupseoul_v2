@@ -1,9 +1,11 @@
-// Device-name taxonomy — foreign patients ask for treatments by *brand name*
-// ("can I get Ulthera at Hershe?") not by clinical mechanism ("HIFU").
+// Device taxonomy — Ulthera·Shurink·Thermage 등.
 //
-// Each entry groups one or more device_brands strings (matched against
-// hospital_procedures.device_brands) and points at a "hero" procedure to deep-link to.
-// Stays in sync with src/data/mechanisms.js + src/data/procedures.js manually.
+// ⚠ Runtime source is the DB (table: devices). The site loads this collection
+// via /api/catalog/bootstrap and stores it in db.devices.
+//
+// This file is kept ONLY as the seed source for server/scripts/seed-from-mock.js.
+// Do not import from here in runtime code — use `import db from './db.js'` and
+// read `db.devices` / `db.deviceBySlug` after hydrate().
 
 export const devices = [
   {
@@ -15,6 +17,8 @@ export const devices = [
     blurb: 'The original FDA-cleared focused ultrasound, SMAS-layer lift.',
     image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=80',
     badge: 'iconic',
+    manufacturer: 'Merz',
+    country_of_origin: 'US',
   },
   {
     slug: 'shurink',
@@ -24,6 +28,9 @@ export const devices = [
     hero_procedure_slug: 'hifu_face',
     blurb: 'Korean HIFU favored for fewer side effects and quick recovery.',
     image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=900&q=80',
+    manufacturer: 'Classys',
+    country_of_origin: 'KR',
+    badge: 'k-favorite',
   },
   {
     slug: 'thermage',
@@ -34,6 +41,8 @@ export const devices = [
     blurb: 'Single-session monopolar RF — collagen contraction.',
     image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=900&q=80',
     badge: 'premium',
+    manufacturer: 'Solta Medical',
+    country_of_origin: 'US',
   },
   {
     slug: 'inmode',
@@ -43,6 +52,8 @@ export const devices = [
     hero_procedure_slug: 'inmode',
     blurb: 'Bipolar RF + EM stim — fat, tightening, toning combined.',
     image: 'https://images.unsplash.com/photo-1522337360-f1a92ca40fb1?auto=format&fit=crop&w=900&q=80',
+    manufacturer: 'InMode',
+    country_of_origin: 'IL',
   },
   {
     slug: 'picosure',
@@ -52,6 +63,8 @@ export const devices = [
     hero_procedure_slug: 'picosure_pico',
     blurb: 'Ultra-short pulse laser for pigment, tattoo, skin tone.',
     image: 'https://images.unsplash.com/photo-1612349316228-b3c3f3c4f8f1?auto=format&fit=crop&w=900&q=80',
+    manufacturer: 'Cynosure',
+    country_of_origin: 'US',
   },
   {
     slug: 'co2_fractional',
@@ -61,6 +74,8 @@ export const devices = [
     hero_procedure_slug: 'frax_co2',
     blurb: 'Fractional ablative resurfacing for acne scars and pores.',
     image: 'https://images.unsplash.com/photo-1559599101-f09722fb4948?auto=format&fit=crop&w=900&q=80',
+    manufacturer: 'Lutronic',
+    country_of_origin: 'KR',
   },
   {
     slug: 'coolsculpting',
@@ -70,6 +85,9 @@ export const devices = [
     hero_procedure_slug: 'cryolipo_body',
     blurb: 'Non-invasive fat reduction via controlled cooling.',
     image: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=900&q=80',
+    badge: 'iconic',
+    manufacturer: 'Allergan',
+    country_of_origin: 'US',
   },
   {
     slug: 'emsculpt',
@@ -79,6 +97,8 @@ export const devices = [
     hero_procedure_slug: 'emsculpt',
     blurb: 'Electromagnetic muscle stimulation — build + reduce.',
     image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80',
+    manufacturer: 'BTL',
+    country_of_origin: 'CZ',
   },
   {
     slug: 'rejuran',
@@ -89,6 +109,8 @@ export const devices = [
     blurb: 'Salmon DNA-derived PN — skin regeneration injection.',
     image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=900&q=80',
     badge: 'k-favorite',
+    manufacturer: 'Pharma Research',
+    country_of_origin: 'KR',
   },
   {
     slug: 'juvelook',
@@ -98,6 +120,9 @@ export const devices = [
     hero_procedure_slug: 'skinbooster_juvelook',
     blurb: 'PDLA + HA combined for collagen + hydration.',
     image: 'https://images.unsplash.com/photo-1571066811602-716837d681de?auto=format&fit=crop&w=900&q=80',
+    manufacturer: 'VAIM',
+    country_of_origin: 'KR',
+    badge: 'k-favorite',
   },
   {
     slug: 'hydrafacial',
@@ -107,7 +132,11 @@ export const devices = [
     hero_procedure_slug: 'aquapeel_facial',
     blurb: 'Hydradermabrasion + extraction medical facial.',
     image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=900&q=80',
+    manufacturer: 'HydraFacial',
+    country_of_origin: 'US',
   },
 ];
 
-export const deviceBySlug = Object.fromEntries(devices.map((d) => [d.slug, d]));
+// Empty stub for deviceBySlug — no one should import this. Runtime uses
+// db.deviceBySlug populated from /api/catalog/bootstrap.
+export const deviceBySlug = {};

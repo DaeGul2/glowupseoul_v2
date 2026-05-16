@@ -117,3 +117,88 @@ CREATE TABLE IF NOT EXISTS ba_photos (
   INDEX idx_ba_procedure (procedure_id),
   INDEX idx_ba_visibility (visibility, is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- concerns.category_id — 고민을 procedure_categories 8개 중 하나에 매핑.
+-- 카테고리는 procedure 와 공유 (통합 분류 축). UI 그룹핑 + 운영자 큐레이션
+-- 편의용. 매칭 로직엔 영향 없음 (concern_procedures 가 여전히 메인 매핑).
+-- ---------------------------------------------------------------------
+ALTER TABLE concerns
+  ADD COLUMN category_id INT AFTER body_area;
+ALTER TABLE concerns
+  ADD CONSTRAINT fk_concerns_category FOREIGN KEY (category_id)
+  REFERENCES procedure_categories(id) ON DELETE SET NULL;
+ALTER TABLE concerns
+  ADD INDEX idx_concerns_category (category_id);
+
+-- ---------------------------------------------------------------------
+-- devices — 기기 브랜드 (Ulthera·Shurink·Thermage 등)
+-- 외국 환자가 "Ulthera 받고싶다" 처럼 기기명으로 검색하는 흐름을 위해
+-- 카탈로그 1급 시민. 한 mechanism 에 여러 device, 한 procedure 에도
+-- 여러 device 선택지 (procedure_devices 조인 테이블로).
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS devices (
+  id                  INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  slug                VARCHAR(80)  NOT NULL UNIQUE,
+  name_ko             VARCHAR(120) NOT NULL,
+  name_en             VARCHAR(120) NOT NULL,
+  name_zh             VARCHAR(120),
+  name_ja             VARCHAR(120),
+
+  mechanism_slug      VARCHAR(64),                          -- mechanisms.slug (this device's primary mechanism)
+
+  manufacturer        VARCHAR(120),
+  country_of_origin   VARCHAR(8),                            -- ISO-2 or short label
+
+  description_ko      TEXT,
+  description_en      TEXT,
+  description_zh      TEXT,
+  description_ja      TEXT,
+
+  -- "iconic" (FDA 1st-gen), "premium", "k-favorite", "classic"
+  badge               VARCHAR(24),
+
+  -- Photos
+  thumbnail_url       TEXT,
+  hero_image_url      TEXT,
+  gallery_urls        JSON,
+
+  -- Marketing
+  tags                JSON,                                  -- ['hifu','non-invasive']
+
+  display_order       SMALLINT NOT NULL DEFAULT 0,
+  is_active           TINYINT(1) NOT NULL DEFAULT 1,
+  deleted_at          TIMESTAMP NULL,
+  created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_devices_mechanism FOREIGN KEY (mechanism_slug) REFERENCES mechanisms(slug) ON DELETE SET NULL,
+  INDEX idx_devices_mechanism (mechanism_slug),
+  INDEX idx_devices_active    (is_active),
+  INDEX idx_devices_order     (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- procedure_devices — 시술 ↔ 기기 매트릭스
+-- 같은 시술도 여러 장비 선택지가 있음.
+-- (HIFU 얼굴 리프팅 = Ulthera primary + Shurink alternative + Liftera alternative …)
+-- relevance: primary (대표) / alternative (대체 가능) / compatible (호환만)
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS procedure_devices (
+  procedure_id        INT          NOT NULL,
+  device_id           INT          NOT NULL,
+  relevance           VARCHAR(16)  NOT NULL DEFAULT 'alternative',
+  notes_ko            TEXT,
+  notes_en            TEXT,
+  notes_zh            TEXT,
+  notes_ja            TEXT,
+  display_order       SMALLINT     NOT NULL DEFAULT 0,
+  created_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (procedure_id, device_id),
+  CONSTRAINT chk_pd_relevance CHECK (relevance IN ('primary','alternative','compatible')),
+  CONSTRAINT fk_pd_procedure FOREIGN KEY (procedure_id) REFERENCES procedures(id) ON DELETE CASCADE,
+  CONSTRAINT fk_pd_device    FOREIGN KEY (device_id)    REFERENCES devices(id)    ON DELETE CASCADE,
+  INDEX idx_pd_device (device_id),
+  INDEX idx_pd_relevance (relevance)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

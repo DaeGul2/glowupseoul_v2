@@ -24,9 +24,44 @@ export default function PreferenceForm({ onSubmit, preselectedConcernIds = [] })
   const [tripEnd, setTripEnd] = useState('');
   const [notes, setNotes] = useState('');
   const [feedConsent, setFeedConsent] = useState(false);
+  const [devicePrefSlugs, setDevicePrefSlugs] = useState([]);
+
+  // Device chip list: feature iconic / k-favorite devices first, then the
+  // rest. Empty array if devices haven't hydrated yet (degrades gracefully).
+  const devicePool = (db.devices || []).slice().sort((a, b) => {
+    const rank = (badge) => badge === 'iconic' ? 0 : badge === 'k-favorite' ? 1 : badge === 'premium' ? 2 : 3;
+    const r = rank(a.badge) - rank(b.badge);
+    if (r !== 0) return r;
+    return (a.display_order || 999) - (b.display_order || 999);
+  });
+
+  // Concern chips grouped by category (shared with procedure_categories).
+  // Concerns without category_id fall into "(Other)" group at the end.
+  const concernGroups = (() => {
+    const cats = (db.procedureCategories || []).slice().sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
+    const byCat = new Map();
+    for (const c of db.concerns || []) {
+      const key = c.category_id ?? '_other';
+      if (!byCat.has(key)) byCat.set(key, []);
+      byCat.get(key).push(c);
+    }
+    const out = [];
+    for (const cat of cats) {
+      const list = byCat.get(cat.id);
+      if (list?.length) out.push({ category: cat, concerns: list });
+      byCat.delete(cat.id);
+    }
+    if (byCat.has('_other')) {
+      out.push({ category: { id: '_other', name_ko: '기타', name_en: 'Other' }, concerns: byCat.get('_other') });
+    }
+    return out;
+  })();
 
   function toggle(id) {
     setConcernIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }
+  function toggleDevice(slug) {
+    setDevicePrefSlugs((prev) => prev.includes(slug) ? prev.filter((x) => x !== slug) : [...prev, slug]);
   }
 
   function submit() {
@@ -43,6 +78,7 @@ export default function PreferenceForm({ onSubmit, preselectedConcernIds = [] })
       tripEnd: tripEnd || null,
       notes,
       feedConsent,
+      devicePrefSlugs,
     });
   }
 
@@ -50,15 +86,38 @@ export default function PreferenceForm({ onSubmit, preselectedConcernIds = [] })
     <div className="gs-pref-form">
       <div className="gs-form-row">
         <label className="gs-form-label"><span>✦</span> Concerns</label>
-        <div className="gs-chips">
-          {db.concerns.map((c) => (
-            <button key={c.id} type="button"
-              className={`gs-chip ${concernIds.includes(c.id) ? 'active' : ''}`}
-              onClick={() => toggle(c.id)}>
-              {c.name_ko} <span style={{ opacity: 0.55 }}>· {c.name_en}</span>
-            </button>
-          ))}
-        </div>
+        {concernGroups.length > 1 ? (
+          <div className="gs-chip-groups">
+            {concernGroups.map((g) => (
+              <div className="gs-chip-group" key={g.category.id}>
+                <div className="gs-chip-group-head">
+                  <span className="gs-chip-group-en">{g.category.name_en || g.category.name_ko}</span>
+                  <span className="gs-chip-group-ko">· {g.category.name_ko}</span>
+                </div>
+                <div className="gs-chips">
+                  {g.concerns.map((c) => (
+                    <button key={c.id} type="button"
+                      className={`gs-chip ${concernIds.includes(c.id) ? 'active' : ''}`}
+                      onClick={() => toggle(c.id)}>
+                      {c.name_ko} <span style={{ opacity: 0.55 }}>· {c.name_en}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          // Fallback — no category data (e.g., before hydrate): flat chip list.
+          <div className="gs-chips">
+            {db.concerns.map((c) => (
+              <button key={c.id} type="button"
+                className={`gs-chip ${concernIds.includes(c.id) ? 'active' : ''}`}
+                onClick={() => toggle(c.id)}>
+                {c.name_ko} <span style={{ opacity: 0.55 }}>· {c.name_en}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="gs-form-row">
@@ -122,6 +181,25 @@ export default function PreferenceForm({ onSubmit, preselectedConcernIds = [] })
           </div>
         </div>
       </div>
+
+      {devicePool.length > 0 && (
+        <div className="gs-form-row">
+          <label className="gs-form-label">
+            <span>⬡</span> Preferred device <span style={{ opacity: 0.55, fontWeight: 400 }}>(optional — boosts clinics that actually use it)</span>
+          </label>
+          <div className="gs-chips">
+            {devicePool.map((d) => (
+              <button key={d.slug} type="button"
+                className={`gs-chip ${devicePrefSlugs.includes(d.slug) ? 'active' : ''}`}
+                onClick={() => toggleDevice(d.slug)}>
+                {d.name_en || d.name_ko}
+                {d.name_ko && d.name_en && <span style={{ opacity: 0.55 }}> · {d.name_ko}</span>}
+                {d.badge && <span style={{ opacity: 0.45, marginLeft: 6, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 }}>{d.badge}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="gs-form-row">
         <label className="gs-form-label"><span>✦</span> Anything else?</label>

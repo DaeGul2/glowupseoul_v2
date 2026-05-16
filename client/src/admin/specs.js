@@ -96,26 +96,60 @@ const FEED_OUT_LABELS = {
   booked: 'booked (예약 완료)',
   completed: 'completed (시술 완료)',
 };
+const DEVICE_REL_OPTS = ['primary','alternative','compatible'];
+const DEVICE_REL_LABELS = {
+  primary: 'primary (이 시술의 대표 장비)',
+  alternative: 'alternative (대체 가능)',
+  compatible: 'compatible (호환만 됨)',
+};
+const DEVICE_BADGE_OPTS = ['iconic','premium','k-favorite','classic'];
+const DEVICE_BADGE_LABELS = {
+  iconic: 'iconic (1세대·FDA 1호 등)',
+  premium: 'premium (프리미엄 라인)',
+  'k-favorite': 'k-favorite (한국 인기)',
+  classic: 'classic (장수 모델)',
+};
 
 // ─────────────────────────────────────────────────────────────────────
-// 사이드바 메뉴
+// 사이드바 메뉴 — 논리 단위로 4섹션.
 // ─────────────────────────────────────────────────────────────────────
-// 사이드바 메뉴 — 운영자 친화로 단순화.
+//
+// section 분류:
+//   카탈로그(catalog) — 시술 데이터의 본질 (마스터 테이블)
+//   매트릭스(matrix)  — 위 마스터들 간 관계 큐레이션 (조인 테이블)
+//   병원·인력(clinic) — 병원 + 의사 + 전후사진 (마스터, 다만 병원 편집 안에서 inline 도 가능)
+//   콘텐츠(content)   — 사용자 화면에 노출되는 운영자 시드
 //
 // 사이드바에서 숨김 (편집은 다른 곳에서 inline 으로):
 //   • brands               → 병원 편집 안에서 "브랜드 정보" 그룹으로 통합 (1:1 자동 처리)
 //   • hospital_procedures  → 병원 편집 안에서 "이 병원이 제공하는 시술" 패널로 inline 관리
-//
 // 두 모델 모두 /admin/{kind} 라우트는 살아있음 (어드밴스드 진입용).
 export const KINDS = [
-  { kind: 'hospitals',             label: '병원',                help: '병원 지점 + 브랜드 정보 + 제공 시술 모두 한 화면에서 관리.' },
-  { kind: 'procedures',            label: '시술',                help: '병원과 무관한 \"시술 자체\" 정보. 예: HIFU 리프팅 · 코 재수술.' },
-  { kind: 'procedure_categories',  label: '카테고리',             help: '시술 분류 (얼굴/눈/코/바디/피부/헤어/웰니스/치과 8개).' },
-  { kind: 'concerns',              label: '고민(검색 키워드)',    help: '외국 환자가 쓰는 표현. 예: \"lifting\", \"acne scars\".' },
-  { kind: 'doctors',               label: '의사',                help: '병원 소속 의사. 외국 환자가 가장 신뢰하는 정보.' },
-  { kind: 'ba_photos',             label: 'B&A (전후사진)',       help: '동의받은 전/후 사진. 환자 메타와 시술 정보 함께.' },
-  { kind: 'public_feed_entries',   label: '실시간 피드',          help: '메인 페이지에 흐르는 \"M. in Singapore — HIFU\" 식의 사회적 증거 ticker.' },
-  { kind: 'concern_procedures',    label: '고민↔시술 매트릭스',   help: '\"이 고민에는 이 시술이 잘 맞는다\"는 매핑. 수기 큐레이션.' },
+  // ── 카탈로그 (마스터 — 시술 데이터의 본질) ──────────────────────────
+  { kind: 'procedure_categories',  label: '카테고리',             section: 'catalog', help: '시술/고민 분류 (얼굴/눈/코/바디/피부/헤어/웰니스/치과 8개). 다른 모든 카탈로그의 부모.' },
+  { kind: 'procedures',            label: '시술',                section: 'catalog', help: '병원과 무관한 \"시술 자체\" 정보. 예: HIFU 리프팅 · 코 재수술.' },
+  { kind: 'devices',               label: '기기',                 section: 'catalog', help: '장비 브랜드 (Ulthera·Shurink·Thermage 등). 외국 환자가 기기명으로 검색.' },
+  { kind: 'concerns',              label: '고민(검색 키워드)',    section: 'catalog', help: '외국 환자가 쓰는 표현. 예: \"lifting\", \"acne scars\".' },
+
+  // ── 매트릭스 (조인 — 마스터 간 관계 큐레이션) ───────────────────────
+  { kind: 'concern_procedures',    label: '고민↔시술 매트릭스',   section: 'matrix',  help: '\"이 고민에는 이 시술이 잘 맞는다\" 매핑. 매칭 품질의 80%가 여기.' },
+  { kind: 'procedure_devices',     label: '시술↔기기 매트릭스',   section: 'matrix',  help: '같은 시술도 여러 장비 선택지 (HIFU = Ulthera or Shurink). 수기 큐레이션.' },
+
+  // ── 병원·인력 (마스터 + 인라인 자식) ─────────────────────────────────
+  { kind: 'hospitals',             label: '병원',                section: 'clinic',  help: '병원 지점 + 브랜드 정보 + 제공 시술 모두 한 화면에서 관리.' },
+  { kind: 'doctors',               label: '의사',                section: 'clinic',  help: '병원 소속 의사. 외국 환자가 가장 신뢰하는 정보. 병원 편집 안에서도 inline 추가 가능.' },
+  { kind: 'ba_photos',             label: 'B&A (전후사진)',       section: 'clinic',  help: '동의받은 전/후 사진. 환자 메타와 시술 정보 함께.' },
+
+  // ── 콘텐츠 (사용자 화면에 직접 노출) ─────────────────────────────────
+  { kind: 'public_feed_entries',   label: '실시간 피드',          section: 'content', help: '메인 페이지에 흐르는 \"M. in Singapore — HIFU\" 식의 사회적 증거 ticker.' },
+];
+
+// 사이드바 섹션 메타 (라벨 + 한 줄 설명 + 표시 순서).
+export const KIND_SECTIONS = [
+  { key: 'catalog', label: '카탈로그 (마스터)',  hint: '시술 데이터의 본질. 다른 모든 것의 기반.' },
+  { key: 'matrix',  label: '매트릭스 (관계 매핑)', hint: '마스터들 간의 연결 큐레이션. 매칭 품질이 여기서.' },
+  { key: 'clinic',  label: '병원 · 인력',         hint: '병원 + 의사 + B&A. 외국 환자 신뢰 시그널.' },
+  { key: 'content', label: '콘텐츠 (사용자 화면)', hint: '메인 ticker 등 운영자가 직접 시드하는 노출 콘텐츠.' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────
@@ -350,8 +384,8 @@ export const SPECS = {
   concerns: {
     titleField: 'name_ko',
     listLabel: '고민 (검색 키워드)',
-    listIntro: '외국 환자가 \"내 문제\"를 어떻게 부르는지. 시술명 X, 환자 표현 그대로. 예: \"sagging\", \"acne scars\", \"double eyelid\".',
-    list: ['id', 'slug', 'name_ko', 'name_en', 'body_area', 'is_active'],
+    listIntro: '외국 환자가 \"내 문제\"를 어떻게 부르는지. 시술명 X, 환자 표현 그대로. 예: \"sagging\", \"acne scars\", \"double eyelid\". 카테고리는 procedure 와 공유 — UI 에서 그룹 표시.',
+    list: ['id', 'slug', 'name_ko', 'name_en', 'category_id', 'body_area', 'is_active'],
     cols: [
       SLUG,
       { name: 'name_ko', label: '고민 (한국어)', type: 'text', required: true, help: '예: 처짐, 모공, 여드름 흉터' },
@@ -360,7 +394,10 @@ export const SPECS = {
       { name: 'name_ja', label: '고민 (일본어)', type: 'text' },
       { name: 'description_ko', label: '설명 (한국어)', type: 'textarea' },
       { name: 'description_en', label: '설명 (영어)',  type: 'textarea' },
-      { name: 'body_area', label: '주 부위', type: 'text', required: true, help: '예: face / body / skin / hair / dental' },
+      { name: 'category_id', label: '카테고리', type: 'fk', table: 'procedure_categories',
+        help: '얼굴/눈/코/바디/피부/헤어/웰니스/치과 중 하나. 매트릭스 페이지에서 그룹 표시 + 폼 chip 그룹핑에 사용.' },
+      { name: 'body_area', label: '주 부위 (보조)', type: 'text', required: true,
+        help: '카테고리보다 거친 분류 (예: face / body / skin). 통계용. 보통 카테고리만으로 충분.' },
       { name: 'display_order', label: '노출 순서', type: 'number', default: 0 },
       ACTIVE,
     ],
@@ -536,6 +573,90 @@ export const SPECS = {
       { name: 'relevance', label: '관련도', type: 'select', options: RELEV_OPTS, optionLabels: RELEV_LABELS, required: true, default: 'primary' },
       { name: 'rationale_ko', label: '추천 이유 (한국어)', type: 'textarea', help: '왜 이 시술이 이 고민에 맞는지 한 줄. 매칭 결과 카드에 노출될 수 있음.' },
       { name: 'rationale_en', label: '추천 이유 (영어)',  type: 'textarea' },
+    ],
+  },
+
+  // ===================================================================
+  // mechanisms — lookup. FkPicker 가 읽을 수 있도록 SPECS 에만 등록.
+  // 사이드바엔 노출 안 함 (이미 시드됨, 운영자가 직접 만질 일 거의 없음).
+  // ===================================================================
+  mechanisms: {
+    titleField: 'label_ko',
+    pkField: 'slug',
+    listLabel: '메커니즘',
+    listIntro: '시술 작용 원리 (HIFU·RF·보톡스 등). 이미 시드됨. 새 시술이 새 원리를 쓸 때만 추가.',
+    list: ['slug', 'label_ko', 'label_en', 'domain', 'display_order', 'is_active'],
+    cols: [
+      { name: 'slug', label: 'URL 식별자', type: 'text', required: true, group: '기본 정보',
+        help: '영문 소문자 + _ · 변경 X · 예: hifu, rf, laser_pico' },
+      { name: 'label_ko', label: '메커니즘명 (한국어)', type: 'text', required: true },
+      { name: 'label_en', label: '메커니즘명 (영어)',  type: 'text', required: true },
+      { name: 'label_zh', label: '메커니즘명 (중국어)', type: 'text' },
+      { name: 'label_ja', label: '메커니즘명 (일본어)', type: 'text' },
+      { name: 'description_ko', label: '설명 (한국어)', type: 'textarea', help: '한 줄. 예: "집속초음파로 SMAS 층 자극"' },
+      { name: 'description_en', label: '설명 (영어)',  type: 'textarea' },
+      { name: 'domain', label: '도메인', type: 'select', options: DOMAIN_OPTS, optionLabels: DOMAIN_LABELS, required: true },
+      { name: 'display_order', label: '노출 순서', type: 'number', default: 0 },
+      ACTIVE,
+    ],
+  },
+
+  // ===================================================================
+  // devices
+  // ===================================================================
+  devices: {
+    titleField: 'name_ko',
+    listLabel: '기기',
+    listIntro: '장비 브랜드 (Ulthera·Shurink·Thermage 등). 외국 환자가 "Ulthera 받고 싶다" 처럼 기기명으로 검색합니다. 한 메커니즘(예: hifu)에 여러 기기가 묶여요.',
+    list: ['id', 'slug', 'name_ko', 'name_en', 'mechanism_slug', 'manufacturer', 'is_active'],
+    cols: [
+      SLUG,
+      { name: 'name_ko', label: '기기명 (한국어)', type: 'text', required: true, help: '환자에게 보이는 이름. 예: 울쎄라' },
+      { name: 'name_en', label: '기기명 (영어)',  type: 'text', required: true, help: '원래 브랜드명. 예: Ulthera' },
+      { name: 'name_zh', label: '기기명 (중국어)', type: 'text', help: '예: 超声刀' },
+      { name: 'name_ja', label: '기기명 (일본어)', type: 'text' },
+      { name: 'mechanism_slug', label: '메커니즘', type: 'fk', table: 'mechanisms', refField: 'slug', refLabel: 'label_ko',
+        help: '이 기기의 주 작용 원리. 예: hifu, rf, laser_pico. 없으면 \"메커니즘\" 메뉴에서 먼저 추가.' },
+      { name: 'manufacturer', label: '제조사', type: 'text', help: '예: Merz, Classys, Solta Medical, Allergan' },
+      { name: 'country_of_origin', label: '원산지', type: 'text', help: 'ISO-2 또는 짧은 영문. 예: US, KR, IL' },
+      { name: 'description_ko', label: '설명 (한국어)', type: 'textarea', group: '설명',
+        help: '한 줄. 이 기기의 특징/평판. 예: "FDA 1호 집속초음파 리프팅. SMAS 층 직접 자극."' },
+      { name: 'description_en', label: '설명 (영어)',  type: 'textarea' },
+      { name: 'description_zh', label: '설명 (중국어)', type: 'textarea' },
+      { name: 'description_ja', label: '설명 (일본어)', type: 'textarea' },
+      { name: 'badge', label: '배지', type: 'select', options: DEVICE_BADGE_OPTS, optionLabels: DEVICE_BADGE_LABELS, group: '마케팅',
+        help: '(선택) UI 카드에 작게 표시. 비워두면 없음.' },
+      { name: 'tags', label: '태그', type: 'tags', help: '검색용. 예: hifu, non-invasive, k-beauty' },
+      { name: 'thumbnail_url', label: '카드 썸네일', type: 'image', upload: { kind: 'devices', slot: 'thumbnail' }, group: '사진',
+        help: '/device/:slug 카드. 1:1 또는 4:3, 800px.' },
+      { name: 'hero_image_url', label: '디바이스 페이지 히어로', type: 'image', upload: { kind: 'devices', slot: 'hero' },
+        help: '/device/:slug 페이지 상단 와이드. 16:9, 1600px+.' },
+      { name: 'gallery_urls', label: '디바이스 갤러리', type: 'gallery', upload: { kind: 'devices', slot: 'gallery' },
+        help: '장비 실물 / 사용 장면 등.' },
+      { name: 'display_order', label: '노출 순서', type: 'number', default: 0, help: '낮은 숫자 먼저. 인기 기기 위에.' },
+      ACTIVE,
+    ],
+  },
+
+  // ===================================================================
+  // procedure_devices
+  // ===================================================================
+  procedure_devices: {
+    titleField: 'procedure_id',
+    listLabel: '시술↔기기 매트릭스',
+    listIntro: '\"이 시술은 어떤 장비로 가능한가\" 매핑. 같은 HIFU 얼굴 리프팅도 Ulthera/Shurink/Liftera 셋 다 가능. 한 시술당 보통 1~4개 기기. 매트릭스 페이지에서 그룹별로 편하게 관리.',
+    pkFields: ['procedure_id', 'device_id'],
+    list: ['procedure_id', 'device_id', 'relevance'],
+    cols: [
+      { name: 'procedure_id', label: '시술', type: 'fk', table: 'procedures', required: true },
+      { name: 'device_id', label: '기기', type: 'fk', table: 'devices', required: true },
+      { name: 'relevance', label: '관계', type: 'select', options: DEVICE_REL_OPTS, optionLabels: DEVICE_REL_LABELS, required: true, default: 'alternative',
+        help: 'primary = 이 시술의 대표 장비 (예: 써마지 시술 = Thermage FLX). alternative = 같은 시술의 다른 옵션. compatible = 가능은 한데 흔치 않음.' },
+      { name: 'notes_ko', label: '비고 (한국어)', type: 'textarea', help: '"특정 부위에만 권장" 등.' },
+      { name: 'notes_en', label: '비고 (영어)',  type: 'textarea' },
+      { name: 'notes_zh', label: '비고 (중국어)', type: 'textarea' },
+      { name: 'notes_ja', label: '비고 (일본어)', type: 'textarea' },
+      { name: 'display_order', label: '노출 순서', type: 'number', default: 0, help: '같은 시술 내 기기 정렬. 낮은 숫자 먼저.' },
     ],
   },
 };

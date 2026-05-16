@@ -4,6 +4,7 @@ import {
   Brand, Hospital, HospitalProcedure,
   Procedure, ProcedureCategory, Concern,
   ConcernProcedure, Mechanism,
+  Device, ProcedureDevice,
   PublicFeedEntry, Op,
 } from '../db/models.js';
 import { hasDbConfig } from '../db/sequelize.js';
@@ -79,6 +80,38 @@ export const procedureDetailHandler = wrap(async (req, res) => {
   res.json({ procedure, offerings });
 });
 
+export const devicesHandler = wrap(async (req, res) => {
+  if (!guardDb(res)) return;
+  const { mechanism } = req.query;
+  const where = { is_active: true, deleted_at: null };
+  if (mechanism) where.mechanism_slug = mechanism;
+  const devices = await Device.findAll({
+    where,
+    order: [['display_order', 'ASC'], ['id', 'ASC']],
+  });
+  res.json({ devices });
+});
+
+export const deviceDetailHandler = wrap(async (req, res) => {
+  if (!guardDb(res)) return;
+  const device = await Device.findOne({
+    where: { slug: req.params.slug, is_active: true, deleted_at: null },
+    include: [{ model: Mechanism, as: 'mechanism', attributes: ['slug', 'label_ko', 'label_en'] }],
+  });
+  if (!device) return res.status(404).json({ error: 'not found' });
+
+  const links = await ProcedureDevice.findAll({
+    where: { device_id: device.id },
+    include: [{
+      model: Procedure, as: 'procedure',
+      where: { is_active: true, deleted_at: null },
+      attributes: ['id','slug','name_ko','name_en','category_id','thumbnail_url'],
+    }],
+    order: [['relevance', 'ASC'], ['display_order', 'ASC']],
+  });
+  res.json({ device, procedures: links });
+});
+
 export const hospitalsHandler = wrap(async (req, res) => {
   if (!guardDb(res)) return;
   const { city, contract = 'active', limit } = req.query;
@@ -126,6 +159,8 @@ export const bootstrapHandler = wrap(async (req, res) => {
     hospitals,
     hospital_procedures,
     concern_procedures,
+    devices,
+    procedure_devices,
   ] = await Promise.all([
     Mechanism.findAll({
       where: { is_active: true },
@@ -158,6 +193,13 @@ export const bootstrapHandler = wrap(async (req, res) => {
     ConcernProcedure.findAll({
       order: [['concern_id', 'ASC'], ['procedure_id', 'ASC']],
     }),
+    Device.findAll({
+      where: { is_active: true, deleted_at: null },
+      order: [['display_order', 'ASC'], ['id', 'ASC']],
+    }),
+    ProcedureDevice.findAll({
+      order: [['procedure_id', 'ASC'], ['relevance', 'ASC'], ['display_order', 'ASC']],
+    }),
   ]);
 
   res.set('Cache-Control', 'no-store');
@@ -170,6 +212,8 @@ export const bootstrapHandler = wrap(async (req, res) => {
     hospitals,
     hospital_procedures,
     concern_procedures,
+    devices,
+    procedure_devices,
     counts: {
       mechanisms: mechanisms.length,
       categories: categories.length,
@@ -179,6 +223,8 @@ export const bootstrapHandler = wrap(async (req, res) => {
       hospitals: hospitals.length,
       hospital_procedures: hospital_procedures.length,
       concern_procedures: concern_procedures.length,
+      devices: devices.length,
+      procedure_devices: procedure_devices.length,
     },
   });
 });

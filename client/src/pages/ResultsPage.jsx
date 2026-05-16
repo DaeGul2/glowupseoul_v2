@@ -60,6 +60,7 @@ function buildLiveCase({ matches, prefs, ai, synth }) {
     .filter(Boolean);
   return buildEntryFromLive({
     ai, synth, matches,
+    devices: db.devices,
     prefs: {
       ...prefs,
       concern_labels: concernLabels,

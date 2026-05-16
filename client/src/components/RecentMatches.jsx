@@ -40,10 +40,14 @@ export default function RecentMatches() {
     return () => clearInterval(t);
   }, []);
 
+  // Hide the whole section when there are no real entries — we never want to
+  // show "Live · recently matched" with an empty grid.
+  if (!entries || entries.length === 0) return null;
+
   return (
     <section className="gs-recent">
       <div className="gs-recent-head">
-        <div className="gs-eyebrow">◇  Live · recently matched</div>
+        <div className="gs-mark"><strong>02</strong> / Live · Recently matched</div>
         <h2>Real <em>journeys,</em><br />right now.</h2>
         <p>
           With patient consent, we share — anonymously — who came in for what, the AI scan they got, and what Romie matched them with.

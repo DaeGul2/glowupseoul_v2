@@ -12,11 +12,13 @@ import AdminList from './AdminList.jsx';
 import AdminEdit from './AdminEdit.jsx';
 import AdminPartners from './AdminPartners.jsx';
 import ConcernMatrixPage from './ConcernMatrixPage.jsx';
+import ProcedureDeviceMatrixPage from './ProcedureDeviceMatrixPage.jsx';
 
-// concern_procedures 는 특수 그룹뷰. AdminList 우회.
+// 매트릭스성 모델은 특수 그룹뷰. AdminList 우회.
 function ListRoute()  {
   const { kind } = useParams();
-  if (kind === 'concern_procedures') return <ConcernMatrixPage />;
+  if (kind === 'concern_procedures')  return <ConcernMatrixPage />;
+  if (kind === 'procedure_devices')   return <ProcedureDeviceMatrixPage />;
   return <AdminList kind={kind} key={kind} />;
 }
 function EditRoute()  { const { kind, id } = useParams(); return <AdminEdit kind={kind} id={id} key={`${kind}/${id}`} />; }

@@ -10,6 +10,8 @@ import {
   concernsHandler,
   proceduresHandler,
   procedureDetailHandler,
+  devicesHandler,
+  deviceDetailHandler,
   hospitalsHandler,
   hospitalDetailHandler,
   bootstrapHandler,
@@ -63,6 +65,8 @@ app.get('/api/catalog/categories',           categoriesHandler);
 app.get('/api/catalog/concerns',             concernsHandler);
 app.get('/api/catalog/procedures',           proceduresHandler);
 app.get('/api/catalog/procedures/:slug',     procedureDetailHandler);
+app.get('/api/catalog/devices',              devicesHandler);
+app.get('/api/catalog/devices/:slug',        deviceDetailHandler);
 app.get('/api/catalog/hospitals',            hospitalsHandler);
 app.get('/api/catalog/hospitals/:slug',      hospitalDetailHandler);
 app.get('/api/feed/recent',                  feedRecentHandler);
@@ -99,7 +103,7 @@ app.listen(PORT, () => {
   console.log(`✦ Glow Up Seoul v2 server · http://localhost:${PORT}`);
   console.log('  /api/health  /api/analyze  /api/synthesize  /api/reviews/:slug');
   console.log('  /api/partner  /api/partner/admin');
-  console.log('  /api/catalog/{categories,concerns,procedures,procedures/:slug,hospitals,hospitals/:slug}');
+  console.log('  /api/catalog/{categories,concerns,procedures,procedures/:slug,devices,devices/:slug,hospitals,hospitals/:slug}');
   console.log('  /api/feed/recent');
   if (!process.env.GOOGLE_PLACES_API_KEY) {
     console.log('  ⚠ GOOGLE_PLACES_API_KEY not set — /api/reviews returns mock data.');

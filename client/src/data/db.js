@@ -8,7 +8,6 @@
 // patterns to keep working without refactoring every page. We splice/replace
 // the same array reference, so modules that captured the import don't break.
 
-import { devices, deviceBySlug } from './devices.js';
 import {
   publicFeedEntries, getPublicFeedEntries, addPublicFeedEntry,
   subscribeFeed, hydratePublicFeed,
@@ -25,6 +24,8 @@ const concernProcedures   = [];
 const brands              = [];
 const hospitals           = [];
 const hospitalProcedures  = [];
+const devices             = [];
+const procedureDevices    = [];
 
 // Slug / id indexes — same reference, mutation-replaced on hydrate.
 const mechanismBySlug = {};
@@ -38,10 +39,16 @@ const brandBySlug     = {};
 const brandById       = {};
 const hospitalBySlug  = {};
 const hospitalById    = {};
+const deviceBySlug    = {};
+const deviceById      = {};
 
 // Join indexes (one HP can appear in both)
 const hpByHospital  = {};
 const hpByProcedure = {};
+
+// procedure_devices indexes
+const pdByDevice    = {};
+const pdByProcedure = {};
 
 // -------------------------------------------------------------------
 // Hydration helpers
@@ -94,6 +101,67 @@ function denormalizeHospitalProcedures(hpList, pMap) {
   }
 }
 
+// Device rows from DB don't carry legacy `image / blurb / name / brands /
+// mechanism_label_en / hero_procedure_slug`. Pages still read those names
+// — enrich the row in-place so we don't have to touch every UI file.
+function enrichDevices(dList, mMap, pdList, pMap) {
+  for (const d of dList) {
+    d.image              ||= d.thumbnail_url || '';
+    d.description        ||= d.description_en || d.description_ko || '';
+    d.blurb              ||= d.description;
+    d.name               ||= d.name_en || d.name_ko || d.slug;
+    const mech = d.mechanism_slug ? mMap[d.mechanism_slug] : null;
+    d.mechanism            = d.mechanism_slug || null;     // legacy alias
+    d.mechanism_label_en   = mech?.label_en || '';
+    d.mechanism_label_ko   = mech?.label_ko || '';
+
+    // Build the legacy `brands` array used by offeringsForDevice() to match
+    // against hospital_procedures.device_brands JSON. Include canonical names
+    // + tags. Loose substring matching kicks in for variants like
+    // "Ulthera SPT" vs device "Ulthera".
+    const bset = new Set();
+    if (d.name_en) bset.add(d.name_en);
+    if (d.name_ko) bset.add(d.name_ko);
+    if (d.name_zh) bset.add(d.name_zh);
+    if (Array.isArray(d.tags)) for (const t of d.tags) if (t) bset.add(t);
+    d.brands = [...bset];
+  }
+  // hero_procedure_slug — first procedure_devices link where relevance='primary'
+  const byDevice = {};
+  for (const pd of pdList || []) {
+    (byDevice[pd.device_id] ||= []).push(pd);
+  }
+  for (const d of dList) {
+    const links = (byDevice[d.id] || []).slice().sort((a, b) => {
+      const rank = { primary: 0, alternative: 1, compatible: 2 };
+      return (rank[a.relevance] ?? 9) - (rank[b.relevance] ?? 9);
+    });
+    const top = links[0];
+    if (top) {
+      const p = pMap[top.procedure_id];
+      d.hero_procedure_slug = p?.slug || '';
+    } else {
+      d.hero_procedure_slug = '';
+    }
+  }
+}
+
+// Loose substring match between device.brands and an hp.device_brands entry.
+// Used to identify which hp offerings actually use a given device.
+function deviceMatchesOffering(device, hp) {
+  const offeringBrands = Array.isArray(hp.device_brands) ? hp.device_brands : [];
+  if (offeringBrands.length === 0) return false;
+  const candidates = (device.brands || []).map((s) => String(s).toLowerCase()).filter(Boolean);
+  if (candidates.length === 0) return false;
+  for (const ob of offeringBrands) {
+    const lb = String(ob).toLowerCase();
+    for (const c of candidates) {
+      if (lb === c || lb.includes(c) || c.includes(lb)) return true;
+    }
+  }
+  return false;
+}
+
 // -------------------------------------------------------------------
 // Public hydrate API
 // -------------------------------------------------------------------
@@ -128,6 +196,8 @@ export async function hydrate() {
     replaceArray(brands,              data.brands);
     replaceArray(hospitals,           data.hospitals);
     replaceArray(hospitalProcedures,  data.hospital_procedures);
+    replaceArray(devices,             data.devices || []);
+    replaceArray(procedureDevices,    data.procedure_devices || []);
 
     replaceMap(mechanismBySlug, indexBy(mechanisms, 'slug'));
     replaceMap(categoryBySlug,  indexBy(procedureCategories, 'slug'));
@@ -140,13 +210,18 @@ export async function hydrate() {
     replaceMap(brandById,       indexBy(brands, 'id'));
     replaceMap(hospitalBySlug,  indexBy(hospitals, 'slug'));
     replaceMap(hospitalById,    indexBy(hospitals, 'id'));
+    replaceMap(deviceBySlug,    indexBy(devices, 'slug'));
+    replaceMap(deviceById,      indexBy(devices, 'id'));
 
     // Cross-collection denormalization for view-layer convenience.
     denormalizeHospitals(hospitals, brandById);
     denormalizeHospitalProcedures(hospitalProcedures, procedureById);
+    enrichDevices(devices, mechanismBySlug, procedureDevices, procedureById);
 
     replaceMap(hpByHospital,  groupBy(hospitalProcedures, 'hospital_id'));
     replaceMap(hpByProcedure, groupBy(hospitalProcedures, 'procedure_id'));
+    replaceMap(pdByDevice,    groupBy(procedureDevices,   'device_id'));
+    replaceMap(pdByProcedure, groupBy(procedureDevices,   'procedure_id'));
 
     _hydrated = true;
     _lastCounts = data.counts || {
@@ -155,6 +230,8 @@ export async function hydrate() {
       brands: brands.length, hospitals: hospitals.length,
       hospital_procedures: hospitalProcedures.length,
       concern_procedures: concernProcedures.length,
+      devices: devices.length,
+      procedure_devices: procedureDevices.length,
     };
     return { ok: true, counts: _lastCounts };
   })();
@@ -189,11 +266,13 @@ export const db = {
   // raw tables
   mechanisms, procedureCategories, concerns, procedures, concernProcedures,
   brands, hospitals, hospitalProcedures, publicFeedEntries,
+  devices, procedureDevices,
 
   // lookups
   mechanismBySlug, categoryBySlug, categoryById,
   concernBySlug, concernById, procedureBySlug, procedureById,
   brandBySlug, brandById, hospitalBySlug, hospitalById,
+  deviceBySlug, deviceById,
 
   // hydration
   hydrate, isHydrated, isEmpty, getCounts,
@@ -259,23 +338,35 @@ export const db = {
   },
 
   // ---------- Device-axis queries ----------
+  // Matching is hybrid: 1) explicit hp.device_brands JSON (strict, when the
+  // operator filled it in), OR 2) canonical procedure_devices matrix (loose —
+  // any hp offering a procedure this device CAN do counts). The matrix path
+  // lets device cards stay populated when hp.device_brands is empty (which is
+  // our current "병원 메뉴 = hp 1행, 장비 비움" data discipline).
   devicesWithStats() {
     return devices.map((d) => {
-      const brandSet = new Set(d.brands);
-      const matched = hospitalProcedures.filter((hp) =>
-        hp.offered && (hp.device_brands || []).some((b) => brandSet.has(b))
-      );
+      const procIds = new Set((pdByDevice[d.id] || []).map((pd) => pd.procedure_id));
+
+      const matched = hospitalProcedures.filter((hp) => {
+        if (!hp.offered) return false;
+        const hospital = hospitalById[hp.hospital_id];
+        if (!hospital || hospital.contract_status !== 'active') return false;
+        return deviceMatchesOffering(d, hp) || procIds.has(hp.procedure_id);
+      });
+
       const clinicIds = new Set(matched.map((hp) => hp.hospital_id));
       const prices = matched
         .filter((hp) => hp.price_disclosed && hp.starting_price_krw)
         .map((hp) => hp.starting_price_krw);
       const priceMin = prices.length ? Math.min(...prices) : null;
       const priceMax = prices.length ? Math.max(...prices) : null;
-      const heroProcedure = procedureBySlug[d.hero_procedure_slug] || null;
+      const heroProcedure = d.hero_procedure_slug ? procedureBySlug[d.hero_procedure_slug] : null;
+
       return {
         device: d,
         match_count: matched.length,
         clinic_count: clinicIds.size,
+        procedure_count: procIds.size,
         price_min: priceMin,
         price_max: priceMax,
         hero_procedure: heroProcedure,
@@ -286,20 +377,41 @@ export const db = {
   offeringsForDevice(deviceSlug) {
     const d = deviceBySlug[deviceSlug];
     if (!d) return [];
-    const brandSet = new Set(d.brands);
+    const procIds = new Set((pdByDevice[d.id] || []).map((pd) => pd.procedure_id));
     return hospitalProcedures
-      .filter((hp) => hp.offered && (hp.device_brands || []).some((b) => brandSet.has(b)))
-      .map((hp) => ({
-        hp,
-        procedure: procedureById[hp.procedure_id],
-        hospital: hospitalById[hp.hospital_id],
-        brand: hospitalById[hp.hospital_id] ? brandById[hospitalById[hp.hospital_id].brand_id] : null,
-        discount_pct: hp.original_price_krw && hp.starting_price_krw ? Math.round((1 - hp.starting_price_krw / hp.original_price_krw) * 100) : 0,
-      }))
+      .filter((hp) => {
+        if (!hp.offered) return false;
+        const hospital = hospitalById[hp.hospital_id];
+        if (!hospital || hospital.contract_status !== 'active') return false;
+        return deviceMatchesOffering(d, hp) || procIds.has(hp.procedure_id);
+      })
+      .map(buildOffering)
       .filter((o) => o.procedure && o.hospital);
   },
 
-  devices, deviceBySlug,
+  // Which procedures CAN use this device (canonical, via procedure_devices).
+  proceduresForDevice(deviceId) {
+    return (pdByDevice[deviceId] || [])
+      .slice()
+      .sort((a, b) => {
+        const rank = { primary: 0, alternative: 1, compatible: 2 };
+        return (rank[a.relevance] ?? 9) - (rank[b.relevance] ?? 9);
+      })
+      .map((pd) => ({ ...pd, procedure: procedureById[pd.procedure_id] }))
+      .filter((row) => row.procedure);
+  },
+
+  // Which devices CAN do this procedure (canonical, via procedure_devices).
+  devicesForProcedure(procedureId) {
+    return (pdByProcedure[procedureId] || [])
+      .slice()
+      .sort((a, b) => {
+        const rank = { primary: 0, alternative: 1, compatible: 2 };
+        return (rank[a.relevance] ?? 9) - (rank[b.relevance] ?? 9);
+      })
+      .map((pd) => ({ ...pd, device: deviceById[pd.device_id] }))
+      .filter((row) => row.device);
+  },
 
   // ---------- Public feed (recent matches) ----------
   getRecentMatches(limit = 10) {

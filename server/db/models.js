@@ -24,6 +24,7 @@ const CONSULT_PHASE_VALUES = ['pre_trip','in_trip','post_trip'];
 const FEED_SOURCE_VALUES = ['inquiry','match_request','seed'];
 const FEED_OUTCOME_VALUES = ['consulted','matched','quoted','booked','completed'];
 const PRICE_TIER_VALUES = ['$','$$','$$$','$$$$'];
+const DEVICE_RELEVANCE_VALUES = ['primary','alternative','compatible'];
 
 // -------------------------------------------------------------------
 // Lookup tables
@@ -126,6 +127,7 @@ export const Concern = sequelize.define('Concern', {
   description_zh: DataTypes.TEXT,
   description_ja: DataTypes.TEXT,
   body_area:      { type: DataTypes.STRING(32), allowNull: false },
+  category_id:    DataTypes.INTEGER,                    // ← procedure_categories.id (UI 그룹핑용)
   display_order:  DataTypes.SMALLINT,
   is_active:      { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
 }, { tableName: 'concerns' });
@@ -473,6 +475,44 @@ export const BAPhoto = sequelize.define('BAPhoto', {
   deleted_at:        DataTypes.DATE,
 }, { tableName: 'ba_photos' });
 
+// -------------------------------------------------------------------
+// Devices (brand-name taxonomy — Ulthera, Shurink, Thermage …)
+// -------------------------------------------------------------------
+export const Device = sequelize.define('Device', {
+  id:                { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  slug:              { type: DataTypes.STRING(80), allowNull: false, unique: true },
+  name_ko:           { type: DataTypes.STRING(120), allowNull: false },
+  name_en:           { type: DataTypes.STRING(120), allowNull: false },
+  name_zh:           DataTypes.STRING(120),
+  name_ja:           DataTypes.STRING(120),
+  mechanism_slug:    DataTypes.STRING(64),
+  manufacturer:      DataTypes.STRING(120),
+  country_of_origin: DataTypes.STRING(8),
+  description_ko:    DataTypes.TEXT,
+  description_en:    DataTypes.TEXT,
+  description_zh:    DataTypes.TEXT,
+  description_ja:    DataTypes.TEXT,
+  badge:             DataTypes.STRING(24),
+  thumbnail_url:     DataTypes.TEXT,
+  hero_image_url:    DataTypes.TEXT,
+  gallery_urls:      DataTypes.JSON,
+  tags:              DataTypes.JSON,
+  display_order:     { type: DataTypes.SMALLINT, allowNull: false, defaultValue: 0 },
+  is_active:         { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+  deleted_at:        DataTypes.DATE,
+}, { tableName: 'devices' });
+
+export const ProcedureDevice = sequelize.define('ProcedureDevice', {
+  procedure_id:  { type: DataTypes.INTEGER, primaryKey: true },
+  device_id:     { type: DataTypes.INTEGER, primaryKey: true },
+  relevance:     { type: DataTypes.STRING(16), allowNull: false, defaultValue: 'alternative', validate: { isIn: [DEVICE_RELEVANCE_VALUES] } },
+  notes_ko:      DataTypes.TEXT,
+  notes_en:      DataTypes.TEXT,
+  notes_zh:      DataTypes.TEXT,
+  notes_ja:      DataTypes.TEXT,
+  display_order: { type: DataTypes.SMALLINT, allowNull: false, defaultValue: 0 },
+}, { tableName: 'procedure_devices' });
+
 export const PublicFeedEntry = sequelize.define('PublicFeedEntry', {
   id:                  { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
   source_type:         { type: DataTypes.STRING(16), allowNull: false, validate: { isIn: [FEED_SOURCE_VALUES] } },
@@ -512,6 +552,9 @@ export const PublicFeedEntry = sequelize.define('PublicFeedEntry', {
 // -------------------------------------------------------------------
 ProcedureCategory.hasMany(Procedure, { foreignKey: 'category_id', as: 'procedures' });
 Procedure.belongsTo(ProcedureCategory, { foreignKey: 'category_id', as: 'category' });
+
+ProcedureCategory.hasMany(Concern, { foreignKey: 'category_id', as: 'concerns' });
+Concern.belongsTo(ProcedureCategory, { foreignKey: 'category_id', as: 'category' });
 
 ProcedureCategory.hasMany(ProcedureCategory, { foreignKey: 'parent_id', as: 'children' });
 ProcedureCategory.belongsTo(ProcedureCategory, { foreignKey: 'parent_id', as: 'parent' });
@@ -583,6 +626,28 @@ BAPhoto.belongsTo(Procedure, { foreignKey: 'procedure_id', as: 'procedure' });
 BAPhoto.belongsTo(Doctor,    { foreignKey: 'doctor_id',    as: 'doctor' });
 Procedure.hasMany(BAPhoto,   { foreignKey: 'procedure_id', as: 'baPhotos' });
 Doctor.hasMany(BAPhoto,      { foreignKey: 'doctor_id',    as: 'baPhotos' });
+
+// devices ↔ mechanisms
+Mechanism.hasMany(Device, { foreignKey: 'mechanism_slug', sourceKey: 'slug', as: 'devices' });
+Device.belongsTo(Mechanism, { foreignKey: 'mechanism_slug', targetKey: 'slug', as: 'mechanism' });
+
+// procedure ↔ device (many-to-many via procedure_devices)
+Procedure.belongsToMany(Device, {
+  through: ProcedureDevice,
+  foreignKey: 'procedure_id',
+  otherKey: 'device_id',
+  as: 'devices',
+});
+Device.belongsToMany(Procedure, {
+  through: ProcedureDevice,
+  foreignKey: 'device_id',
+  otherKey: 'procedure_id',
+  as: 'procedures',
+});
+ProcedureDevice.belongsTo(Procedure, { foreignKey: 'procedure_id', as: 'procedure' });
+ProcedureDevice.belongsTo(Device,    { foreignKey: 'device_id',    as: 'device' });
+Procedure.hasMany(ProcedureDevice,   { foreignKey: 'procedure_id', as: 'deviceLinks' });
+Device.hasMany(ProcedureDevice,      { foreignKey: 'device_id',    as: 'procedureLinks' });
 
 export { Op };
 export { sequelize };

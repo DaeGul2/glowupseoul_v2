@@ -16,6 +16,11 @@
 //       - signature × 10
 //       - language coverage × 8
 //       - intl coordinator / airport pickup × 3 each            (tiny)
+//       - device preference (if user specified):
+//           hp.device_brands matches a preferred device → +18    (this clinic actually uses it)
+//           procedure ↔ device matrix link (primary)    → +9     (procedure can use it, signal of fit)
+//           procedure ↔ device matrix link (alternative)→ +5
+//         Soft boost only — never excludes options.
 //  3. Dedupe: best offering per procedure (variety, not 7 HIFU rows)
 //
 // Tunable so the *concern axis* always dominates ranking.
@@ -28,9 +33,48 @@ function safeRank(intensity) {
   return INTENSITY_RANK[intensity] ?? 3;
 }
 
+// Loose substring match between a device's brand aliases and an hp's
+// device_brands strings. Mirrors db.deviceMatchesOffering but kept local
+// so matching.js stays self-contained.
+function hpUsesDevice(hp, device) {
+  const offeringBrands = Array.isArray(hp.device_brands) ? hp.device_brands : [];
+  if (offeringBrands.length === 0) return false;
+  const aliases = (device.brands || []).map((s) => String(s).toLowerCase()).filter(Boolean);
+  if (aliases.length === 0) return false;
+  for (const ob of offeringBrands) {
+    const lb = String(ob).toLowerCase();
+    for (const a of aliases) {
+      if (lb === a || lb.includes(a) || a.includes(lb)) return true;
+    }
+  }
+  return false;
+}
+
 export function matchOfferings(prefs) {
-  const { concernIds = [], budgetMax, downtimeMax, painMax, styleTarget = 3, language = 'en' } = prefs;
+  const {
+    concernIds = [], budgetMax, downtimeMax, painMax, styleTarget = 3, language = 'en',
+    devicePrefSlugs = [],       // ← NEW. ['ulthera','shurink'] etc.
+  } = prefs;
   const concernIdSet = new Set(concernIds);
+
+  // Resolve preferred devices to actual device rows (may be empty if user
+  // didn't pick any, or if a slug doesn't exist yet).
+  const preferredDevices = devicePrefSlugs
+    .map((slug) => db.deviceBySlug[slug])
+    .filter(Boolean);
+  const preferredDeviceIds = new Set(preferredDevices.map((d) => d.id));
+
+  // Pre-compute procedure→device matrix relevance for preferred devices.
+  // procedure_id → max relevance rank found (0=primary, 1=alternative, 2=compatible)
+  const procDevicePref = new Map();
+  if (preferredDeviceIds.size > 0) {
+    for (const pd of db.procedureDevices || []) {
+      if (!preferredDeviceIds.has(pd.device_id)) continue;
+      const rank = pd.relevance === 'primary' ? 0 : pd.relevance === 'alternative' ? 1 : 2;
+      const existing = procDevicePref.get(pd.procedure_id);
+      if (existing == null || rank < existing) procDevicePref.set(pd.procedure_id, rank);
+    }
+  }
 
   // Pre-compute procedure scores from concerns (concern × procedure relevance)
   // Higher weights make the concern axis dominate ranking — fixes "shoulder filler for pores" bug.
@@ -105,11 +149,31 @@ export function matchOfferings(prefs) {
     if (hospital.airport_pickup) score += 3;
     if (hospital.has_intl_coordinator) score += 3;
 
+    // ---- Device preference (soft boost only) ----
+    let deviceMatched = null;
+    if (preferredDevices.length > 0) {
+      // (a) Strongest signal: this offering actually lists the preferred device
+      //     in its device_brands JSON.
+      for (const dev of preferredDevices) {
+        if (hpUsesDevice(hp, dev)) { deviceMatched = dev; break; }
+      }
+      if (deviceMatched) {
+        score += 18;
+        reasons.push(`uses your preferred ${deviceMatched.name_en || deviceMatched.slug}`);
+      } else {
+        // (b) Procedure can canonically use the preferred device (via matrix).
+        const rank = procDevicePref.get(procedure.id);
+        if (rank === 0)      { score += 9; reasons.push('procedure is a canonical fit for your preferred device'); }
+        else if (rank === 1) { score += 5; reasons.push('procedure is compatible with your preferred device'); }
+      }
+    }
+
     scored.push({
       offering: { hp, procedure, hospital, brand: db.brandById[hospital.brand_id], discount_pct: hp.original_price_krw && hp.starting_price_krw ? Math.round((1 - hp.starting_price_krw / hp.original_price_krw) * 100) : 0 },
       score: Math.round(score),
       reasons: [...new Set(reasons)],
       concernScore,
+      deviceMatched: deviceMatched ? { slug: deviceMatched.slug, name_en: deviceMatched.name_en, name_ko: deviceMatched.name_ko } : null,
     });
   }
 
