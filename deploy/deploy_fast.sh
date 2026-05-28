@@ -99,6 +99,31 @@ if ! systemctl list-unit-files 2>/dev/null | grep -q '^pm2-'; then
   pm2 save || true
 fi
 
+# ===== TLS (self-signed) — required so the face scan (getUserMedia) has a
+# secure origin. Cert lives outside the repo so `git reset --hard` never wipes
+# it. Temporary stopgap until a real domain + Let's Encrypt cert is in place. =====
+step "[E-2] Self-signed TLS cert + firewall 443"
+CERT_DIR=/etc/ssl/glowupseoul
+HOST_IP=13.124.18.135
+if command -v openssl >/dev/null 2>&1; then
+  if [ ! -f "$CERT_DIR/selfsigned.crt" ] || [ ! -f "$CERT_DIR/selfsigned.key" ]; then
+    sudo mkdir -p "$CERT_DIR"
+    sudo openssl req -x509 -nodes -newkey rsa:2048 -days 3650 \
+      -keyout "$CERT_DIR/selfsigned.key" \
+      -out "$CERT_DIR/selfsigned.crt" \
+      -subj "/C=KR/ST=Seoul/L=Seoul/O=GlowUpSeoul/CN=${HOST_IP}" \
+      -addext "subjectAltName=IP:${HOST_IP}"
+    sudo chmod 600 "$CERT_DIR/selfsigned.key"
+    ok "  generated self-signed cert at $CERT_DIR (valid 10y)"
+  else
+    echo "  -> self-signed cert already present"
+  fi
+  # OS firewall (AWS Security Group 443 must be opened separately in the console)
+  sudo ufw allow 'Nginx HTTPS' >/dev/null 2>&1 || sudo ufw allow 443/tcp >/dev/null 2>&1 || true
+else
+  warn "  openssl not found — cannot create self-signed cert; nginx -t will fail on the 443 block"
+fi
+
 # ===== Nginx =====
 step "[F] Nginx config"
 if command -v nginx >/dev/null 2>&1; then
