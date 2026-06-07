@@ -23,6 +23,13 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx';
 import TermsPage from './pages/TermsPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import AdminApp from './admin/AdminApp.jsx';
+import AdminV3App from './admin/v3/AdminV3App.jsx';
+import V3Shell from './v3site/V3Shell.jsx';
+
+// v3 customer site owns these real path routes (handled by V3Shell's own Routes).
+const V3_PATHS = ['/', '/treatments', '/surgeries', '/how-it-works', '/about'];
+const isV3Path = (p) =>
+  V3_PATHS.includes(p) || p.startsWith('/treatments/') || p.startsWith('/surgeries/');
 
 // Imperative navigate for non-component callers (e.g. event handlers in
 // modules that don't have router hooks). Works for both / and #/ legacy URLs.
@@ -139,7 +146,13 @@ export default function App() {
   useSmoothScroll();
 
   // Hydrate catalog (RDS) on mount. Live-feed hydrate kicks in parallel.
+  // Skip for the v3 shell + admin (they don't use the v2 catalog).
   useEffect(() => {
+    const p = window.location.pathname;
+    if (isV3Path(p) || p.startsWith('/admin')) {
+      setBootState('ready');
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -280,8 +293,17 @@ export default function App() {
 
   // Admin gets its own chrome (no Header/Footer) and doesn't need the public
   // catalog — it fetches RDS directly via /api/admin/* with its own auth.
-  if (location.pathname.startsWith('/admin')) {
+  // v3 admin (시술/수술 CRUD) lives at /admin. Legacy v2 admin kept at /admin-v2.
+  if (location.pathname.startsWith('/admin-v2')) {
     return <AdminApp />;
+  }
+  if (location.pathname.startsWith('/admin')) {
+    return <AdminV3App />;
+  }
+
+  // v3 customer site — real path routes, handled by V3Shell's own <Routes>.
+  if (isV3Path(location.pathname)) {
+    return <V3Shell />;
   }
 
   if (bootState === 'loading') return <BootSplash />;

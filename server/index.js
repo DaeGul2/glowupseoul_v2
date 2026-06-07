@@ -27,6 +27,7 @@ import {
   listSubmissions, getSubmission, approveSubmission, rejectSubmission,
 } from './routes/partner-admin.js';
 import { createMatchRequestHandler, getMatchRequestHandler } from './routes/match.js';
+import { v3List, v3Get, v3Create, v3Update, v3Delete, v3Stats, v3TagList, v3TagCreate, v3PublicCatalog, v3PublicDetail } from './routes/adminV3.js';
 import { sitemapHandler, robotsHandler } from './routes/sitemap.js';
 import { checkDbHealth } from './db/health.js';
 import { hasDbConfig, closeSequelize } from './db/sequelize.js';
@@ -93,6 +94,20 @@ app.get   ('/api/admin/partner-submissions',                    requireAdmin, li
 app.get   ('/api/admin/partner-submissions/:file',              requireAdmin, getSubmission);
 app.post  ('/api/admin/partner-submissions/:file/approve',      requireAdmin, approveSubmission);
 app.post  ('/api/admin/partner-submissions/:file/reject',       requireAdmin, rejectSubmission);
+// v3 admin CRUD — treatments(시술) + surgeries(수술). Separate from the legacy
+// generic /api/admin/:kind catch-all below. Same X-Admin-Key gate.
+// Public v3 catalog — powers the DB-driven customer chatbot + detail pages.
+app.get   ('/api/v3/catalog',          v3PublicCatalog);
+app.get   ('/api/v3/catalog/:kind/:slug', v3PublicDetail);
+app.get   ('/api/v3/admin/_stats',     requireAdmin, v3Stats);
+app.get   ('/api/v3/admin/_tags',      requireAdmin, v3TagList);
+app.post  ('/api/v3/admin/_tags',      requireAdmin, v3TagCreate);
+app.get   ('/api/v3/admin/:kind',      requireAdmin, v3List);
+app.post  ('/api/v3/admin/:kind',      requireAdmin, v3Create);
+app.get   ('/api/v3/admin/:kind/:id',  requireAdmin, v3Get);
+app.patch ('/api/v3/admin/:kind/:id',  requireAdmin, v3Update);
+app.delete('/api/v3/admin/:kind/:id',  requireAdmin, v3Delete);
+
 // Generic CRUD
 app.get   ('/api/admin/:kind',                 requireAdmin, adminList);
 app.post  ('/api/admin/:kind',                 requireAdmin, adminCreate);

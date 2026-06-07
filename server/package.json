@@ -9,6 +9,8 @@
     "db:migrate": "node scripts/migrate.js",
     "db:extend": "node scripts/extend.js",
     "db:seed-from-mock": "node scripts/seed-from-mock.js",
+    "db:v3-create": "node scripts/create-v3-db.js",
+    "db:v3-seed": "node scripts/seed-v3.js",
     "db:reset": "node scripts/migrate.js --schema && node scripts/migrate.js --seeds && node scripts/seed-from-mock.js"
   },
   "dependencies": {
