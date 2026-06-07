@@ -19,11 +19,6 @@ Focused ultrasound creates tiny coagulation points deep under the skin. Over the
 | Downtime | None |
 | Results build | 2–3 months, peak around 3 |
 
-## Who it's for
-- You want a real lift but aren't ready for surgery
-- Early sagging along the jawline, cheeks or brows
-- You can't afford visible downtime
-
 ## What to expect
 The session is quick and you walk out looking normal — perhaps a little flushed. The lift reveals itself slowly and naturally over the next few months.
 
@@ -67,11 +62,6 @@ Micro-injections deliver PN across the skin, calming inflammation and rebuilding
 | Downtime | Tiny bumps/marks for 1–2 days |
 | Course | 3 sessions, 2–4 weeks apart |
 
-## Who it's for
-- Dull, tired or rough-textured skin
-- Early fine lines and enlarged pores
-- Anyone wanting a natural "glass skin" finish
-
 ## What to expect
 Small raised bumps settle within a day or two. The glow appears gradually and builds with each session.`,
 
@@ -105,10 +95,6 @@ RF energy remodels the deeper layers while heating the surface, improving both c
 | Sensation | Warm, mild pricking |
 | Downtime | Slight redness 1–2 days |
 | Course | Usually 3–4 sessions |
-
-## Who it's for
-- Mild sagging plus skin texture in one go
-- A defined jaw and chin without surgery
 
 ## What to expect
 A short course delivers a tighter, more defined lower face that keeps improving between sessions.`,

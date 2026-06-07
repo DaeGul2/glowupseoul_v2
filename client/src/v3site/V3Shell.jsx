@@ -287,12 +287,6 @@ function ProcedureDetail({ kind }) {
   );
   if (!row) return <div className="v3s-page"><section className="v3s-wrap"><div className="v3s-dt-loading">Loading…</div></section></div>;
 
-  const specs = [
-    { k: 'From', v: fmtKRW(row.price_krw), note: row.price_note },
-    { k: 'Results last', v: DURATION_LABEL[row.duration] || '—' },
-    { k: 'Comfort', v: PAIN_LABEL[row.pain_level] || '—' },
-    { k: 'Downtime', v: RECOVERY_LABEL[row.recovery_level] || '—' },
-  ];
   const isSurg = kind === 'surgeries';
 
   return (
@@ -316,21 +310,19 @@ function ProcedureDetail({ kind }) {
         </div>
       </section>
 
-      {/* spec strip */}
-      <section className="v3s-dt-spec">
-        {specs.map((s) => (
-          <div className="v3s-dt-spec-col" key={s.k}>
-            <span className="v3s-dt-spec-k">{s.k}</span>
-            <span className="v3s-dt-spec-v">{s.v}</span>
-            {s.note && <span className="v3s-dt-spec-note">{s.note}</span>}
-          </div>
-        ))}
-      </section>
-
       {/* body: MD + sticky aside */}
       <section className="v3s-dt-body">
         <div className="v3s-md" dangerouslySetInnerHTML={{ __html: html }} />
         <aside className="v3s-dt-aside">
+          <div className="v3s-dt-aside-card">
+            <div className="v3s-dt-aside-h">At a glance</div>
+            <dl className="v3s-dt-facts">
+              <div><dt>Price</dt><dd>{fmtKRW(row.price_krw)}{row.price_note && <span>{row.price_note}</span>}</dd></div>
+              <div><dt>Results last</dt><dd>{DURATION_LABEL[row.duration] || '—'}</dd></div>
+              <div><dt>Comfort</dt><dd>{PAIN_LABEL[row.pain_level] || '—'}</dd></div>
+              <div><dt>Downtime</dt><dd>{RECOVERY_LABEL[row.recovery_level] || '—'}{row.recovery_note && <span>{row.recovery_note}</span>}</dd></div>
+            </dl>
+          </div>
           {row.concern_links?.length > 0 && (
             <div className="v3s-dt-aside-card">
               <div className="v3s-dt-aside-h">Helps with</div>
@@ -363,15 +355,55 @@ function ProcedureDetail({ kind }) {
         </section>
       )}
 
-      {/* recovery callout */}
-      {row.recovery_note && (
-        <section className="v3s-dt-callout">
-          <div className="v3s-wrap">
-            <span className="v3s-eyebrow">Recovery</span>
-            <p>{row.recovery_note}</p>
-          </div>
-        </section>
-      )}
+      {/* everything in one place, once more */}
+      <section className="v3s-dt-recap">
+        <div className="v3s-wrap">
+          <Reveal>
+            <div className="v3s-dt-sum-card">
+              <div className="v3s-dt-sum-top">
+                <span className="v3s-eyebrow">In summary</span>
+                <h2>{row.name}</h2>
+                {row.summary && <p>{row.summary}</p>}
+              </div>
+              <div className="v3s-dt-sum-grid">
+                <div className="v3s-dt-sum-col">
+                  <span className="v3s-dt-sum-h">At a glance</span>
+                  <dl className="v3s-dt-facts">
+                    <div><dt>Price</dt><dd>{fmtKRW(row.price_krw)}</dd></div>
+                    <div><dt>Results last</dt><dd>{DURATION_LABEL[row.duration] || '—'}</dd></div>
+                    <div><dt>Comfort</dt><dd>{PAIN_LABEL[row.pain_level] || '—'}</dd></div>
+                    <div><dt>Downtime</dt><dd>{RECOVERY_LABEL[row.recovery_level] || '—'}</dd></div>
+                  </dl>
+                </div>
+                {row.benefits?.length > 0 && (
+                  <div className="v3s-dt-sum-col">
+                    <span className="v3s-dt-sum-h">Good for</span>
+                    <ul className="v3s-dt-list">{row.benefits.map((b, i) => <li key={i}>{b}</li>)}</ul>
+                  </div>
+                )}
+                {row.cautions?.length > 0 && (
+                  <div className="v3s-dt-sum-col">
+                    <span className="v3s-dt-sum-h">Things to note</span>
+                    <ul className="v3s-dt-list">{row.cautions.map((c, i) => <li key={i}>{c}</li>)}</ul>
+                  </div>
+                )}
+              </div>
+              {row.concern_links?.length > 0 && (
+                <div className="v3s-dt-sum-concerns">
+                  <span className="v3s-dt-sum-h">Helps with</span>
+                  <div className="v3s-dt-concerns">
+                    {row.concern_links.map((c) => <span className="v3s-dt-concern" key={c.concern_id}>{c.name}</span>)}
+                  </div>
+                </div>
+              )}
+              <div className="v3s-dt-sum-cta">
+                <button className="v3s-btn" onClick={() => chat.open()}>Start a consultation <span className="tail">→</span></button>
+                <a className="v3s-btn v3s-btn--ghost" href={WA} style={{ textDecoration: 'none' }}><WaIcon /> Ask on WhatsApp</a>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
 
       <CtaBand />
     </div>
