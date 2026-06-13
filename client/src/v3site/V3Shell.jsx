@@ -130,13 +130,27 @@ function Home() {
             </div>
           </Reveal>
           <Reveal delay={80}>
-            <div className="v3s-index">
-              <IndexRow num="01" to="/treatments"
-                title="Skin & glow" kick="No scalpel · 1–3 days"
-                sub="Lasers, lifting, boosters, contour — the quiet glow-up, then back to your trip." />
-              <IndexRow num="02" to="/surgeries"
-                title="A real change" kick="Surgical · escorted"
-                sub="Eyes, nose, contour, lift — planned, escorted on the day, recovered with care." />
+            <div className="v3s-paths">
+              <Link className="v3s-path" to="/treatments">
+                <div className="v3s-path-img" style={{ backgroundImage: 'url(/home-path-skin.png)' }} />
+                <div className="v3s-path-body">
+                  <span className="v3s-path-num">01</span>
+                  <span className="v3s-path-kick">No scalpel · 1–3 days</span>
+                  <h3>Skin &amp; glow</h3>
+                  <p>Lasers, lifting, boosters, contour — the quiet glow-up, then back to your trip.</p>
+                  <span className="v3s-path-go">Explore treatments <span className="tail">→</span></span>
+                </div>
+              </Link>
+              <Link className="v3s-path" to="/surgeries">
+                <div className="v3s-path-img" style={{ backgroundImage: 'url(/home-path-change.png)' }} />
+                <div className="v3s-path-body">
+                  <span className="v3s-path-num">02</span>
+                  <span className="v3s-path-kick">Surgical · escorted</span>
+                  <h3>A real change</h3>
+                  <p>Eyes, nose, contour, lift — planned, escorted on the day, recovered with care.</p>
+                  <span className="v3s-path-go">Explore surgery <span className="tail">→</span></span>
+                </div>
+              </Link>
             </div>
           </Reveal>
         </div>
@@ -211,7 +225,7 @@ function CatalogIndex({ kind, eyebrow, title, titleEm, lede }) {
       <section className="v3s-wrap">
         {kind === 'treatments' && (
           <Reveal>
-            <div className="v3s-cat-hero" style={{ backgroundImage: 'url(/glowup-campaign.png)' }} role="img" aria-label="Glow Up Seoul" />
+            <div className="v3s-cat-hero" style={{ backgroundImage: 'url(/treatments-hero.png)' }} role="img" aria-label="Glow Up Seoul" />
           </Reveal>
         )}
         <Reveal>
