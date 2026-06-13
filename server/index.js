@@ -28,6 +28,7 @@ import {
 } from './routes/partner-admin.js';
 import { createMatchRequestHandler, getMatchRequestHandler } from './routes/match.js';
 import { v3List, v3Get, v3Create, v3Update, v3Delete, v3Stats, v3TagList, v3TagCreate, v3PublicCatalog, v3PublicDetail } from './routes/adminV3.js';
+import { v3ScanHandler } from './routes/scanV3.js';
 import { sitemapHandler, robotsHandler } from './routes/sitemap.js';
 import { checkDbHealth } from './db/health.js';
 import { hasDbConfig, closeSequelize } from './db/sequelize.js';
@@ -99,6 +100,7 @@ app.post  ('/api/admin/partner-submissions/:file/reject',       requireAdmin, re
 // Public v3 catalog — powers the DB-driven customer chatbot + detail pages.
 app.get   ('/api/v3/catalog',          v3PublicCatalog);
 app.get   ('/api/v3/catalog/:kind/:slug', v3PublicDetail);
+app.post  ('/api/v3/scan',             rateLimitAnalyzeIp, v3ScanHandler);
 app.get   ('/api/v3/admin/_stats',     requireAdmin, v3Stats);
 app.get   ('/api/v3/admin/_tags',      requireAdmin, v3TagList);
 app.post  ('/api/v3/admin/_tags',      requireAdmin, v3TagCreate);

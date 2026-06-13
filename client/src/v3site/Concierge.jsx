@@ -5,6 +5,7 @@
 // mirrors the two tables) and conversational copy.
 import { useState, useEffect, useRef } from 'react';
 import WaIcon from './WaIcon.jsx';
+import ScanOverlay from './ScanOverlay.jsx';
 
 const WA = '821064871060';
 
@@ -31,6 +32,7 @@ export default function Concierge() {
   const [areaIds, setAreaIds] = useState([]);
   const [concernIds, setConcernIds] = useState([]);
   const [recs, setRecs] = useState([]);
+  const [scanOpen, setScanOpen] = useState(false);
   const bodyRef = useRef(null);
   const timers = useRef([]);
 
@@ -48,9 +50,9 @@ export default function Concierge() {
           setTyping(false);
           setMsgs([
             { role: 'bot', text: "Hi — I'm Romie, your Seoul beauty concierge." },
-            { role: 'bot', text: 'Let\'s find what fits you in about 15 seconds. First, what brings you to Seoul?' },
+            { role: 'bot', text: 'Want me to take a quick look first? Share a photo and I\'ll suggest where to start — or we can just talk.' },
           ]);
-          setStage('path');
+          setStage('intro');
         }, 700);
         timers.current.push(t);
       });
@@ -83,6 +85,51 @@ export default function Concierge() {
   const concernsForAreas = cat ? cat.concerns.filter((c) => allowedAreaIds.includes(c.area_id)) : [];
   const areaName = (id) => cat?.areas.find((a) => a.id === id)?.name;
   const concernName = (id) => cat?.concerns.find((c) => c.id === id)?.name;
+  // scan only fits the non-surgical / exploring tracks (a selfie can't read "I want a nose job")
+  const showScan = Boolean(cat) && trackOf !== 'surgical';
+
+  function skipIntro() {
+    userSay("Let's just talk");
+    botReply(['No problem. First, what brings you to Seoul?'], 'path');
+  }
+
+  // Called by ScanOverlay. Must REJECT on failure (overlay shows its error state);
+  // on success it seeds the questionnaire and drops the user into the concern step.
+  async function onScanCapture(snapshot) {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 30_000);
+    let d;
+    try {
+      const r = await fetch('/api/v3/scan', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ snapshot, area_ids: allowedAreaIds }),
+        signal: ctrl.signal,
+      });
+      if (!r.ok) throw new Error(`scan ${r.status}`);
+      d = await r.json();
+    } finally {
+      clearTimeout(to);
+    }
+
+    if (!path) setPath('glow');                          // scan implies the non-surgical track
+    const ids = Array.isArray(d.concern_ids) ? d.concern_ids : [];
+    setConcernIds((prev) => Array.from(new Set([...prev, ...ids])));
+    userSay('📷 Shared a photo for a quick look');
+    if (ids.length) {
+      const names = ids.map(concernName).filter(Boolean).join(', ');
+      setMsgs((m) => [
+        ...m,
+        { role: 'bot', text: d.narrative || `A gentle starting point: ${names}.` },
+        { role: 'bot', text: `I've pre-selected ${names || 'a few areas'} below — add or remove anything, then see your matches.` },
+      ]);
+    } else {
+      setMsgs((m) => [...m, {
+        role: 'bot',
+        text: d.narrative || "I couldn't read that one clearly — just tap what bothers you below and I'll match you.",
+      }]);
+    }
+    setStage('concern');
+  }
 
   function pickPath(p) {
     setPath(p.key); setAreaIds([]); setConcernIds([]);
@@ -119,8 +166,8 @@ export default function Concierge() {
     setPath(null); setAreaIds([]); setConcernIds([]); setRecs([]); setMsgs([]); setTyping(true); setStage('await');
     const t = setTimeout(() => {
       setTyping(false);
-      setMsgs([{ role: 'bot', text: 'Of course — let\'s start fresh. What brings you to Seoul?' }]);
-      setStage('path');
+      setMsgs([{ role: 'bot', text: 'Of course — let\'s start fresh. Want a quick look, or shall we just talk?' }]);
+      setStage('intro');
     }, 550);
     timers.current.push(t);
   }
@@ -159,6 +206,17 @@ export default function Concierge() {
       </div>
 
       <div className="v3s-chat-actions">
+        {stage === 'intro' && (
+          <div className="v3s-cc-intro">
+            <button type="button" className="v3s-cc-scan" onClick={() => setScanOpen(true)}>
+              <span className="v3s-cc-scan-ico">📷</span>
+              <span className="v3s-cc-scan-tx"><b>Take a quick look</b><i>A photo → a starting point in seconds</i></span>
+              <span className="v3s-cc-scan-go">→</span>
+            </button>
+            <button className="v3s-cc-skip" onClick={skipIntro}>Skip — I’ll answer a few questions</button>
+          </div>
+        )}
+
         {stage === 'path' && (
           <div className="v3s-chat-opts">
             {PATHS.map((p) => (
@@ -186,6 +244,13 @@ export default function Concierge() {
 
         {stage === 'concern' && (
           <>
+            {showScan && (
+              <button type="button" className="v3s-cc-scan" onClick={() => setScanOpen(true)}>
+                <span className="v3s-cc-scan-ico">📷</span>
+                <span className="v3s-cc-scan-tx"><b>Take a quick look</b><i>Let Romie suggest a starting point</i></span>
+                <span className="v3s-cc-scan-go">→</span>
+              </button>
+            )}
             <div className="v3s-cc-chips">
               {concernsForAreas.map((c) => (
                 <button key={c.id} type="button" className={`v3s-cc-chip ${concernIds.includes(c.id) ? 'on' : ''}`} onClick={() => toggle(concernIds, setConcernIds, c.id)}>
@@ -201,15 +266,39 @@ export default function Concierge() {
           <div className="v3s-chat-done">
             {recs.length > 0 && (
               <div className="v3s-rec-list">
-                {recs.map((r) => (
-                  <div className="v3s-rec" key={`${r.kind}-${r.id}`}>
-                    <div className="v3s-rec-top">
-                      <span className="v3s-rec-name">{r.name}</span>
-                      <span className="v3s-rec-kind">{r.kind === 'surgery' ? 'Surgery' : 'Treatment'}</span>
+                {recs.map((r) => {
+                  // why it fits: reasons for the concerns the patient picked that this
+                  // procedure matches. If they were "just exploring", show one anyway.
+                  let why = (r.concern_ids || [])
+                    .filter((id) => concernIds.includes(id))
+                    .map((id) => ({ id, concern: concernName(id), reason: r.concern_reasons?.[id] }))
+                    .filter((w) => w.reason);
+                  if (!why.length) {
+                    why = (r.concern_ids || [])
+                      .map((id) => ({ id, concern: concernName(id), reason: r.concern_reasons?.[id] }))
+                      .filter((w) => w.reason)
+                      .slice(0, 1);
+                  }
+                  return (
+                    <div className="v3s-rec" key={`${r.kind}-${r.id}`}>
+                      <div className="v3s-rec-top">
+                        <span className="v3s-rec-name">{r.name}</span>
+                        <span className="v3s-rec-kind">{r.kind === 'surgery' ? 'Surgery' : 'Treatment'}</span>
+                      </div>
+                      {r.summary && <div className="v3s-rec-sum">{r.summary}</div>}
+                      {why.length > 0 && (
+                        <div className="v3s-rec-why">
+                          {why.map((w) => (
+                            <div className="v3s-rec-why-item" key={w.id}>
+                              <span className="v3s-rec-why-tag">Why for {w.concern}</span>
+                              <p>{w.reason}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    {r.summary && <div className="v3s-rec-sum">{r.summary}</div>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             <div className="v3s-cc-brief">
@@ -226,6 +315,8 @@ export default function Concierge() {
           <a className="v3s-cc-send" href={`https://wa.me/${WA}`} target="_blank" rel="noreferrer" style={{ marginTop: 0 }}><WaIcon /> Message Romie on WhatsApp</a>
         )}
       </div>
+
+      <ScanOverlay open={scanOpen} onClose={() => setScanOpen(false)} onCapture={onScanCapture} />
     </div>
   );
 }

@@ -369,6 +369,30 @@ function ProcedureDetail({ kind }) {
         </section>
       )}
 
+      {/* why it helps — the DB rationale per concern */}
+      {row.concern_links?.some((c) => c.reason) && (
+        <section className="v3s-dt-why">
+          <div className="v3s-wrap">
+            <Reveal>
+              <div className="v3s-dt-why-head">
+                <span className="v3s-eyebrow">Why it helps</span>
+                <h2>Why {row.name} works for <em>these concerns</em></h2>
+              </div>
+            </Reveal>
+            <div className="v3s-dt-why-grid">
+              {row.concern_links.filter((c) => c.reason).map((c, i) => (
+                <Reveal key={c.concern_id} delay={i * 70}>
+                  <div className="v3s-dt-why-item">
+                    <span className="v3s-dt-why-tag">{c.name}</span>
+                    <p>{c.reason}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* everything in one place, once more */}
       <section className="v3s-dt-recap">
         <div className="v3s-wrap">
@@ -475,6 +499,7 @@ function CtaBand() {
 
 function Nav() {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 36);
     onScroll();
@@ -482,9 +507,10 @@ function Nav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   const cls = ({ isActive }) => isActive ? 'active' : undefined;
+  const close = () => setMenuOpen(false);
   return (
-    <nav className={`v3s-nav ${scrolled ? 'scrolled' : ''}`}>
-      <Link className="v3s-logo" to="/" style={{ textDecoration: 'none' }} aria-label="Glow Up Seoul — home">
+    <nav className={`v3s-nav ${scrolled ? 'scrolled' : ''} ${menuOpen ? 'menu-open' : ''}`}>
+      <Link className="v3s-logo" to="/" style={{ textDecoration: 'none' }} aria-label="Glow Up Seoul — home" onClick={close}>
         <img className="v3s-logo-img" src="/glowup-logo.png" alt="Glow Up Seoul" />
       </Link>
       <div className="v3s-nav-links">
@@ -493,9 +519,26 @@ function Nav() {
         <NavLink to="/how-it-works" className={cls}>How it works</NavLink>
         <NavLink to="/about" className={cls}>About</NavLink>
       </div>
-      <a className="v3s-btn v3s-btn--wa" href={WA} style={{ textDecoration: 'none' }}>
-        <WaIcon /> WhatsApp
-      </a>
+      <div className="v3s-nav-right">
+        <a className="v3s-btn v3s-btn--wa" href={WA} style={{ textDecoration: 'none' }}>
+          <WaIcon /> <span className="v3s-nav-wa-tx">WhatsApp</span>
+        </a>
+        <button
+          className="v3s-nav-burger" aria-label="Menu" aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          <span /><span /><span />
+        </button>
+      </div>
+      <div className="v3s-nav-mobile" role="menu">
+        <NavLink to="/treatments" className={cls} onClick={close}>Treatments</NavLink>
+        <NavLink to="/surgeries" className={cls} onClick={close}>Surgery</NavLink>
+        <NavLink to="/how-it-works" className={cls} onClick={close}>How it works</NavLink>
+        <NavLink to="/about" className={cls} onClick={close}>About</NavLink>
+        <a className="v3s-nav-mobile-wa" href={WA} onClick={close} style={{ textDecoration: 'none' }}>
+          <WaIcon /> Message on WhatsApp
+        </a>
+      </div>
     </nav>
   );
 }

@@ -192,15 +192,20 @@ export async function v3Stats(_req, res) {
 // concern areas + concerns (the questionnaire) + treatments/surgeries with their
 // concern mappings (for matching). Public, read-only, active rows only.
 const CONCERN_INCLUDE = [
-  { model: Concern, as: 'concerns', through: { attributes: [] }, attributes: ['id'] },
+  { model: Concern, as: 'concerns', through: { attributes: ['reason', 'relevance'] }, attributes: ['id'] },
   { model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['name'] },
 ];
-function shapeProc(r, kind) {
+function shapeProc(r, kind, throughName) {
+  const concerns = r.concerns || [];
   return {
     kind, id: r.id, slug: r.slug, name: r.name, summary: r.summary, thumbnail_url: r.thumbnail_url,
     duration: r.duration, pain_level: r.pain_level, recovery_level: r.recovery_level,
     price_krw: r.price_krw, price_note: r.price_note,
-    concern_ids: (r.concerns || []).map((c) => c.id),
+    concern_ids: concerns.map((c) => c.id),
+    // { concern_id: "why this treatment helps that concern" } — drives the chat rationale.
+    concern_reasons: Object.fromEntries(
+      concerns.map((c) => [c.id, (c[throughName] && c[throughName].reason) || null])
+    ),
     tags: (r.tags || []).map((t) => t.name),
   };
 }
@@ -217,8 +222,8 @@ export async function v3PublicCatalog(_req, res) {
     res.json({
       areas: areas.map((a) => ({ id: a.id, slug: a.slug, name: a.name, track: a.track })),
       concerns: concerns.map((c) => ({ id: c.id, slug: c.slug, name: c.name, area_id: c.area_id })),
-      treatments: treatments.map((t) => shapeProc(t, 'treatment')),
-      surgeries: surgeries.map((s) => shapeProc(s, 'surgery')),
+      treatments: treatments.map((t) => shapeProc(t, 'treatment', 'TreatmentConcern')),
+      surgeries: surgeries.map((s) => shapeProc(s, 'surgery', 'SurgeryConcern')),
     });
   } catch (e) {
     res.status(500).json({ error: 'catalog failed', detail: e.message });
