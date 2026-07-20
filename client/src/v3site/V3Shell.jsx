@@ -9,6 +9,8 @@ import { Routes, Route, Link, NavLink, useLocation, useParams } from 'react-rout
 import { marked } from 'marked';
 import Concierge from './Concierge.jsx';
 import WaIcon from './WaIcon.jsx';
+import BookingWizard from './BookingWizard.jsx';
+import BookingStatusPage from './BookingStatusPage.jsx';
 import { fetchCatalog, fetchDetail, DURATION_LABEL, PAIN_LABEL, RECOVERY_LABEL, fmtKRW } from './catalogApi.js';
 import './v3site.css';
 
@@ -63,6 +65,22 @@ function IndexRow({ num, title, sub, kick, to }) {
 // placeholder shows until then.
 const HERO_PHOTO = '';
 
+// Autoplay video that PAUSES when scrolled out of view — offscreen videos keep
+// decoding every frame and were a main cause of scroll jank.
+function AutoVideo(props) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current; if (!el) return undefined;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) el.play().catch(() => {});
+      else el.pause();
+    }, { threshold: 0.05 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <video ref={ref} {...props} />;
+}
+
 // Cinematic Seoul hero — drone fly-through, then sunset journey, looping.
 // Two stacked videos crossfade into each other for a smooth transition.
 const HERO_CLIPS = ['/seoul-2.mp4', '/seoul-1.mp4'];
@@ -70,17 +88,29 @@ function HeroVideo() {
   const a = useRef(null);
   const b = useRef(null);
   const [showA, setShowA] = useState(true);
+  const showARef = useRef(true);
+  showARef.current = showA;
   function swap(toA) {
     const inV = (toA ? a : b).current;
     if (inV) { try { inV.currentTime = 0; } catch (_) {} inV.play().catch(() => {}); }
     setShowA(toA);
   }
+  // pause both clips when the hero scrolls out of view; resume the active one
+  useEffect(() => {
+    const el = a.current; if (!el) return undefined;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) (showARef.current ? a : b).current?.play().catch(() => {});
+      else { a.current?.pause(); b.current?.pause(); }
+    }, { threshold: 0.05 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   return (
     <>
       <video ref={a} className={`v3s-vhero-vid ${showA ? 'on' : ''}`} src={HERO_CLIPS[0]}
         autoPlay muted playsInline preload="auto" onEnded={() => swap(false)} />
       <video ref={b} className={`v3s-vhero-vid ${!showA ? 'on' : ''}`} src={HERO_CLIPS[1]}
-        muted playsInline preload="auto" onEnded={() => swap(true)} />
+        muted playsInline preload="metadata" onEnded={() => swap(true)} />
     </>
   );
 }
@@ -90,7 +120,7 @@ function Home() {
   return (
     <>
       <header className="v3s-vhero">
-        <video className="v3s-vhero-vid on" src="/hero.mp4" autoPlay loop muted playsInline />
+        <AutoVideo className="v3s-vhero-vid on" src="/hero.mp4" autoPlay loop muted playsInline />
         <div className="v3s-vhero-scrim" />
         <div className="v3s-vhero-content">
           <motion.div custom={0} variants={FADE} initial="hidden" animate="show">
@@ -212,6 +242,7 @@ function SubPage({ eyebrow, title, titleEm, lede, items, note }) {
 function CatalogIndex({ kind, eyebrow, title, titleEm, lede }) {
   const [items, setItems] = useState(null);
   const [err, setErr] = useState(false);
+  const [bookFor, setBookFor] = useState(null);   // catalog row → booking wizard
   useEffect(() => {
     let alive = true;
     fetchCatalog()
@@ -252,7 +283,13 @@ function CatalogIndex({ kind, eyebrow, title, titleEm, lede }) {
                     )}
                     <div className="v3s-cat-card-foot">
                       <span>{it.price_krw != null ? `from ${fmtKRW(it.price_krw)}` : 'On consultation'}</span>
-                      <span className="go">→</span>
+                      <span className="v3s-cat-card-actions">
+                        <button type="button" className="v3s-cat-card-book"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBookFor(it); }}>
+                          Book
+                        </button>
+                        <span className="go">→</span>
+                      </span>
                     </div>
                   </div>
                 </Link>
@@ -262,6 +299,7 @@ function CatalogIndex({ kind, eyebrow, title, titleEm, lede }) {
         )}
       </section>
       <CtaBand />
+      {bookFor && <BookingWizard kind={kind} row={bookFor} onClose={() => setBookFor(null)} />}
     </div>
   );
 }
@@ -283,6 +321,7 @@ function ProcedureDetail({ kind }) {
   const chat = useContext(ChatContext);
   const [row, setRow] = useState(null);
   const [err, setErr] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -313,7 +352,8 @@ function ProcedureDetail({ kind }) {
           <h1 className="v3s-dt-name">{row.name}</h1>
           {row.summary && <p className="v3s-dt-summary">{row.summary}</p>}
           <div className="v3s-dt-cta">
-            <button className="v3s-btn" onClick={() => chat.open()}>Start a consultation <span className="tail">→</span></button>
+            <button className="v3s-btn" onClick={() => setBookOpen(true)}>Book this trip <span className="tail">→</span></button>
+            <button className="v3s-btn v3s-btn--ghost" onClick={() => chat.open()}>Start a consultation</button>
             <a className="v3s-btn v3s-btn--ghost" href={WA} style={{ textDecoration: 'none' }}><WaIcon /> Ask on WhatsApp</a>
           </div>
         </div>
@@ -347,8 +387,9 @@ function ProcedureDetail({ kind }) {
           )}
           <div className="v3s-dt-aside-card v3s-dt-aside-cta">
             <div className="v3s-dt-aside-h">Considering {row.name}?</div>
-            <p>Tell Romie and we'll arrange the right clinic, in your language.</p>
-            <button className="v3s-btn" onClick={() => chat.open()}>Start with Romie <span className="tail">→</span></button>
+            <p>Pick your dates — or tell Romie and we'll arrange the right clinic, in your language.</p>
+            <button className="v3s-btn" onClick={() => setBookOpen(true)}>Book this trip <span className="tail">→</span></button>
+            <button className="v3s-btn v3s-btn--ghost" onClick={() => chat.open()} style={{ marginTop: 8 }}>Start with Romie</button>
           </div>
         </aside>
       </section>
@@ -435,7 +476,8 @@ function ProcedureDetail({ kind }) {
                 </div>
               )}
               <div className="v3s-dt-sum-cta">
-                <button className="v3s-btn" onClick={() => chat.open()}>Start a consultation <span className="tail">→</span></button>
+                <button className="v3s-btn" onClick={() => setBookOpen(true)}>Book this trip <span className="tail">→</span></button>
+                <button className="v3s-btn v3s-btn--ghost" onClick={() => chat.open()}>Start a consultation</button>
                 <a className="v3s-btn v3s-btn--ghost" href={WA} style={{ textDecoration: 'none' }}><WaIcon /> Ask on WhatsApp</a>
               </div>
             </div>
@@ -444,6 +486,8 @@ function ProcedureDetail({ kind }) {
       </section>
 
       <CtaBand />
+
+      {bookOpen && <BookingWizard kind={kind} row={row} onClose={() => setBookOpen(false)} />}
     </div>
   );
 }
@@ -558,6 +602,7 @@ function Footer() {
             <Link to="/surgeries">Surgery</Link>
             <Link to="/how-it-works">How it works</Link>
             <Link to="/about">About</Link>
+            <Link to="/booking">My booking</Link>
           </div>
           <div>
             <div className="v3s-foot-col-title">Reach us</div>
@@ -604,7 +649,15 @@ export default function V3Shell() {
   useEffect(() => {
     const prev = document.body.style.background;
     document.body.style.background = '#f3efe7';
-    return () => { document.body.style.background = prev; };
+    // v2 전역 CSS 의 풀스크린 grain(body::after, mix-blend-mode) + smooth scroll 이
+    // v3 에도 새어 들어와 스크롤 렉을 유발 — v3 마운트 동안 차단.
+    document.body.classList.add('no-grain');
+    document.documentElement.classList.add('no-smooth');
+    return () => {
+      document.body.style.background = prev;
+      document.body.classList.remove('no-grain');
+      document.documentElement.classList.remove('no-smooth');
+    };
   }, []);
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [location.pathname]);
 
@@ -620,6 +673,8 @@ export default function V3Shell() {
             <Route path="/treatments/:slug" element={<ProcedureDetail kind="treatments" />} />
             <Route path="/surgeries" element={<Surgeries />} />
             <Route path="/surgeries/:slug" element={<ProcedureDetail kind="surgeries" />} />
+            <Route path="/booking" element={<BookingStatusPage />} />
+            <Route path="/booking/:code" element={<BookingStatusPage />} />
             <Route path="/how-it-works" element={<How />} />
             <Route path="/about" element={<About />} />
             <Route path="*" element={<Home />} />

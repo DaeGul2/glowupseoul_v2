@@ -3209,6 +3209,11 @@ body::after {
   opacity: 0.20;
   mix-blend-mode: soft-light;
 }
+/* ⚠ 위 그레인 오버레이는 v2 전용 장식인데 body::after 라 v3/admin 에도 전역으로 떠서
+   스크롤 프레임마다 풀스크린 블렌딩 → 심각한 렉. v3/admin 은 마운트 시
+   body.no-grain 을 붙여 차단한다 (V3Shell / AdminV3App useEffect). */
+body.no-grain::after { content: none; }
+html.no-smooth { scroll-behavior: auto; }
 
 /* — Numbered editorial section mark (replaces decorative symbols ✦◇⬡)
      Usage: <div className="gs-mark">— 04 / By device</div> */

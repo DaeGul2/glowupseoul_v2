@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "xlsx-js-style": "^1.2.0"
+  }
+}
