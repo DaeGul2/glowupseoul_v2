@@ -55,13 +55,15 @@ else
   echo "  -> skip server npm ci (no server changes)"
 fi
 
-# ===== DB schema extend (idempotent) =====
-# server 변경 또는 schema 파일 변경 시 db:extend 실행. 새 ALTER/CREATE 적용.
-step "[B-2] DB schema extend (idempotent)"
+# ===== DB schema apply (idempotent) =====
+# v3 운영 DB(glowupseoul_v3_prod) 에 schema.v3.sql 적용 (CREATE TABLE IF NOT EXISTS).
+# 새 테이블(settings/bookings 등)이 추가되면 배포 시 자동 생성된다.
+# (구 db:extend 는 v2 스키마용 — v3 DB 를 오염시키므로 제거)
+step "[B-2] DB v3 schema apply (idempotent)"
 if [ "$SERVER_CHANGED" = "true" ] || [ "$DEPLOY_CHANGED" = "true" ]; then
-  ( cd "$SERVER_DIR" && npm run db:extend 2>&1 | tail -20 ) || warn "db:extend skipped/failed (check logs)"
+  ( cd "$SERVER_DIR" && npm run db:v3-create 2>&1 | tail -10 ) || warn "db:v3-create skipped/failed (check logs)"
 else
-  echo "  -> skip db:extend"
+  echo "  -> skip db schema apply"
 fi
 
 # ===== Client deps + build =====
