@@ -190,3 +190,50 @@ CREATE TABLE IF NOT EXISTS surgery_concerns (
   CONSTRAINT fk_sc_concern FOREIGN KEY (concern_id) REFERENCES concerns(id)  ON DELETE CASCADE,
   INDEX idx_sc_concern (concern_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- settings — 운영 설정 key-value. admin "설정" 탭에서 관리.
+-- 서버는 DB 값 우선, 비어 있으면 .env 폴백 (재시작 없이 반영, 30s 캐시).
+-- 키 예: callmebot_phone / callmebot_apikey / booking_notify_email /
+--        booking_enabled / booking_min_lead_days / booking_max_ahead_days
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS settings (
+  skey            VARCHAR(64)  NOT NULL PRIMARY KEY,
+  value           TEXT,
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- bookings — 컨시어지 트립 부킹 (1인 운영 전제).
+-- 흐름: 고객 신청(requested, 날짜 안 막음) → 운영자 WhatsApp 알림 →
+--       admin 에서 실제 기간(confirmed_start~end) 확정 → 그 기간 전체 차단.
+-- item_kind='block' = 운영자 개인 일정 차단 행 (고객 없음, status=confirmed).
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS bookings (
+  id              INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  code            VARCHAR(16)  NOT NULL UNIQUE,           -- 고객 조회 키 (예: GUS-7F3K)
+
+  item_kind       ENUM('treatment','surgery','block') NOT NULL,
+  item_id         INT,                                     -- treatments.id 또는 surgeries.id (block 이면 NULL)
+  item_name       VARCHAR(200),                            -- 스냅샷 — 시술명 바뀌어도 부킹 기록 유지
+
+  client_name     VARCHAR(120),
+  country_code    VARCHAR(8),                              -- ISO 2자 (예: SG, TH)
+  whatsapp        VARCHAR(40),
+  email           VARCHAR(200),
+  notes           TEXT,                                    -- 고객 자유 메모 (원어 그대로)
+
+  requested_date  DATE,                                    -- 고객 희망일 (하루) — 차단 아님
+  status          ENUM('requested','confirmed','completed','cancelled','declined') NOT NULL DEFAULT 'requested',
+  confirmed_start DATE,                                    -- 운영자가 확정한 실제 기간 (하루면 start=end)
+  confirmed_end   DATE,
+  admin_note      TEXT,                                    -- 운영 메모 (고객에게 안 보임)
+
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  INDEX idx_bookings_status  (status),
+  INDEX idx_bookings_range   (status, confirmed_start, confirmed_end),
+  INDEX idx_bookings_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -127,4 +127,38 @@ Concern.belongsToMany(Treatment, { through: TreatmentConcern, foreignKey: 'conce
 Surgery.belongsToMany(Concern, { through: SurgeryConcern, foreignKey: 'surgery_id', otherKey: 'concern_id', as: 'concerns' });
 Concern.belongsToMany(Surgery, { through: SurgeryConcern, foreignKey: 'concern_id', otherKey: 'surgery_id', as: 'surgeries' });
 
+// -------------------------------------------------------------------
+// settings — 운영 설정 key-value. admin 설정 탭에서 관리, .env 폴백.
+// -------------------------------------------------------------------
+export const Setting = sequelize.define('Setting', {
+  skey:  { type: DataTypes.STRING(64), primaryKey: true },
+  value: { type: DataTypes.TEXT },
+}, opts('settings'));
+
+// -------------------------------------------------------------------
+// bookings — 컨시어지 트립 부킹. requested 는 날짜를 안 막고,
+// confirmed 의 confirmed_start~end 기간만 전체 캘린더를 차단한다.
+// item_kind='block' = 운영자 개인 일정 차단 행.
+// -------------------------------------------------------------------
+export const Booking = sequelize.define('Booking', {
+  id:              { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  code:            { type: DataTypes.STRING(16), allowNull: false, unique: true },
+
+  item_kind:       { type: DataTypes.ENUM('treatment', 'surgery', 'block'), allowNull: false },
+  item_id:         { type: DataTypes.INTEGER },
+  item_name:       { type: DataTypes.STRING(200) },        // 스냅샷 — 시술명 변경/삭제돼도 기록 유지
+
+  client_name:     { type: DataTypes.STRING(120) },
+  country_code:    { type: DataTypes.STRING(8) },
+  whatsapp:        { type: DataTypes.STRING(40) },
+  email:           { type: DataTypes.STRING(200) },
+  notes:           { type: DataTypes.TEXT },
+
+  requested_date:  { type: DataTypes.DATEONLY },
+  status:          { type: DataTypes.ENUM('requested', 'confirmed', 'completed', 'cancelled', 'declined'), allowNull: false, defaultValue: 'requested' },
+  confirmed_start: { type: DataTypes.DATEONLY },
+  confirmed_end:   { type: DataTypes.DATEONLY },
+  admin_note:      { type: DataTypes.TEXT },
+}, opts('bookings'));
+
 export { sequelize, Op };

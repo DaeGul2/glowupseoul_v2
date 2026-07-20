@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { marked } from 'marked';
 import { api, uploadToS3, verifyKey, setKey, clearKey, isAuthed } from './apiV3.js';
+import BookingsAdmin from './BookingsAdmin.jsx';
+import SettingsAdmin from './SettingsAdmin.jsx';
 import './adminV3.css';
 
 marked.setOptions({ breaks: true, gfm: true });
@@ -686,8 +688,27 @@ export default function AdminV3App() {
   const [kind, setKindState] = useState('treatments');
   const [view, setView] = useState({ name: 'list', id: null }); // 'list' | 'edit'
   const [refreshToken, setRefreshToken] = useState(0);
+  const [pendingBookings, setPendingBookings] = useState(0);
 
-  useEffect(() => { document.title = 'Glow Up Seoul · Admin'; }, []);
+  useEffect(() => {
+    document.title = 'Glow Up Seoul · Admin';
+    // v2 전역 grain 오버레이(body::after) 차단 — admin 스크롤 성능
+    document.body.classList.add('no-grain');
+    document.documentElement.classList.add('no-smooth');
+    return () => { document.body.classList.remove('no-grain'); document.documentElement.classList.remove('no-smooth'); };
+  }, []);
+
+  // 대기 중 부킹 카운트 — 탭 뱃지. 탭 전환마다 + 60초마다 갱신.
+  useEffect(() => {
+    if (!authed) return undefined;
+    let alive = true;
+    const load = () => api.bookingList({ status: 'requested', limit: 100 })
+      .then((d) => alive && setPendingBookings((d.rows || []).length))
+      .catch(() => {});
+    load();
+    const iv = setInterval(load, 60_000);
+    return () => { alive = false; clearInterval(iv); };
+  }, [authed, kind]);
 
   if (!authed) return <Login onOk={() => setAuthed(true)} />;
 
@@ -705,12 +726,20 @@ export default function AdminV3App() {
             </button>
           ))}
           <button className={`v3a-tab ${kind === 'concerns' ? 'on' : ''}`} onClick={() => setKind('concerns')}>고민 Concerns</button>
+          <button className={`v3a-tab ${kind === 'bookings' ? 'on' : ''}`} onClick={() => setKind('bookings')}>
+            부킹 Bookings{pendingBookings > 0 && <span className="v3a-tab-badge">{pendingBookings}</span>}
+          </button>
+          <button className={`v3a-tab ${kind === 'settings' ? 'on' : ''}`} onClick={() => setKind('settings')}>설정</button>
         </nav>
         <button className="v3a-logout" onClick={() => { clearKey(); setAuthed(false); }}>Sign out</button>
       </header>
 
       <main className="v3a-main">
-        {kind === 'concerns' ? (
+        {kind === 'bookings' ? (
+          <BookingsAdmin />
+        ) : kind === 'settings' ? (
+          <SettingsAdmin />
+        ) : kind === 'concerns' ? (
           <ConcernAdmin />
         ) : (
           <>

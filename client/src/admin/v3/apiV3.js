@@ -46,6 +46,20 @@ export const api = {
 
   // S3 direct upload (reuses the existing presign endpoint)
   presign:   (body)  => req('POST', '/api/admin/upload/presign', body),
+
+  // Bookings (concierge trip calendar)
+  bookingList:   (params = {}) => {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+    return req('GET', `/api/v3/admin/bookings${qs ? `?${qs}` : ''}`);
+  },
+  bookingCreate: (body)     => req('POST', '/api/v3/admin/bookings', body),
+  bookingUpdate: (id, body) => req('PATCH', `/api/v3/admin/bookings/${id}`, body),
+  bookingDelete: (id)       => req('DELETE', `/api/v3/admin/bookings/${id}`),
+
+  // Operational settings (CallMeBot, booking window …)
+  settingsGet:   ()     => req('GET', '/api/v3/admin/settings'),
+  settingsPatch: (body) => req('PATCH', '/api/v3/admin/settings', body),
+  testAlert:     ()     => req('POST', '/api/v3/admin/settings/_test-alert'),
 };
 
 // Direct browser → S3 PUT. Returns the public URL on success.

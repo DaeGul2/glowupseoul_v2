@@ -29,6 +29,11 @@ import {
 import { createMatchRequestHandler, getMatchRequestHandler } from './routes/match.js';
 import { v3List, v3Get, v3Create, v3Update, v3Delete, v3Stats, v3TagList, v3TagCreate, v3PublicCatalog, v3PublicDetail } from './routes/adminV3.js';
 import { v3ScanHandler } from './routes/scanV3.js';
+import { createBookingHandler, availabilityHandler, getBookingByCodeHandler, bookingIcsHandler } from './routes/bookingsV3.js';
+import {
+  adminBookingList, adminBookingCreate, adminBookingUpdate, adminBookingDelete,
+  adminSettingsGet, adminSettingsPatch, adminTestAlert,
+} from './routes/adminBookingsV3.js';
 import { sitemapHandler, robotsHandler } from './routes/sitemap.js';
 import { checkDbHealth } from './db/health.js';
 import { hasDbConfig, closeSequelize } from './db/sequelize.js';
@@ -101,6 +106,20 @@ app.post  ('/api/admin/partner-submissions/:file/reject',       requireAdmin, re
 app.get   ('/api/v3/catalog',          v3PublicCatalog);
 app.get   ('/api/v3/catalog/:kind/:slug', v3PublicDetail);
 app.post  ('/api/v3/scan',             rateLimitAnalyzeIp, v3ScanHandler);
+// v3 bookings — 컨시어지 트립 부킹 (공개 · 익명 · Turnstile 가드).
+// availability 가 :code 보다 먼저 와야 함 (라우트 매칭 순서).
+app.post  ('/api/v3/bookings',              createBookingHandler);
+app.get   ('/api/v3/bookings/availability', availabilityHandler);
+app.get   ('/api/v3/bookings/:code/ics',    bookingIcsHandler);
+app.get   ('/api/v3/bookings/:code',        getBookingByCodeHandler);
+// v3 admin — 부킹 관리 + 설정 (X-Admin-Key). generic :kind 라우트보다 먼저.
+app.get   ('/api/v3/admin/bookings',        requireAdmin, adminBookingList);
+app.post  ('/api/v3/admin/bookings',        requireAdmin, adminBookingCreate);
+app.patch ('/api/v3/admin/bookings/:id',    requireAdmin, adminBookingUpdate);
+app.delete('/api/v3/admin/bookings/:id',    requireAdmin, adminBookingDelete);
+app.get   ('/api/v3/admin/settings',        requireAdmin, adminSettingsGet);
+app.patch ('/api/v3/admin/settings',        requireAdmin, adminSettingsPatch);
+app.post  ('/api/v3/admin/settings/_test-alert', requireAdmin, adminTestAlert);
 app.get   ('/api/v3/admin/_stats',     requireAdmin, v3Stats);
 app.get   ('/api/v3/admin/_tags',      requireAdmin, v3TagList);
 app.post  ('/api/v3/admin/_tags',      requireAdmin, v3TagCreate);

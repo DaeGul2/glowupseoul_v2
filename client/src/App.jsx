@@ -27,9 +27,10 @@ import AdminV3App from './admin/v3/AdminV3App.jsx';
 import V3Shell from './v3site/V3Shell.jsx';
 
 // v3 customer site owns these real path routes (handled by V3Shell's own Routes).
-const V3_PATHS = ['/', '/treatments', '/surgeries', '/how-it-works', '/about'];
+const V3_PATHS = ['/', '/treatments', '/surgeries', '/how-it-works', '/about', '/booking'];
 const isV3Path = (p) =>
-  V3_PATHS.includes(p) || p.startsWith('/treatments/') || p.startsWith('/surgeries/');
+  V3_PATHS.includes(p) || p.startsWith('/treatments/') || p.startsWith('/surgeries/')
+  || p.startsWith('/booking/');
 
 // Imperative navigate for non-component callers (e.g. event handlers in
 // modules that don't have router hooks). Works for both / and #/ legacy URLs.
