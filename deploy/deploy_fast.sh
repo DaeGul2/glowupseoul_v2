@@ -24,6 +24,8 @@ NGINX_SITE_DST="/etc/nginx/sites-available/glowupseoul"
 CLIENT_CHANGED="${CLIENT_CHANGED:-true}"
 SERVER_CHANGED="${SERVER_CHANGED:-true}"
 DEPLOY_CHANGED="${DEPLOY_CHANGED:-true}"
+# true 면 Actions 러너가 이미 빌드해서 dist 를 배치해줌 → EC2 에선 빌드 스킵
+CLIENT_PREBUILT="${CLIENT_PREBUILT:-false}"
 
 step() { echo -e "\033[1;34m$*\033[0m"; }
 ok()   { echo -e "\033[1;32m$*\033[0m"; }
@@ -67,18 +69,24 @@ else
 fi
 
 # ===== Client deps + build =====
-step "[C] Client deps"
-if [ "$CLIENT_CHANGED" = "true" ] || [ ! -d "$CLIENT_DIR/node_modules" ]; then
-  ( cd "$CLIENT_DIR" && npm ci --no-audit --no-fund --legacy-peer-deps || npm ci --no-audit --no-fund )
+# 평상시엔 Actions 러너가 빌드한 dist 가 이미 배치됨(CLIENT_PREBUILT=true) —
+# EC2 빌드는 dist 가 아예 없을 때의 폴백 전용 (작은 인스턴스 보호).
+if [ "$CLIENT_PREBUILT" = "true" ]; then
+  step "[C/D] Client — prebuilt dist from Actions runner, skip npm ci + build"
 else
-  echo "  -> skip client npm ci (no client changes)"
-fi
+  step "[C] Client deps"
+  if [ "$CLIENT_CHANGED" = "true" ] || [ ! -d "$CLIENT_DIR/node_modules" ]; then
+    ( cd "$CLIENT_DIR" && npm ci --no-audit --no-fund --legacy-peer-deps || npm ci --no-audit --no-fund )
+  else
+    echo "  -> skip client npm ci (no client changes)"
+  fi
 
-step "[D] Client build"
-if [ "$CLIENT_CHANGED" = "true" ] || [ ! -d "$CLIENT_DIR/dist" ]; then
-  ( cd "$CLIENT_DIR" && npm run build )
-else
-  echo "  -> skip client build (no client changes)"
+  step "[D] Client build"
+  if [ "$CLIENT_CHANGED" = "true" ] || [ ! -d "$CLIENT_DIR/dist" ]; then
+    ( cd "$CLIENT_DIR" && npm run build )
+  else
+    echo "  -> skip client build (no client changes)"
+  fi
 fi
 
 # ===== PM2 reload (zero-downtime) =====
