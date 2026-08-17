@@ -10,11 +10,11 @@
   --beige:    #ecebe8;   /* subtle section band */
   --card:     rgba(255,255,255,0.92);
   --glass:    rgba(255,255,255,0.7);
-  --pink:     #f06b9a;   /* point */
-  --amber:    #f3a33c;   /* point */
-  --champ:    #f06b9a;   /* alias — small color pops */
-  --champ-dk: #6b6b6b;   /* muted accent text */
-  --glow:     linear-gradient(135deg, #f06b9a 0%, #f3a33c 100%);
+  /* 액센트 = 샴페인골드 — AI 생성 이미지 세트(다크+골드 조명)와 한 브랜드로 묶는 톤.
+     이전 핑크(#f06b9a)는 v2 시절 "퍼플-핑크 K-tech 금지" 룰과 충돌해 교체. */
+  --champ:    #c29a5f;   /* champagne gold — small color pops */
+  --champ-dk: #a37f47;   /* deep gold — headline em / hover text (readable on ivory) */
+  --glow:     linear-gradient(135deg, #d8b878 0%, #b08a52 100%);
   --ink:      #111111;   /* primary text */
   --muted:    #6b6b6b;   /* secondary text */
   --line:     rgba(17,17,17,0.10);
@@ -115,7 +115,7 @@
 }
 .v3s-nav.menu-open .v3s-nav-mobile { display: flex; }
 .v3s-nav-mobile a { font-size: 16px; color: var(--ink); text-decoration: none; padding: 15px 16px; border-radius: 12px; letter-spacing: 0.01em; }
-.v3s-nav-mobile a:active, .v3s-nav-mobile a.active { background: rgba(240,107,154,0.08); color: var(--champ-dk); }
+.v3s-nav-mobile a:active, .v3s-nav-mobile a.active { background: rgba(194,154,95,0.08); color: var(--champ-dk); }
 .v3s-nav-mobile-wa { display: flex; align-items: center; gap: 10px; margin-top: 6px; border-top: 1px solid var(--line); padding-top: 18px !important; font-weight: 500; }
 @media (max-width: 940px) { .v3s-nav-burger { display: flex; } }
 @media (max-width: 520px) { .v3s-nav-wa-tx { display: none; } .v3s-nav .v3s-btn--wa { padding: 11px 13px; } }
@@ -269,6 +269,68 @@
 .v3s-cat-card-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink); }
 .v3s-cat-card-foot .go { color: var(--champ-dk); font-family: var(--serif); font-size: 19px; transition: transform .3s ease; }
 .v3s-cat-card:hover .v3s-cat-card-foot .go { transform: translateX(4px); }
+
+/* =================================================================== */
+/* Catalog index — minimal editorial (다크 시네마 히어로 → 아이보리 인덱스)   */
+/* =================================================================== */
+.v3s-cixpage { padding-bottom: 30px; }
+.v3s-cix-hero {
+  position: relative; height: 68vh; min-height: 460px;
+  display: flex; align-items: flex-end;
+  background: #14100e center / cover no-repeat;
+}
+.v3s-cix-hero-scrim {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, rgba(16,12,10,0.66) 0%, rgba(16,12,10,0.25) 46%, transparent 70%),
+    linear-gradient(180deg, rgba(16,12,10,0.35) 0%, transparent 30%, transparent 72%, rgba(16,12,10,0.5) 100%);
+}
+.v3s-cix-hero-content { position: relative; max-width: 1240px; margin: 0 auto; padding: 0 56px 8vh; width: 100%; color: #fff; }
+.v3s-cix-hero .v3s-eyebrow { color: rgba(255,255,255,0.9); }
+.v3s-cix-hero h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(48px, 7vw, 110px); line-height: 0.98; letter-spacing: -0.02em; margin: 20px 0 0; }
+.v3s-cix-hero h1 em { font-style: normal; color: var(--champ); }
+.v3s-cix-lede { margin: 22px 0 0; max-width: 460px; font-size: 16.5px; line-height: 1.7; color: rgba(255,255,255,0.82); }
+@media (max-width: 720px) { .v3s-cix-hero-content { padding: 0 26px 9vh; } .v3s-cix-hero { height: 58vh; } }
+
+.v3s-cix { margin: 56px 0 40px; border-top: 1px solid var(--line); }
+.v3s-cix-row {
+  display: flex; align-items: center; gap: 36px;
+  padding: 40px 8px; border-bottom: 1px solid var(--line);
+  text-decoration: none; color: var(--ink);
+  transition: padding-left .5s cubic-bezier(.16,1,.3,1), background .4s ease;
+}
+.v3s-cix-row:hover { padding-left: 22px; }
+.v3s-cix-num { font-family: var(--sans); font-size: 12px; letter-spacing: 0.2em; color: var(--champ-dk); flex: 0 0 auto; width: 40px; }
+.v3s-cix-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.v3s-cix-name { font-family: var(--serif); font-weight: 500; font-size: clamp(28px, 3.8vw, 48px); letter-spacing: -0.01em; line-height: 1.05; transition: color .4s ease; }
+.v3s-cix-row:hover .v3s-cix-name { color: var(--champ-dk); }
+.v3s-cix-sub { font-size: 14.5px; color: var(--muted); line-height: 1.6; max-width: 520px; }
+.v3s-cix-meta { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 7px; text-align: right; }
+.v3s-cix-price { font-family: var(--serif); font-size: 21px; font-weight: 500; color: var(--ink); }
+.v3s-cix-facts { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.v3s-cix-actions { display: inline-flex; align-items: center; gap: 12px; margin-top: 5px; }
+.v3s-cix-book {
+  padding: 7px 18px; border: 1px solid var(--ink); border-radius: 99px;
+  background: transparent; color: var(--ink); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.06em; cursor: pointer; font-family: var(--sans);
+  transition: background .2s ease, color .2s ease;
+}
+.v3s-cix-book:hover { background: var(--ink); color: #fff; }
+.v3s-cix-arrow {
+  font-family: var(--serif); font-size: 26px; color: var(--champ-dk);
+  opacity: 0; transform: translateX(-8px);
+  transition: opacity .35s ease, transform .45s cubic-bezier(.16,1,.3,1);
+}
+.v3s-cix-row:hover .v3s-cix-arrow { opacity: 1; transform: none; }
+@media (max-width: 720px) {
+  .v3s-cix { margin-top: 36px; }
+  .v3s-cix-row { flex-wrap: wrap; gap: 14px 18px; padding: 30px 4px; }
+  .v3s-cix-num { display: none; }
+  .v3s-cix-main { flex: 1 1 100%; gap: 7px; }
+  .v3s-cix-meta { flex: 1 1 100%; flex-direction: row; align-items: center; justify-content: space-between; }
+  .v3s-cix-facts { display: none; }
+  .v3s-cix-arrow { display: none; }
+}
 
 /* ---------------- Section heads ---------------- */
 .v3s-section { padding: 210px 0; position: relative; }
@@ -472,7 +534,7 @@
 .v3s-rec-why { margin-top: 11px; display: flex; flex-direction: column; gap: 7px; }
 .v3s-rec-why-item {
   border-left: 2px solid var(--champ);
-  background: rgba(240,107,154,0.055);
+  background: rgba(194,154,95,0.055);
   border-radius: 0 9px 9px 0;
   padding: 9px 12px 10px;
 }
@@ -489,10 +551,10 @@
 .v3s-cc-scan {
   display: flex; align-items: center; gap: 12px; width: 100%; margin-bottom: 14px;
   padding: 13px 15px; border: 1px solid var(--champ); border-radius: 13px; cursor: pointer;
-  background: rgba(240,107,154,0.05); color: var(--ink); text-align: left;
+  background: rgba(194,154,95,0.05); color: var(--ink); text-align: left;
   transition: background .3s ease, transform .3s cubic-bezier(.16,1,.3,1);
 }
-.v3s-cc-scan:hover { background: rgba(240,107,154,0.1); transform: translateY(-1px); }
+.v3s-cc-scan:hover { background: rgba(194,154,95,0.1); transform: translateY(-1px); }
 .v3s-cc-scan-ico { font-size: 18px; flex: 0 0 auto; }
 .v3s-cc-scan-tx { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
 .v3s-cc-scan-tx b { font-family: var(--serif); font-weight: 600; font-size: 15.5px; }
@@ -523,7 +585,7 @@
 .v3s-scan-line {
   position: absolute; left: 8%; right: 8%; height: 2px; top: 0;
   background: linear-gradient(90deg, transparent, var(--champ), transparent);
-  box-shadow: 0 0 14px 2px rgba(240,107,154,0.6);
+  box-shadow: 0 0 14px 2px rgba(194,154,95,0.6);
   animation: v3sScan 2.6s cubic-bezier(.45,0,.55,1) infinite;
 }
 @keyframes v3sScan { 0% { top: 6%; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { top: 94%; opacity: 0; } }
@@ -534,7 +596,7 @@
   border: 1.5px dashed rgba(255,255,255,0.35); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.85);
   font-size: 14px; padding: 20px; text-align: center; transition: border-color .3s, background .3s;
 }
-.v3s-scan-upload:hover { border-color: var(--champ); background: rgba(240,107,154,0.08); }
+.v3s-scan-upload:hover { border-color: var(--champ); background: rgba(194,154,95,0.08); }
 .v3s-scan-upload-ico { font-size: 26px; width: 50px; height: 50px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; }
 .v3s-scan-actions { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 28px; }
 .v3s-scan-actions .v3s-btn:disabled { opacity: 0.4; cursor: default; }

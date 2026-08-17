@@ -238,7 +238,13 @@ function SubPage({ eyebrow, title, titleEm, lede, items, note }) {
   );
 }
 
-// Catalog-driven index for /treatments and /surgeries — real rows, link to detail.
+// Catalog-driven index for /treatments and /surgeries.
+// Minimal editorial index (himedi/Aesop 방향): 썸네일 카드 대신 다크 시네마 히어로
+// + 텍스트 인덱스. 썸네일은 디테일 페이지 히어로로만 쓴다.
+const CIX_BG = {
+  treatments: 'https://pub-bef8f45bc5d8474d8cebe7c78f1fde34.r2.dev/site/bg-treatments.png',
+  surgeries:  'https://pub-bef8f45bc5d8474d8cebe7c78f1fde34.r2.dev/site/bg-surgeries.png',
+};
 function CatalogIndex({ kind, eyebrow, title, titleEm, lede }) {
   const [items, setItems] = useState(null);
   const [err, setErr] = useState(false);
@@ -252,46 +258,47 @@ function CatalogIndex({ kind, eyebrow, title, titleEm, lede }) {
   }, [kind]);
 
   return (
-    <div className="v3s-page">
-      <section className="v3s-wrap">
-        {kind === 'treatments' && (
-          <Reveal>
-            <div className="v3s-cat-hero" style={{ backgroundImage: 'url(/treatments-hero.png)' }} role="img" aria-label="Glow Up Seoul" />
-          </Reveal>
-        )}
-        <Reveal>
-          <div className="v3s-sec-head" style={{ maxWidth: 860 }}>
+    <div className="v3s-cixpage">
+      <header className="v3s-cix-hero" style={{ backgroundImage: `url(${CIX_BG[kind]})` }}>
+        <div className="v3s-cix-hero-scrim" />
+        <div className="v3s-cix-hero-content">
+          <motion.div custom={0} variants={FADE} initial="hidden" animate="show">
             <span className="v3s-eyebrow">{eyebrow}</span>
-            <h2 style={{ fontSize: 'clamp(42px, 6.4vw, 88px)' }}>{title} <em>{titleEm}</em></h2>
-            <p>{lede}</p>
-          </div>
-        </Reveal>
+          </motion.div>
+          <motion.h1 custom={1} variants={FADE} initial="hidden" animate="show">
+            {title} <em>{titleEm}</em>
+          </motion.h1>
+          <motion.p className="v3s-cix-lede" custom={2} variants={FADE} initial="hidden" animate="show">
+            {lede}
+          </motion.p>
+        </div>
+      </header>
+
+      <section className="v3s-wrap">
         {err && <p className="v3s-page-note">Catalog is loading — message Romie any time and she'll send a hand-picked shortlist.</p>}
         {items && items.length > 0 && (
-          <Reveal delay={80}>
-            <div className="v3s-cat-grid">
-              {items.map((it) => (
-                <Link key={it.id} className="v3s-cat-card" to={`/${kind}/${it.slug}`}>
-                  <div className="v3s-cat-card-img" style={it.thumbnail_url ? { backgroundImage: `url(${it.thumbnail_url})` } : undefined} />
-                  <div className="v3s-cat-card-body">
-                    <div className="v3s-cat-card-name">{it.name}</div>
-                    {it.summary && <div className="v3s-cat-card-sum">{it.summary}</div>}
-                    {it.tags?.length > 0 && (
-                      <div className="v3s-cat-card-tags">
-                        {it.tags.slice(0, 3).map((t) => <span className="v3s-cat-tag" key={t}>{t}</span>)}
-                      </div>
-                    )}
-                    <div className="v3s-cat-card-foot">
-                      <span>{it.price_krw != null ? `from ${fmtKRW(it.price_krw)}` : 'On consultation'}</span>
-                      <span className="v3s-cat-card-actions">
-                        <button type="button" className="v3s-cat-card-book"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBookFor(it); }}>
-                          Book
-                        </button>
-                        <span className="go">→</span>
-                      </span>
-                    </div>
-                  </div>
+          <Reveal>
+            <div className="v3s-cix">
+              {items.map((it, i) => (
+                <Link key={it.id} className="v3s-cix-row" to={`/${kind}/${it.slug}`}>
+                  <span className="v3s-cix-num">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="v3s-cix-main">
+                    <span className="v3s-cix-name">{it.name}</span>
+                    {it.summary && <span className="v3s-cix-sub">{it.summary}</span>}
+                  </span>
+                  <span className="v3s-cix-meta">
+                    <span className="v3s-cix-price">{it.price_krw != null ? `from ${fmtKRW(it.price_krw)}` : 'On consultation'}</span>
+                    <span className="v3s-cix-facts">
+                      {[DURATION_LABEL[it.duration], RECOVERY_LABEL[it.recovery_level]].filter(Boolean).join(' · ')}
+                    </span>
+                    <span className="v3s-cix-actions">
+                      <button type="button" className="v3s-cix-book"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBookFor(it); }}>
+                        Book
+                      </button>
+                      <span className="v3s-cix-arrow">→</span>
+                    </span>
+                  </span>
                 </Link>
               ))}
             </div>
