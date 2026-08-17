@@ -281,24 +281,19 @@ function CatalogIndex({ kind, eyebrow, title, titleEm, lede }) {
             <div className="v3s-cix">
               {items.map((it, i) => (
                 <Link key={it.id} className="v3s-cix-row" to={`/${kind}/${it.slug}`}>
-                  <span className="v3s-cix-num">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="v3s-cix-main">
-                    <span className="v3s-cix-name">{it.name}</span>
-                    {it.summary && <span className="v3s-cix-sub">{it.summary}</span>}
+                  {it.thumbnail_url && <span className="v3s-cix-bg" style={{ backgroundImage: `url(${it.thumbnail_url})` }} />}
+                  <span className="v3s-cix-num">№ {String(i + 1).padStart(2, '0')}</span>
+                  <span className="v3s-cix-name">{it.name}</span>
+                  {it.summary && <span className="v3s-cix-sub">{it.summary}</span>}
+                  <span className="v3s-cix-dots" />
+                  <span className="v3s-cix-price">{it.price_krw != null ? `from ${fmtKRW(it.price_krw)}` : 'On consultation'}</span>
+                  <span className="v3s-cix-facts">
+                    {[DURATION_LABEL[it.duration], RECOVERY_LABEL[it.recovery_level]].filter(Boolean).join(' · ')}
                   </span>
-                  <span className="v3s-cix-meta">
-                    <span className="v3s-cix-price">{it.price_krw != null ? `from ${fmtKRW(it.price_krw)}` : 'On consultation'}</span>
-                    <span className="v3s-cix-facts">
-                      {[DURATION_LABEL[it.duration], RECOVERY_LABEL[it.recovery_level]].filter(Boolean).join(' · ')}
-                    </span>
-                    <span className="v3s-cix-actions">
-                      <button type="button" className="v3s-cix-book"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBookFor(it); }}>
-                        Book
-                      </button>
-                      <span className="v3s-cix-arrow">→</span>
-                    </span>
-                  </span>
+                  <button type="button" className="v3s-cix-book"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBookFor(it); }}>
+                    Book
+                  </button>
                 </Link>
               ))}
             </div>
@@ -361,7 +356,6 @@ function ProcedureDetail({ kind }) {
           <div className="v3s-dt-cta">
             <button className="v3s-btn" onClick={() => setBookOpen(true)}>Book this trip <span className="tail">→</span></button>
             <button className="v3s-btn v3s-btn--ghost" onClick={() => chat.open()}>Start a consultation</button>
-            <a className="v3s-btn v3s-btn--ghost" href={WA} style={{ textDecoration: 'none' }}><WaIcon /> Ask on WhatsApp</a>
           </div>
         </div>
         <div className="v3s-dt-hero-r">
@@ -441,51 +435,18 @@ function ProcedureDetail({ kind }) {
         </section>
       )}
 
-      {/* everything in one place, once more */}
+      {/* 리캡 카드 제거 — aside/split 과 통째 중복이었음. 마지막 CTA 는 얇은 스트립 하나로. */}
       <section className="v3s-dt-recap">
         <div className="v3s-wrap">
           <Reveal>
-            <div className="v3s-dt-sum-card">
-              <div className="v3s-dt-sum-top">
-                <span className="v3s-eyebrow">In summary</span>
-                <h2>{row.name}</h2>
-                {row.summary && <p>{row.summary}</p>}
-              </div>
-              <div className="v3s-dt-sum-grid">
-                <div className="v3s-dt-sum-col">
-                  <span className="v3s-dt-sum-h">At a glance</span>
-                  <dl className="v3s-dt-facts">
-                    <div><dt>Price</dt><dd>{fmtKRW(row.price_krw)}</dd></div>
-                    <div><dt>Results last</dt><dd>{DURATION_LABEL[row.duration] || '—'}</dd></div>
-                    <div><dt>Comfort</dt><dd>{PAIN_LABEL[row.pain_level] || '—'}</dd></div>
-                    <div><dt>Downtime</dt><dd>{RECOVERY_LABEL[row.recovery_level] || '—'}</dd></div>
-                  </dl>
-                </div>
-                {row.benefits?.length > 0 && (
-                  <div className="v3s-dt-sum-col">
-                    <span className="v3s-dt-sum-h">Good for</span>
-                    <ul className="v3s-dt-list">{row.benefits.map((b, i) => <li key={i}>{b}</li>)}</ul>
-                  </div>
-                )}
-                {row.cautions?.length > 0 && (
-                  <div className="v3s-dt-sum-col">
-                    <span className="v3s-dt-sum-h">Things to note</span>
-                    <ul className="v3s-dt-list">{row.cautions.map((c, i) => <li key={i}>{c}</li>)}</ul>
-                  </div>
-                )}
-              </div>
-              {row.concern_links?.length > 0 && (
-                <div className="v3s-dt-sum-concerns">
-                  <span className="v3s-dt-sum-h">Helps with</span>
-                  <div className="v3s-dt-concerns">
-                    {row.concern_links.map((c) => <span className="v3s-dt-concern" key={c.concern_id}>{c.name}</span>)}
-                  </div>
-                </div>
-              )}
-              <div className="v3s-dt-sum-cta">
+            <div className="v3s-dt-sum-card" style={{ textAlign: 'center' }}>
+              <span className="v3s-eyebrow">Ready when you are</span>
+              <h2 style={{ fontFamily: 'var(--serif)', fontWeight: 400, fontSize: 'clamp(30px,4vw,52px)', margin: '16px 0 0' }}>
+                {row.name}, arranged end to end.
+              </h2>
+              <div className="v3s-dt-sum-cta" style={{ justifyContent: 'center' }}>
                 <button className="v3s-btn" onClick={() => setBookOpen(true)}>Book this trip <span className="tail">→</span></button>
                 <button className="v3s-btn v3s-btn--ghost" onClick={() => chat.open()}>Start a consultation</button>
-                <a className="v3s-btn v3s-btn--ghost" href={WA} style={{ textDecoration: 'none' }}><WaIcon /> Ask on WhatsApp</a>
               </div>
             </div>
           </Reveal>
@@ -655,7 +616,7 @@ export default function V3Shell() {
   const [chatOpen, setChatOpen] = useState(false);
   useEffect(() => {
     const prev = document.body.style.background;
-    document.body.style.background = '#f3efe7';
+    document.body.style.background = '#12100c';
     // v2 전역 CSS 의 풀스크린 grain(body::after, mix-blend-mode) + smooth scroll 이
     // v3 에도 새어 들어와 스크롤 렉을 유발 — v3 마운트 동안 차단.
     document.body.classList.add('no-grain');
