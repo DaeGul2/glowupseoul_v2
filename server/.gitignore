@@ -3,4 +3,6 @@ node_modules
 *.log
 submissions/
 cache/
-certs/
+certs/*
+# Aiven CA 는 공개 인증서 (비밀 아님) — DB TLS 검증용으로 repo 에 포함
+!certs/aiven-ca.pem

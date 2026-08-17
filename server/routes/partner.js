@@ -1,9 +1,6 @@
-import { promises as fs } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const SUBMISSIONS_DIR = join(__dirname, '..', 'submissions');
+// 파트너 신청서 접수 — DB (partner_submissions) 저장.
+// 구 server/submissions/*.json 파일 저장은 ephemeral 디스크(Render)에서 유실되므로 제거.
+import { PartnerSubmission } from '../db/modelsV3.js';
 
 // Required fields — minimal viable submission. Anything beyond is optional.
 const REQUIRED = {
@@ -121,7 +118,7 @@ function adminWhatsAppLink(record) {
     record.commercial.commission_pct ? `▸ Commission asked: ${record.commercial.commission_pct}%` : null,
     '',
     `Submission ID: ${record._id}`,
-    `Stored at: server/submissions/${record._file}`,
+    'Review in admin → 파트너 신청서',
   ].filter(Boolean);
   return `https://wa.me/${PHONE}?text=${encodeURIComponent(lines.join('\n'))}`;
 }
@@ -137,7 +134,6 @@ export async function partnerSubmitHandler(req, res) {
     if (!raw.consent?.terms || !raw.consent?.data_use) return res.status(400).json({ error: 'consent.terms and consent.data_use required' });
 
     const clean = sanitize(raw);
-    await fs.mkdir(SUBMISSIONS_DIR, { recursive: true });
 
     const now = new Date();
     const stamp = now.toISOString().replace(/[:.]/g, '-').replace('Z', '');
@@ -154,8 +150,8 @@ export async function partnerSubmitHandler(req, res) {
       ...clean,
     };
 
-    await fs.writeFile(join(SUBMISSIONS_DIR, file), JSON.stringify(record, null, 2), 'utf8');
-    console.log(`[partner] new submission ${id} · ${clean.brand.name_ko} · ${file}`);
+    await PartnerSubmission.create({ code: id, fkey: file, status: 'submitted', payload: record });
+    console.log(`[partner] new submission ${id} · ${clean.brand.name_ko}`);
 
     return res.json({
       ok: true,
@@ -177,22 +173,20 @@ export async function partnerListHandler(req, res) {
     return res.status(401).json({ error: 'admin key required (?key=...)' });
   }
   try {
-    await fs.mkdir(SUBMISSIONS_DIR, { recursive: true });
-    const files = (await fs.readdir(SUBMISSIONS_DIR)).filter((f) => f.endsWith('.json')).sort().reverse();
-    const detailed = await Promise.all(files.slice(0, 100).map(async (f) => {
-      try {
-        const raw = await fs.readFile(join(SUBMISSIONS_DIR, f), 'utf8');
-        const j = JSON.parse(raw);
-        return {
-          id: j._id, file: f, submitted_at: j._submitted_at,
-          brand_ko: j.brand?.name_ko, brand_en: j.brand?.name_en,
-          applicant: j.applicant?.name, email: j.applicant?.email,
-          city: j.hospital?.city, district: j.hospital?.district,
-          procedure_count: j.procedures?.length || 0,
-        };
-      } catch { return { file: f, error: 'parse failed' }; }
+    const rows = await PartnerSubmission.findAll({
+      where: { status: 'submitted' },
+      order: [['created_at', 'DESC']],
+      limit: 100,
+      raw: true,
+    });
+    const detailed = rows.map(({ fkey, payload: j }) => ({
+      id: j._id, file: fkey, submitted_at: j._submitted_at,
+      brand_ko: j.brand?.name_ko, brand_en: j.brand?.name_en,
+      applicant: j.applicant?.name, email: j.applicant?.email,
+      city: j.hospital?.city, district: j.hospital?.district,
+      procedure_count: j.procedures?.length || 0,
     }));
-    return res.json({ count: files.length, recent: detailed });
+    return res.json({ count: detailed.length, recent: detailed });
   } catch (e) {
     return res.status(500).json({ error: 'list failed', detail: e?.message });
   }

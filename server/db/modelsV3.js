@@ -161,4 +161,16 @@ export const Booking = sequelize.define('Booking', {
   admin_note:      { type: DataTypes.TEXT },
 }, opts('bookings'));
 
+// -------------------------------------------------------------------
+// partner_submissions — 파트너 신청서 inbox. 구 server/submissions/*.json
+// 파일 저장 대체 (ephemeral 디스크 환경에서 재배포 시 유실 방지).
+// -------------------------------------------------------------------
+export const PartnerSubmission = sequelize.define('PartnerSubmission', {
+  id:      { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  code:    { type: DataTypes.STRING(24), allowNull: false, unique: true },   // 'PA-...'
+  fkey:    { type: DataTypes.STRING(160), allowNull: false, unique: true },  // 구 파일명 호환 키
+  status:  { type: DataTypes.ENUM('submitted', 'approved', 'rejected'), allowNull: false, defaultValue: 'submitted' },
+  payload: { type: DataTypes.JSON, allowNull: false },
+}, opts('partner_submissions'));
+
 export { sequelize, Op };

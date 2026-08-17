@@ -9,6 +9,7 @@ import { Op } from 'sequelize';
 import { Concern, ConcernArea } from '../db/modelsV3.js';
 import { hasDbConfig } from '../db/sequelize.js';
 import { logScan } from '../utils/scanTracking.js';
+import { getSetting } from '../utils/settingsStore.js';
 
 let _client = null;
 function client() {
@@ -86,7 +87,9 @@ export async function v3ScanHandler(req, res) {
       .map((c) => `${c.slug} — ${c.name}${c.area?.name ? ` (${c.area.name})` : ''}`)
       .join('\n');
 
-    const oai = client();
+    // admin 설정 스위치 (기본 OFF) — 꺼져 있으면 키가 있어도 OpenAI 호출 안 함 (과금 0).
+    const aiOn = (await getSetting('ai_scan_enabled', 'AI_SCAN_ENABLED', '0')) === '1';
+    const oai = aiOn ? client() : null;
     if (!oai) {
       const mock = mockResult(scoped, snapshot.length);
       logScan({ eventType: 'v3scan', req, model: 'mock', usage: {}, durationMs: Date.now() - startedAt, statusCode: 200 });

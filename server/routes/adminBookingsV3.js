@@ -212,6 +212,8 @@ export async function adminBookingDelete(req, res) {
 
 // admin 설정 탭에서 다루는 키 화이트리스트 (env 폴백 키와 매핑)
 const SETTING_KEYS = [
+  // AI 스캔 (OpenAI 과금 스위치) — 기본 OFF. 꺼져 있으면 스캔 라우트가 mock 응답으로 동작.
+  { skey: 'ai_scan_enabled',        env: 'AI_SCAN_ENABLED',        dflt: '0' },
   { skey: 'callmebot_phone',        env: 'CALLMEBOT_PHONE' },
   { skey: 'callmebot_apikey',       env: 'CALLMEBOT_APIKEY' },
   { skey: 'booking_notify_email',   env: 'BOOKING_NOTIFY_EMAIL' },

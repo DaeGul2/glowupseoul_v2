@@ -1,4 +1,7 @@
 import 'dotenv/config';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import { analyzeHandler } from './routes/analyze.js';
@@ -135,6 +138,29 @@ app.post  ('/api/admin/:kind',                 requireAdmin, adminCreate);
 app.get   ('/api/admin/:kind/:id',             requireAdmin, adminGet);
 app.patch ('/api/admin/:kind/:id',             requireAdmin, adminUpdate);
 app.delete('/api/admin/:kind/:id',             requireAdmin, adminDelete);
+
+// ── 클라이언트 정적 서빙 (Render 등 단일 서비스 배포용 — nginx 역할 흡수) ──
+// client/dist 가 빌드돼 있으면 정적 파일 + SPA fallback 제공.
+// 로컬 dev 는 Vite(5174)가 따로 돌므로 dist 유무로 자동 분기 — 코드 변경 불필요.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CLIENT_DIST = path.resolve(__dirname, '../client/dist');
+if (fs.existsSync(path.join(CLIENT_DIST, 'index.html'))) {
+  // keep-alive 핑 용 초경량 엔드포인트 (DB 안 건드림)
+  app.get('/healthz', (_req, res) => res.json({ ok: true }));
+  app.use(express.static(CLIENT_DIST, {
+    setHeaders: (res, filePath) => {
+      // Vite 해시 파일명 자산은 불변 캐시 (nginx 설정과 동일 정책)
+      if (/[/\\]assets[/\\]/.test(filePath)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    },
+  }));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    res.sendFile(path.join(CLIENT_DIST, 'index.html'));
+  });
+  console.log('  ✦ serving client/dist statically (SPA fallback on)');
+}
 
 app.use((err, _req, res, _next) => {
   console.error('[server] uncaught', err);

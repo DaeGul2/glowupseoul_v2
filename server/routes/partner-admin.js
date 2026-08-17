@@ -1,19 +1,13 @@
 // Partner application admin: list / get / approve / reject.
-// `approve` reads the JSON submission and inserts Brand + Hospital + HospitalProcedures
-// rows via Sequelize. The file is renamed `_approved` so the inbox stays clean.
-import { promises as fs } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+// 저장소 = DB(partner_submissions). 구 server/submissions/*.json 파일 방식 대체
+// (ephemeral 디스크 환경 대응). :file 파라미터는 fkey 컬럼과 매칭 — admin UI 하위호환.
+// `approve` reads the submission payload and inserts Brand + Hospital +
+// HospitalProcedures rows via Sequelize, then marks the row approved.
 import { Brand, Hospital, HospitalProcedure, Procedure } from '../db/models.js';
+import { PartnerSubmission } from '../db/modelsV3.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const SUBMISSIONS_DIR = join(__dirname, '..', 'submissions');
-const APPROVED_DIR    = join(__dirname, '..', 'submissions', '_approved');
-const REJECTED_DIR    = join(__dirname, '..', 'submissions', '_rejected');
-
-async function readSub(file) {
-  const raw = await fs.readFile(join(SUBMISSIONS_DIR, file), 'utf8');
-  return JSON.parse(raw);
+async function findSub(fileParam) {
+  return PartnerSubmission.findOne({ where: { fkey: fileParam } });
 }
 
 function summarize(j, file) {
@@ -36,18 +30,14 @@ function safeSlug(s) {
 // GET /api/admin/partner-submissions
 export async function listSubmissions(_req, res) {
   try {
-    await fs.mkdir(SUBMISSIONS_DIR, { recursive: true });
-    const files = (await fs.readdir(SUBMISSIONS_DIR))
-      .filter((f) => f.endsWith('.json'))
-      .sort()
-      .reverse();
-    const rows = await Promise.all(
-      files.slice(0, 200).map(async (f) => {
-        try { return summarize(await readSub(f), f); }
-        catch { return { file: f, error: 'parse failed' }; }
-      })
-    );
-    res.json({ count: files.length, rows });
+    const subs = await PartnerSubmission.findAll({
+      where: { status: 'submitted' },
+      order: [['created_at', 'DESC']],
+      limit: 200,
+      raw: true,
+    });
+    const rows = subs.map((s) => summarize(s.payload, s.fkey));
+    res.json({ count: rows.length, rows });
   } catch (e) {
     res.status(500).json({ error: 'list failed', detail: e?.message });
   }
@@ -56,8 +46,9 @@ export async function listSubmissions(_req, res) {
 // GET /api/admin/partner-submissions/:file
 export async function getSubmission(req, res) {
   try {
-    const j = await readSub(req.params.file);
-    res.json({ submission: j });
+    const sub = await findSub(req.params.file);
+    if (!sub) return res.status(404).json({ error: 'not found' });
+    res.json({ submission: sub.payload });
   } catch (e) {
     res.status(404).json({ error: 'not found', detail: e?.message });
   }
@@ -67,7 +58,9 @@ export async function getSubmission(req, res) {
 // Inserts Brand + Hospital + HospitalProcedures into RDS, then moves the file.
 export async function approveSubmission(req, res) {
   try {
-    const j = await readSub(req.params.file);
+    const sub = await findSub(req.params.file);
+    if (!sub) return res.status(404).json({ error: 'not found' });
+    const j = sub.payload;
     const result = { brand: null, hospital: null, hospital_procedures: 0, warnings: [] };
 
     // 1. Brand (upsert by slug)
@@ -164,12 +157,8 @@ export async function approveSubmission(req, res) {
       }
     }
 
-    // 4. Archive the file
-    await fs.mkdir(APPROVED_DIR, { recursive: true });
-    await fs.rename(
-      join(SUBMISSIONS_DIR, req.params.file),
-      join(APPROVED_DIR, req.params.file),
-    );
+    // 4. Mark approved (inbox 목록에서 자동 제외)
+    await sub.update({ status: 'approved' });
 
     res.json({ ok: true, result });
   } catch (e) {
@@ -181,11 +170,9 @@ export async function approveSubmission(req, res) {
 // POST /api/admin/partner-submissions/:file/reject
 export async function rejectSubmission(req, res) {
   try {
-    await fs.mkdir(REJECTED_DIR, { recursive: true });
-    await fs.rename(
-      join(SUBMISSIONS_DIR, req.params.file),
-      join(REJECTED_DIR, req.params.file),
-    );
+    const sub = await findSub(req.params.file);
+    if (!sub) return res.status(404).json({ error: 'not found' });
+    await sub.update({ status: 'rejected' });
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'reject failed', detail: e?.message });

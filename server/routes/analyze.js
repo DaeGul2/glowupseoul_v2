@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { CONCERN_SLUGS, CONCERN_SET } from '../concerns.js';
 import { logScan } from '../utils/scanTracking.js';
+import { getSetting } from '../utils/settingsStore.js';
 
 let _client = null;
 function client() {
@@ -162,7 +163,9 @@ export async function analyzeHandler(req, res) {
       return res.status(413).json({ error: 'snapshot too large' });
     }
 
-    const oai = client();
+    // admin 설정 스위치 (기본 OFF) — 꺼져 있으면 키가 있어도 OpenAI 호출 안 함 (과금 0).
+    const aiOn = (await getSetting('ai_scan_enabled', 'AI_SCAN_ENABLED', '0')) === '1';
+    const oai = aiOn ? client() : null;
     if (!oai) {
       // No real key — return mock so the UX is fully testable end-to-end.
       const mock = mockResponse(snapshot.length);

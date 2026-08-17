@@ -237,3 +237,23 @@ CREATE TABLE IF NOT EXISTS bookings (
   INDEX idx_bookings_range   (status, confirmed_start, confirmed_end),
   INDEX idx_bookings_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- partner_submissions — 파트너 신청서 inbox.
+-- 구 server/submissions/*.json 파일 저장을 대체 (Render 등 ephemeral 디스크
+-- 환경에서 재배포 시 유실 방지). payload = sanitize() 통과한 신청서 전문.
+-- fkey = 구 파일명 형태 키 (admin UI 의 :file 파라미터 하위호환).
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS partner_submissions (
+  id              INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  code            VARCHAR(24)  NOT NULL UNIQUE,            -- 예: PA-M3K9X1
+  fkey            VARCHAR(160) NOT NULL UNIQUE,            -- 예: partner_2026-08-17T..._brand.json
+  status          ENUM('submitted','approved','rejected') NOT NULL DEFAULT 'submitted',
+  payload         JSON         NOT NULL,
+
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  INDEX idx_psub_status  (status),
+  INDEX idx_psub_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

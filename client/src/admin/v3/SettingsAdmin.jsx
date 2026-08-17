@@ -7,6 +7,17 @@ import { api } from './apiV3.js';
 // "처리 대기" 섹션을 직접 확인하는 수동 워크플로우. 채널 붙일 때 그룹 복원.
 const FIELDS = [
   {
+    group: 'AI 얼굴 스캔',
+    hint: 'OpenAI API 과금 스위치입니다. 꺼져 있으면 (기본값) 스캔이 무료 목업 응답으로 동작하고 과금이 전혀 발생하지 않습니다.',
+    items: [
+      {
+        k: 'ai_scan_enabled', label: 'AI 스캔 (OpenAI)', type: 'toggle', dflt: '0',
+        onText: '사용 중 — 과금 발생', offText: '꺼짐 — 무료 목업 응답',
+        help: '켜면 셀피 스캔이 실제 OpenAI 분석을 사용합니다 (사이클당 약 $0.0006). 서버에 OPENAI_API_KEY가 있어야 실제 동작합니다.',
+      },
+    ],
+  },
+  {
     group: '부킹 동작',
     hint: '저장하면 서버 재시작 없이 바로 적용됩니다.',
     items: [
@@ -64,7 +75,7 @@ export default function SettingsAdmin() {
       <div className="v3a-list-top">
         <div>
           <h2>설정</h2>
-          <p className="v3a-sub">알림 채널과 부킹 동작. 저장하면 서버 재시작 없이 바로 적용됩니다.</p>
+          <p className="v3a-sub">AI 스캔 · 부킹 동작. 저장하면 서버 재시작 없이 바로 적용됩니다.</p>
         </div>
       </div>
 
@@ -79,12 +90,12 @@ export default function SettingsAdmin() {
             const effectiveVal = effective[f.k];
             const usingFallback = !(stored[f.k] && String(stored[f.k]).trim());
             if (f.type === 'toggle') {
-              const on = (get(f.k) || effectiveVal || '1') !== '0';
+              const on = (get(f.k) || effectiveVal || f.dflt || '1') !== '0';
               return (
                 <div className="v3a-settings-row" key={f.k}>
                   <div className="v3a-settings-lbl">{f.label}{f.help && <span className="v3a-field-help">{f.help}</span>}</div>
                   <button type="button" className={`v3a-settings-toggle ${on ? 'on' : ''}`} onClick={() => set(f.k, on ? '0' : '1')}>
-                    <span className="knob" />{on ? '받는 중' : '중지됨'}
+                    <span className="knob" />{on ? (f.onText || '받는 중') : (f.offText || '중지됨')}
                   </button>
                 </div>
               );

@@ -9,8 +9,12 @@ let _client = null;
 
 function client() {
   if (_client) return _client;
+  // S3_ENDPOINT 가 있으면 S3 호환 스토리지(Cloudflare R2 등)로 접속.
+  // R2 는 region 'auto' + path-style 이 안전.
+  const endpoint = (process.env.S3_ENDPOINT || '').trim();
   _client = new S3Client({
-    region: process.env.AWS_REGION || 'ap-northeast-2',
+    region: process.env.AWS_REGION || (endpoint ? 'auto' : 'ap-northeast-2'),
+    ...(endpoint ? { endpoint, forcePathStyle: true } : {}),
     credentials: {
       accessKeyId:     process.env.AWS_ACCESS_KEY_ID,
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
