@@ -5,6 +5,7 @@ import { marked } from 'marked';
 import { api, uploadToS3, verifyKey, setKey, clearKey, isAuthed } from './apiV3.js';
 import BookingsAdmin from './BookingsAdmin.jsx';
 import SettingsAdmin from './SettingsAdmin.jsx';
+import CsAdmin from './CsAdmin.jsx';
 import './adminV3.css';
 
 marked.setOptions({ breaks: true, gfm: true });
@@ -729,6 +730,7 @@ export default function AdminV3App() {
           <button className={`v3a-tab ${kind === 'bookings' ? 'on' : ''}`} onClick={() => setKind('bookings')}>
             부킹 Bookings{pendingBookings > 0 && <span className="v3a-tab-badge">{pendingBookings}</span>}
           </button>
+          <button className={`v3a-tab ${kind === 'cs' ? 'on' : ''}`} onClick={() => setKind('cs')}>상담 CS</button>
           <button className={`v3a-tab ${kind === 'settings' ? 'on' : ''}`} onClick={() => setKind('settings')}>설정</button>
         </nav>
         <button className="v3a-logout" onClick={() => { clearKey(); setAuthed(false); }}>Sign out</button>
@@ -739,6 +741,8 @@ export default function AdminV3App() {
           <BookingsAdmin />
         ) : kind === 'settings' ? (
           <SettingsAdmin />
+        ) : kind === 'cs' ? (
+          <CsAdmin />
         ) : kind === 'concerns' ? (
           <ConcernAdmin />
         ) : (

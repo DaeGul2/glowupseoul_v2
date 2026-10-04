@@ -27,7 +27,7 @@ import AdminV3App from './admin/v3/AdminV3App.jsx';
 import V3Shell from './v3site/V3Shell.jsx';
 
 // v3 customer site owns these real path routes (handled by V3Shell's own Routes).
-const V3_PATHS = ['/', '/treatments', '/surgeries', '/how-it-works', '/about', '/booking'];
+const V3_PATHS = ['/', '/treatments', '/surgeries', '/how-it-works', '/about', '/booking', '/support'];
 const isV3Path = (p) =>
   V3_PATHS.includes(p) || p.startsWith('/treatments/') || p.startsWith('/surgeries/')
   || p.startsWith('/booking/');

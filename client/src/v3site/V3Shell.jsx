@@ -1,9 +1,8 @@
-// Glow Up Seoul · v3 customer site — editorial atelier (bright).
-// Real path routes (no hash): / · /treatments · /surgeries · /how-it-works · /about
-// Hero pairs an oversized statement with the interactive Concierge widget
-// (the engagement engine). Category navigation is an editorial index list,
-// not a card grid.
-import { useEffect, useRef, useState, useMemo, createContext, useContext } from 'react';
+// Glow Up Seoul · v3 customer site — "Seoul Light".
+// Real path routes (no hash): / · /treatments · /surgeries · /how-it-works · /about · /support
+// Every top-level page opens with the same split hero: copy on the left, a 4:5
+// motion reel (client/public/reels/*) on the right — stacked on phones.
+import { useEffect, useLayoutEffect, useRef, useState, useMemo, createContext, useContext } from 'react';
 import { motion } from 'framer-motion';
 import { Routes, Route, Link, NavLink, useLocation, useParams } from 'react-router-dom';
 import { marked } from 'marked';
@@ -20,6 +19,13 @@ const WA = 'https://wa.me/821064871060';
 
 // Chat launcher state, shared so the hero CTA can open the floating chat.
 const ChatContext = createContext({ open: () => {} });
+
+// Jump to the top without the global smooth-scroll animation getting in the way.
+function toTop() {
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
 
 /* -------- calm wrapper (magnetic pull removed — luxury/calm motion only) -------- */
 function Magnetic({ children, className = '' }) {
@@ -44,31 +50,13 @@ const FADE = {
   show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.85, delay: 0.06 + i * 0.1, ease: [0.16, 1, 0.3, 1] } }),
 };
 
-/* -------- editorial index row -------- */
-function IndexRow({ num, title, sub, kick, to }) {
-  return (
-    <Link className="v3s-index-row" to={to}>
-      <span className="fill" />
-      <span className="v3s-index-num">{num}</span>
-      <span className="v3s-index-main">
-        <span className="v3s-index-title">{title}</span>
-        <span className="v3s-index-sub">{sub}</span>
-      </span>
-      <span className="v3s-index-kick">{kick}</span>
-      <span className="v3s-index-arrow">→</span>
-    </Link>
-  );
-}
-
 /* =================================================================== */
-// Drop a beauty/skincare image URL here (or upload one) — elegant gradient
-// placeholder shows until then.
-const HERO_PHOTO = '';
-
-// Autoplay video that PAUSES when scrolled out of view — offscreen videos keep
-// decoding every frame and were a main cause of scroll jank.
-function AutoVideo(props) {
+// 4:5 motion reel. Phones get the 720px encode; the clip pauses off-screen so
+// it never decodes frames nobody sees (that was a main cause of scroll jank).
+function HeroReel({ name, badge }) {
   const ref = useRef(null);
+  const small = typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches;
+  const src = `/reels/${name}${small ? '-720' : ''}.mp4`;
   useEffect(() => {
     const el = ref.current; if (!el) return undefined;
     const io = new IntersectionObserver(([e]) => {
@@ -77,68 +65,80 @@ function AutoVideo(props) {
     }, { threshold: 0.05 });
     io.observe(el);
     return () => io.disconnect();
-  }, []);
-  return <video ref={ref} {...props} />;
+  }, [src]);
+  return (
+    <div className="v3s-reel">
+      <video ref={ref} className="v3s-reel-vid" src={src} poster={`/reels/${name}-poster.jpg`}
+        autoPlay muted loop playsInline preload="auto" aria-hidden="true" />
+      {badge && <span className="v3s-reel-badge"><i />{badge}</span>}
+    </div>
+  );
 }
 
-// Cinematic Seoul hero — drone fly-through, then sunset journey, looping.
-// Two stacked videos crossfade into each other for a smooth transition.
-const HERO_CLIPS = ['/seoul-2.mp4', '/seoul-1.mp4'];
-function HeroVideo() {
-  const a = useRef(null);
-  const b = useRef(null);
-  const [showA, setShowA] = useState(true);
-  const showARef = useRef(true);
-  showARef.current = showA;
-  function swap(toA) {
-    const inV = (toA ? a : b).current;
-    if (inV) { try { inV.currentTime = 0; } catch (_) {} inV.play().catch(() => {}); }
-    setShowA(toA);
-  }
-  // pause both clips when the hero scrolls out of view; resume the active one
-  useEffect(() => {
-    const el = a.current; if (!el) return undefined;
-    const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) (showARef.current ? a : b).current?.play().catch(() => {});
-      else { a.current?.pause(); b.current?.pause(); }
-    }, { threshold: 0.05 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+function SplitHero({ eyebrow, title, titleEm, sub, reel, badge, children }) {
   return (
-    <>
-      <video ref={a} className={`v3s-vhero-vid ${showA ? 'on' : ''}`} src={HERO_CLIPS[0]}
-        autoPlay muted playsInline preload="auto" onEnded={() => swap(false)} />
-      <video ref={b} className={`v3s-vhero-vid ${!showA ? 'on' : ''}`} src={HERO_CLIPS[1]}
-        muted playsInline preload="metadata" onEnded={() => swap(true)} />
-    </>
+    <header className="v3s-hero2">
+      <div className="v3s-hero2-glow" aria-hidden="true"><i /><i /><i /></div>
+      <div className="v3s-hero2-grid">
+        <div className="v3s-hero2-l">
+          <motion.div custom={0} variants={FADE} initial="hidden" animate="show">
+            <span className="v3s-eyebrow">{eyebrow}</span>
+          </motion.div>
+          <motion.h1 custom={1} variants={FADE} initial="hidden" animate="show">
+            {title} <em>{titleEm}</em>
+          </motion.h1>
+          {sub && <motion.p className="v3s-hero2-sub" custom={2} variants={FADE} initial="hidden" animate="show">{sub}</motion.p>}
+          {children && <motion.div className="v3s-hero2-extra" custom={3} variants={FADE} initial="hidden" animate="show">{children}</motion.div>}
+        </div>
+        <motion.div className="v3s-hero2-r" initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 1, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}>
+          <HeroReel name={reel} badge={badge} />
+        </motion.div>
+      </div>
+    </header>
   );
 }
 
 function Home() {
   const chat = useContext(ChatContext);
+  const [popular, setPopular] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    fetchCatalog()
+      .then((d) => {
+        if (!alive) return;
+        const t = (d.treatments || []).slice(0, 3).map((r) => ({ ...r, kind: 'treatments' }));
+        const s = (d.surgeries || []).filter((r) => r.price_krw != null).slice(0, 2).map((r) => ({ ...r, kind: 'surgeries' }));
+        setPopular([...t, ...s]);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
   return (
     <>
-      <header className="v3s-vhero">
-        <AutoVideo className="v3s-vhero-vid on" src="/hero.mp4" autoPlay loop muted playsInline />
-        <div className="v3s-vhero-scrim" />
-        <div className="v3s-vhero-content">
-          <motion.div custom={0} variants={FADE} initial="hidden" animate="show">
-            <span className="v3s-eyebrow">Seoul · medical concierge</span>
-          </motion.div>
-          <motion.h1 custom={1} variants={FADE} initial="hidden" animate="show">
-            Your glow, <em>done right.</em>
-          </motion.h1>
-          <motion.p className="v3s-vhero-sub" custom={2} variants={FADE} initial="hidden" animate="show">
-            From skin treatments to surgery, one coordinator matches you to the best
-            Seoul clinics and carries the whole journey — so you can skip the research.
-          </motion.p>
-          <motion.div className="v3s-vhero-cta" custom={3} variants={FADE} initial="hidden" animate="show">
-            <button className="v3s-btn" onClick={() => chat.open()}>Start with Romie <span className="tail">→</span></button>
-            <a className="v3s-btn v3s-btn--ghost" href={WA} style={{ textDecoration: 'none' }}><WaIcon /> Message on WhatsApp</a>
-          </motion.div>
+      <SplitHero
+        eyebrow="Seoul · medical concierge" title="Your glow," titleEm="done right."
+        sub="From skin treatments to surgery, one coordinator matches you to the best Seoul clinics and carries the whole journey — so you can skip the research."
+        reel="home" badge="Romie · replies within 24h">
+        <div className="v3s-hero2-cta">
+          <button className="v3s-btn" onClick={() => chat.open()}>Start with Romie <span className="tail">→</span></button>
+          <a className="v3s-btn v3s-btn--ghost" href={WA} style={{ textDecoration: 'none' }}><WaIcon /> Message on WhatsApp</a>
         </div>
-      </header>
+        {popular.length > 0 && (
+          <div className="v3s-hero2-pop">
+            <span className="v3s-hero2-pop-k">Popular now</span>
+            <div className="v3s-hero2-pop-row">
+              {popular.map((p) => (
+                <Link key={`${p.kind}-${p.id}`} className="v3s-hero2-pop-chip" to={`/${p.kind}/${p.slug}`}>
+                  {p.thumbnail_url && <span className="img" style={{ backgroundImage: `url(${p.thumbnail_url})` }} />}
+                  <span className="tx"><b>{p.name}</b><i>{p.price_krw != null ? `from ${fmtKRW(p.price_krw)}` : 'On consultation'}</i></span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </SplitHero>
 
       <div className="v3s-marquee">
         <div className="v3s-marquee-track">
@@ -238,67 +238,94 @@ function SubPage({ eyebrow, title, titleEm, lede, items, note }) {
   );
 }
 
-// Catalog-driven index for /treatments and /surgeries.
-// Minimal editorial index (himedi/Aesop 방향): 썸네일 카드 대신 다크 시네마 히어로
-// + 텍스트 인덱스. 썸네일은 디테일 페이지 히어로로만 쓴다.
-const CIX_BG = {
-  treatments: 'https://pub-bef8f45bc5d8474d8cebe7c78f1fde34.r2.dev/site/bg-treatments.png',
-  surgeries:  'https://pub-bef8f45bc5d8474d8cebe7c78f1fde34.r2.dev/site/bg-surgeries.png',
-};
+/* =================================================================== */
+// Catalog for /treatments and /surgeries — split hero + search + tag filter + cards.
 function CatalogIndex({ kind, eyebrow, title, titleEm, lede }) {
   const [items, setItems] = useState(null);
   const [err, setErr] = useState(false);
-  const [bookFor, setBookFor] = useState(null);   // catalog row → booking wizard
+  const [bookFor, setBookFor] = useState(null);   // catalog card → booking wizard
+  const [q, setQ] = useState('');
+  const [tag, setTag] = useState('All');
   useEffect(() => {
     let alive = true;
+    setItems(null); setTag('All'); setQ('');
     fetchCatalog()
       .then((d) => { if (alive) setItems(kind === 'surgeries' ? d.surgeries : d.treatments); })
       .catch(() => alive && setErr(true));
     return () => { alive = false; };
   }, [kind]);
 
+  // most-used tags first, so the chip row reads like a menu of concerns
+  const tags = useMemo(() => {
+    const n = new Map();
+    (items || []).forEach((it) => (it.tags || []).forEach((t) => n.set(t, (n.get(t) || 0) + 1)));
+    return [...n.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t]) => t).slice(0, 10);
+  }, [items]);
+
+  const shown = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return (items || []).filter((it) => (tag === 'All' || (it.tags || []).includes(tag))
+      && (!needle || [it.name, it.summary, ...(it.tags || [])].join(' ').toLowerCase().includes(needle)));
+  }, [items, q, tag]);
+
+  const noun = kind === 'surgeries' ? 'surgeries' : 'treatments';
+
   return (
     <div className="v3s-cixpage">
-      <header className="v3s-cix-hero" style={{ backgroundImage: `url(${CIX_BG[kind]})` }}>
-        <div className="v3s-cix-hero-scrim" />
-        <div className="v3s-cix-hero-content">
-          <motion.div custom={0} variants={FADE} initial="hidden" animate="show">
-            <span className="v3s-eyebrow">{eyebrow}</span>
-          </motion.div>
-          <motion.h1 custom={1} variants={FADE} initial="hidden" animate="show">
-            {title} <em>{titleEm}</em>
-          </motion.h1>
-          <motion.p className="v3s-cix-lede" custom={2} variants={FADE} initial="hidden" animate="show">
-            {lede}
-          </motion.p>
-        </div>
-      </header>
+      <SplitHero eyebrow={eyebrow} title={title} titleEm={titleEm} sub={lede} reel={kind}
+        badge={items ? `${items.length} ${noun} · reference prices` : 'Reference prices'} />
 
       <section className="v3s-wrap">
         {err && <p className="v3s-page-note">Catalog is loading — message Romie any time and she'll send a hand-picked shortlist.</p>}
-        {items && items.length > 0 && (
-          <Reveal>
-            <div className="v3s-cix">
-              {items.map((it, i) => (
-                <Link key={it.id} className="v3s-cix-row" to={`/${kind}/${it.slug}`}>
-                  {it.thumbnail_url && <span className="v3s-cix-bg" style={{ backgroundImage: `url(${it.thumbnail_url})` }} />}
-                  <span className="v3s-cix-num">№ {String(i + 1).padStart(2, '0')}</span>
-                  <span className="v3s-cix-name">{it.name}</span>
-                  {it.summary && <span className="v3s-cix-sub">{it.summary}</span>}
-                  <span className="v3s-cix-dots" />
-                  <span className="v3s-cix-price">{it.price_krw != null ? `from ${fmtKRW(it.price_krw)}` : 'On consultation'}</span>
-                  <span className="v3s-cix-facts">
-                    {[DURATION_LABEL[it.duration], RECOVERY_LABEL[it.recovery_level]].filter(Boolean).join(' · ')}
-                  </span>
-                  <button type="button" className="v3s-cix-book"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBookFor(it); }}>
-                    Book
-                  </button>
-                </Link>
+        {items && (
+          <div className="v3s-cat-bar">
+            <label className="v3s-cat-search">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${noun}`} aria-label={`Search ${noun}`} />
+            </label>
+            <div className="v3s-cat-chips" role="tablist">
+              {['All', ...tags].map((t) => (
+                <button key={t} type="button" role="tab" aria-selected={tag === t}
+                  className={`v3s-cat-chip ${tag === t ? 'on' : ''}`} onClick={() => setTag(t)}>{t}</button>
               ))}
             </div>
-          </Reveal>
+            <span className="v3s-cat-count">{shown.length} of {items.length}</span>
+          </div>
         )}
+        {items && (
+          <div className="v3s-pgrid">
+            {shown.map((it, i) => (
+              <article key={it.id} className="v3s-pc" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
+                <Link className="v3s-pc-link" to={`/${kind}/${it.slug}`}>
+                  <div className="v3s-pc-img" style={it.thumbnail_url ? { backgroundImage: `url(${it.thumbnail_url})` } : undefined}>
+                    <span className="v3s-pc-num">№ {String((items.indexOf(it)) + 1).padStart(2, '0')}</span>
+                    {it.tags?.[0] && <span className="v3s-pc-tag">{it.tags[0]}</span>}
+                  </div>
+                  <div className="v3s-pc-body">
+                    <h3 className="v3s-pc-name">{it.name}</h3>
+                    {it.summary && <p className="v3s-pc-sum">{it.summary}</p>}
+                    <div className="v3s-pc-facts">
+                      {DURATION_LABEL[it.duration] && <span><em>Lasts</em>{DURATION_LABEL[it.duration]}</span>}
+                      {RECOVERY_LABEL[it.recovery_level] && <span><em>Downtime</em>{RECOVERY_LABEL[it.recovery_level]}</span>}
+                    </div>
+                  </div>
+                </Link>
+                <div className="v3s-pc-foot">
+                  <span className="v3s-pc-price">
+                    {it.price_krw != null ? <><small>from</small> {fmtKRW(it.price_krw)}</> : 'On consultation'}
+                  </span>
+                  <button type="button" className="v3s-pc-book" onClick={() => setBookFor(it)}>Book</button>
+                </div>
+              </article>
+            ))}
+            {shown.length === 0 && (
+              <div className="v3s-pgrid-empty">
+                Nothing matches “{q || tag}”. <button type="button" onClick={() => { setQ(''); setTag('All'); }}>Show all</button>
+              </div>
+            )}
+          </div>
+        )}
+        {!items && !err && <div className="v3s-pgrid v3s-pgrid--skel">{[0, 1, 2].map((i) => <div key={i} className="v3s-pc-skel" />)}</div>}
       </section>
       <CtaBand />
       {bookFor && <BookingWizard kind={kind} row={bookFor} onClose={() => setBookFor(null)} />}
@@ -463,15 +490,9 @@ function ProcedureDetail({ kind }) {
 function How() {
   return (
     <>
-      <header className="v3s-vhero v3s-vhero--page">
-        <HeroVideo />
-        <div className="v3s-vhero-scrim" />
-        <div className="v3s-vhero-content">
-          <span className="v3s-eyebrow">How it works</span>
-          <h1>Four quiet <em>steps.</em></h1>
-          <p className="v3s-vhero-sub">No app to install. No account. Most of it happens on WhatsApp — quietly.</p>
-        </div>
-      </header>
+      <SplitHero eyebrow="How it works" title="Four quiet" titleEm="steps."
+        sub="No app to install. No account. Most of it happens on WhatsApp — quietly."
+        reel="how" badge="One coordinator · start to finish" />
       <section className="v3s-how-steps">
         <div className="v3s-wrap">
           <EditorialList items={[
@@ -492,6 +513,93 @@ function About() {
     eyebrow="About" title="One coordinator." titleEm="One journey."
     lede="Glow Up Seoul is a Ministry of Health–registered concierge for foreign patients. We've spent a decade evaluating Korean clinics, and we work with only a hand-picked few — chosen on safety, doctor credentials, English fluency and aftercare. No marketplace. No noise. Just one person who carries your whole journey."
     note="Founded 2022 · Seoul · Gangnam · Busan." />;
+}
+
+/* =================================================================== */
+// Support (help centre) — shell. Answers reuse what the site already says;
+// the full FAQ will be filled from the consultation logs.
+const FAQ = [
+  { cat: 'Booking', items: [
+    ['How do I book?', 'Open any treatment or surgery and tap “Book”, or simply message Romie on WhatsApp. Every request gets a booking code (it looks like GUS-7F3K).'],
+    ['Do I need an app or an account?', 'No app to install. No account. Most of it happens on WhatsApp — quietly.'],
+    ['How do I check my booking?', 'Go to “My booking” and enter your code. You can see where your request is and add confirmed dates to your calendar.'],
+  ] },
+  { cat: 'Prices & clinics', items: [
+    ['Are the prices on the site final?', 'They are reference prices. Your clinic confirms the final price for your plan after the consultation.'],
+    ['Which clinics do you work with?', 'Only a hand-picked few — chosen on safety, doctor credentials, English fluency and aftercare. No marketplace.'],
+  ] },
+  { cat: 'Your trip', items: [
+    ['Will someone be with me at the clinic?', 'Yes. You are met, interpreted, and walked through every step. You never face the clinic alone.'],
+    ['How long should I stay in Seoul?', 'Most non-surgical treatments fit a 1–3 day trip. Surgery needs more recovery time — Romie plans it with you.'],
+  ] },
+  { cat: 'Aftercare', items: [
+    ['What happens after I fly home?', 'Check-ins after you leave. A swelling question at 11pm? The same coordinator answers.'],
+  ] },
+];
+
+function Support() {
+  const chat = useContext(ChatContext);
+  const [q, setQ] = useState('');
+  const [cat, setCat] = useState('All');
+  const needle = q.trim().toLowerCase();
+  const groups = FAQ
+    .filter((g) => cat === 'All' || g.cat === cat)
+    .map((g) => ({ ...g, items: g.items.filter(([a, b]) => !needle || `${a} ${b}`.toLowerCase().includes(needle)) }))
+    .filter((g) => g.items.length);
+
+  return (
+    <div className="v3s-page v3s-support">
+      <section className="v3s-wrap">
+        <div className="v3s-sup-head">
+          <span className="v3s-eyebrow">Support</span>
+          <h1>How can we <em>help?</em></h1>
+          <p>Answers to common questions — or reach Romie directly. We reply within 24 hours.</p>
+          <label className="v3s-cat-search v3s-sup-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search questions — booking, prices, aftercare…" aria-label="Search questions" />
+          </label>
+        </div>
+
+        <div className="v3s-sup-actions">
+          <button type="button" className="v3s-sup-act" onClick={() => chat.open()}>
+            <span className="ico ico--chat">R</span><b>Chat with Romie</b><i>Answers in a few taps</i>
+          </button>
+          <a className="v3s-sup-act" href={WA} target="_blank" rel="noreferrer">
+            <span className="ico ico--wa"><WaIcon /></span><b>WhatsApp</b><i>+82 10 6487 1060</i>
+          </a>
+          <a className="v3s-sup-act" href="mailto:glowupinseoul@gmail.com">
+            <span className="ico">@</span><b>Email</b><i>glowupinseoul@gmail.com</i>
+          </a>
+          <Link className="v3s-sup-act" to="/booking">
+            <span className="ico">#</span><b>My booking</b><i>Check with your code</i>
+          </Link>
+        </div>
+
+        <div className="v3s-sup-faq">
+          <div className="v3s-cat-chips">
+            {['All', ...FAQ.map((g) => g.cat)].map((c) => (
+              <button key={c} type="button" className={`v3s-cat-chip ${cat === c ? 'on' : ''}`} onClick={() => setCat(c)}>{c}</button>
+            ))}
+          </div>
+          {groups.map((g) => (
+            <div className="v3s-sup-group" key={g.cat}>
+              <div className="v3s-sup-group-h">{g.cat}</div>
+              {g.items.map(([qq, a]) => (
+                <details className="v3s-sup-q" key={qq}>
+                  <summary>{qq}<span aria-hidden="true">+</span></summary>
+                  <p>{a}</p>
+                </details>
+              ))}
+            </div>
+          ))}
+          {groups.length === 0 && (
+            <div className="v3s-pgrid-empty">No answer for “{q}” yet. <button type="button" onClick={() => chat.open()}>Ask Romie</button></div>
+          )}
+        </div>
+      </section>
+      <CtaBand />
+    </div>
+  );
 }
 
 /* =================================================================== */
@@ -519,17 +627,19 @@ function Nav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   const cls = ({ isActive }) => isActive ? 'active' : undefined;
-  const close = () => setMenuOpen(false);
+  // every nav click lands at the top — including a click on the page you're already on
+  const go = () => { setMenuOpen(false); toTop(); };
   return (
     <nav className={`v3s-nav ${scrolled ? 'scrolled' : ''} ${menuOpen ? 'menu-open' : ''}`}>
-      <Link className="v3s-logo" to="/" style={{ textDecoration: 'none' }} aria-label="Glow Up Seoul — home" onClick={close}>
+      <Link className="v3s-logo" to="/" style={{ textDecoration: 'none' }} aria-label="Glow Up Seoul — home" onClick={go}>
         <img className="v3s-logo-img" src="/glowup-logo.png" alt="Glow Up Seoul" />
       </Link>
       <div className="v3s-nav-links">
-        <NavLink to="/treatments" className={cls}>Treatments</NavLink>
-        <NavLink to="/surgeries" className={cls}>Surgery</NavLink>
-        <NavLink to="/how-it-works" className={cls}>How it works</NavLink>
-        <NavLink to="/about" className={cls}>About</NavLink>
+        <NavLink to="/treatments" className={cls} onClick={go}>Treatments</NavLink>
+        <NavLink to="/surgeries" className={cls} onClick={go}>Surgery</NavLink>
+        <NavLink to="/how-it-works" className={cls} onClick={go}>How it works</NavLink>
+        <NavLink to="/about" className={cls} onClick={go}>About</NavLink>
+        <NavLink to="/support" className={cls} onClick={go}>Support</NavLink>
       </div>
       <div className="v3s-nav-right">
         <a className="v3s-btn v3s-btn--wa" href={WA} style={{ textDecoration: 'none' }}>
@@ -543,11 +653,12 @@ function Nav() {
         </button>
       </div>
       <div className="v3s-nav-mobile" role="menu">
-        <NavLink to="/treatments" className={cls} onClick={close}>Treatments</NavLink>
-        <NavLink to="/surgeries" className={cls} onClick={close}>Surgery</NavLink>
-        <NavLink to="/how-it-works" className={cls} onClick={close}>How it works</NavLink>
-        <NavLink to="/about" className={cls} onClick={close}>About</NavLink>
-        <a className="v3s-nav-mobile-wa" href={WA} onClick={close} style={{ textDecoration: 'none' }}>
+        <NavLink to="/treatments" className={cls} onClick={go}>Treatments</NavLink>
+        <NavLink to="/surgeries" className={cls} onClick={go}>Surgery</NavLink>
+        <NavLink to="/how-it-works" className={cls} onClick={go}>How it works</NavLink>
+        <NavLink to="/about" className={cls} onClick={go}>About</NavLink>
+        <NavLink to="/support" className={cls} onClick={go}>Support</NavLink>
+        <a className="v3s-nav-mobile-wa" href={WA} onClick={() => setMenuOpen(false)} style={{ textDecoration: 'none' }}>
           <WaIcon /> Message on WhatsApp
         </a>
       </div>
@@ -566,14 +677,15 @@ function Footer() {
           </div>
           <div>
             <div className="v3s-foot-col-title">Explore</div>
-            <Link to="/treatments">Skin &amp; glow</Link>
-            <Link to="/surgeries">Surgery</Link>
-            <Link to="/how-it-works">How it works</Link>
-            <Link to="/about">About</Link>
-            <Link to="/booking">My booking</Link>
+            <Link to="/treatments" onClick={toTop}>Skin &amp; glow</Link>
+            <Link to="/surgeries" onClick={toTop}>Surgery</Link>
+            <Link to="/how-it-works" onClick={toTop}>How it works</Link>
+            <Link to="/about" onClick={toTop}>About</Link>
+            <Link to="/booking" onClick={toTop}>My booking</Link>
           </div>
           <div>
             <div className="v3s-foot-col-title">Reach us</div>
+            <Link to="/support" onClick={toTop}>Support &amp; FAQ</Link>
             <a href={WA}>WhatsApp +82 10 6487 1060</a>
             <a href="mailto:glowupinseoul@gmail.com">glowupinseoul@gmail.com</a>
           </div>
@@ -616,18 +728,26 @@ export default function V3Shell() {
   const [chatOpen, setChatOpen] = useState(false);
   useEffect(() => {
     const prev = document.body.style.background;
-    document.body.style.background = '#12100c';
+    document.body.style.background = '#fafaf8';
     // v2 전역 CSS 의 풀스크린 grain(body::after, mix-blend-mode) + smooth scroll 이
     // v3 에도 새어 들어와 스크롤 렉을 유발 — v3 마운트 동안 차단.
     document.body.classList.add('no-grain');
     document.documentElement.classList.add('no-smooth');
+    // 브라우저가 이전 스크롤 위치를 복원하지 않게 — 페이지 이동 = 항상 맨 위
+    const prevRestore = window.history.scrollRestoration;
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
     return () => {
       document.body.style.background = prev;
       document.body.classList.remove('no-grain');
       document.documentElement.classList.remove('no-smooth');
+      if (prevRestore) window.history.scrollRestoration = prevRestore;
     };
   }, []);
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [location.pathname]);
+  useLayoutEffect(() => {
+    toTop();
+    const r = requestAnimationFrame(toTop);   // again after the new page has painted
+    return () => cancelAnimationFrame(r);
+  }, [location.pathname]);
 
   return (
     <ChatContext.Provider value={{ open: () => setChatOpen(true) }}>
@@ -645,6 +765,7 @@ export default function V3Shell() {
             <Route path="/booking/:code" element={<BookingStatusPage />} />
             <Route path="/how-it-works" element={<How />} />
             <Route path="/about" element={<About />} />
+            <Route path="/support" element={<Support />} />
             <Route path="*" element={<Home />} />
           </Routes>
         </main>
