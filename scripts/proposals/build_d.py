@@ -13,7 +13,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 P = os.path.join(ROOT, 'client', 'public', 'proposals')
 OUT = os.path.join(P, 'd')
 LIVE = 'https://glowupseoul.onrender.com/proposals/d/'
-V = '24'
+V = '25'
 DATE = '2026-10-17'
 DATE_H = '17 Oct 2026'
 

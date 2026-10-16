@@ -239,19 +239,28 @@
     const down = () => th.scrollTo({ top: th.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     const answer = (f) => esc(f.a) + (f.note ? ' ' + G.note(f.note) : '') + (f.reel ? `<a class="fc-reel" href="${G.reel(f.reel)}" target="_blank" rel="noopener">▶ Watch me answer this</a>` : '');
     const asked = new Set();
+    // questions stack vertically (no sideways scrolling): 3 suggestions, then "More questions" opens the full list
+    let expanded = false;
+    const SHOW = 3;
     const render = () => {
       const left = order.filter((id) => !asked.has(id)).map((id) => D.faq.find((f) => f.id === id)).filter(Boolean);
-      chips.innerHTML = left.map((f, i) => `<button type="button" data-q="${f.id}"${i === 0 ? ' class="hot"' : ''}>${esc(f.q)}</button>`).join('') || `<a class="hot" href="${G.wa('Hi Romie! I have a question: ')}" target="_blank" rel="noopener">Ask Romie on WhatsApp</a>`;
+      if (!left.length) { chips.className = 'fc-chips'; chips.innerHTML = `<a class="hot" href="${G.wa('Hi Romie! I have a question: ')}" target="_blank" rel="noopener">Ask Romie on WhatsApp</a>`; return; }
+      const list = expanded ? left : left.slice(0, SHOW);
+      const more = left.length > SHOW ? `<button type="button" class="fc-more" data-more aria-expanded="${expanded}">${expanded ? 'Show fewer' : `More questions (${left.length - SHOW})`}</button>` : '';
+      chips.className = 'fc-chips' + (expanded ? ' is-open' : '');
+      chips.innerHTML = `<p class="fc-chips-h">${expanded ? 'All questions' : 'Tap a question'}</p>` + list.map((f, i) => `<button type="button" data-q="${f.id}"${i === 0 && !expanded ? ' class="hot"' : ''}>${esc(f.q)}</button>`).join('') + more;
+      if (expanded) chips.scrollTop = 0;
     };
     add('them', 'Hi! I’m Romie 👋 Ask me anything about coming to Seoul for treatment. Tap a question below.');
     const pre = D.faq.find((f) => f.id === 'what');
     if (pre) { asked.add('what'); add('me', esc(pre.q)); add('them', answer(pre)); }
     render();
     chips.addEventListener('click', (e) => {
+      if (e.target.closest('[data-more]')) { expanded = !expanded; render(); return; }
       const b = e.target.closest('button[data-q]');
       if (!b) return;
       const f = D.faq.find((x) => x.id === b.dataset.q);
-      asked.add(f.id); render();
+      asked.add(f.id); expanded = false; render();
       add('me', esc(f.q), 'pop');
       const ty = add('them', '<span class="fc-typing"><i></i><i></i><i></i></span>', 'fc-plain');
       down();

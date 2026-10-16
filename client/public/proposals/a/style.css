@@ -155,3 +155,10 @@ body{color:var(--ink);font:16px/1.5 var(--body)}
 .pin-trust{font-size:11.5px;line-height:1.4;color:#4E5A64;text-align:center;padding-top:2px}
 @supports (corner-shape:squircle){.pin,.pin .g-svc li{corner-shape:squircle}.pin{border-radius:40px}.pin .g-svc li{border-radius:26px}}
 @media(min-width:980px){.pin{margin:14px 14px 4px}}
+
+/* questions stacked instead of sideways scrolling */
+.chips{flex-direction:column;align-items:stretch;gap:6px;overflow-x:visible;padding:2px 12px 8px}
+.chips button{white-space:normal;text-align:left;line-height:1.3;padding:10px 14px;border-radius:16px;font-size:14px}
+.chips .more{border-style:dashed;background:transparent;text-align:center;color:var(--ink-2)}
+.chips.is-open{max-height:min(40svh,300px);overflow-y:auto;overscroll-behavior:contain}
+.chips.is-open .more{position:sticky;bottom:0;background:#fff}
