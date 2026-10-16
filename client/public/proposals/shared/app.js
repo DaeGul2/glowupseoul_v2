@@ -97,7 +97,7 @@
   };
 
   /* review bar */
-  const PAGES = { d: ['index.html', 'journal.html', 'faq.html'], a: ['index.html'], b: ['index.html', 'faq.html'], c: ['index.html', 'treatments.html', 'treatment.html', 'faq.html'] };
+  const PAGES = { d: ['index.html', 'journal/index.html', 'faq.html'], a: ['index.html'], b: ['index.html', 'faq.html'], c: ['index.html', 'treatments.html', 'treatment.html', 'faq.html'] };
   const NAMES = { d: 'D · B×C 믹스 ★', a: 'A · Text Romie', b: 'B · Scrapbook', c: 'C · Menu' };
   const ROOT = new URL('../', SHARED).href;
   function reviewBar() {

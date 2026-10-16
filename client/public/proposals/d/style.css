@@ -426,3 +426,27 @@ dialog.sheet::backdrop{background:rgba(17,17,17,.42);backdrop-filter:blur(3px);-
   .cmp td::before{content:attr(data-l);display:block;font-size:11.5px;font-weight:700;color:var(--ink-2)}
   .cmp td[data-l="Often chosen for"]::before{display:none}
 }
+
+/* ---- 10/17: Journal covers (home banner + blog). No wide photo crops: pastel card + small portrait polaroid ---- */
+.hue-butter{--hc:var(--butter)}.hue-sky{--hc:var(--sky)}.hue-matcha{--hc:var(--matcha)}.hue-lilac{--hc:var(--lilac)}.hue-peach{--hc:var(--peach)}.hue-coral{--hc:#FFCDBF}
+.pol{display:block;background:#fff;padding:6px 6px 22px;border-radius:14px;box-shadow:0 1px 0 rgba(0,0,0,.04),0 16px 30px -16px rgba(0,0,0,.5);transform:rotate(4deg)}
+.pol img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover;object-position:50% 20%;border-radius:9px}
+.cv{position:relative;display:flex;flex-direction:column;gap:10px;aspect-ratio:4/5;padding:16px;border-radius:28px;background:var(--hc);overflow:hidden}
+.cv-k{align-self:flex-start;font:700 11.5px/1 var(--body);padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.78)}
+.cv-t{font:800 clamp(22px,5.8vw,26px)/1.02 var(--display);letter-spacing:-.03em;max-width:11ch}
+.cv .pol{position:absolute;right:12px;bottom:12px;width:42%}
+
+.jban{display:grid;gap:22px;padding:24px 22px;border-radius:var(--r-xl);background:var(--gray);text-decoration:none;color:inherit;overflow:hidden;transition:transform .2s}
+.jban:hover{transform:translateY(-3px)}
+.jban-t{display:grid;gap:10px}
+.jban-t .k{justify-self:start}
+.jban-t b{font:800 clamp(30px,8vw,46px)/1 var(--display);letter-spacing:-.035em}
+.jban-t>span:not(.k){color:var(--ink-2);max-width:40ch}
+.jban-t>.jban-go{color:var(--ink);font:700 15px var(--body);margin-top:4px}
+.jban-c{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:end;padding-top:6px}
+.jban-c .cv{aspect-ratio:4/5;padding:0;border-radius:24px}
+.jban-c .cv .pol{right:auto;left:50%;bottom:11%;width:64%;transform:translateX(-50%) rotate(-5deg)}
+.jban-c .cv:nth-child(2){transform:translateY(-12px)}
+.jban-c .cv:nth-child(2) .pol{transform:translateX(-50%) rotate(4deg)}
+@media(min-width:860px){.jban{grid-template-columns:1fr 1.1fr;align-items:center;padding:34px}}
+@supports (corner-shape:squircle){.cv,.jban,.pol{corner-shape:squircle}.cv{border-radius:40px}.pol{border-radius:20px}}

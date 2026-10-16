@@ -40,7 +40,7 @@
   document.querySelectorAll('dialog.sheet').forEach((d) => mo.observe(d, { attributes: true, attributeFilter: ['open'] }));
 
   // tuck the floating buttons away while the footer is on screen, so they never cover legal text
-  const foot = document.querySelector('.gf');
+  const foot = document.querySelector('.gf, .bf');
   if (fab && foot && 'IntersectionObserver' in window) {
     new IntersectionObserver(([en]) => fab.classList.toggle('is-low', en.isIntersecting), { rootMargin: '0px 0px -120px 0px' }).observe(foot);
   }
