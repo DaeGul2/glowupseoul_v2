@@ -406,3 +406,23 @@ dialog.sheet::backdrop{background:rgba(17,17,17,.42);backdrop-filter:blur(3px);-
 @media(min-width:760px){.sheet-in:has(.fc){height:min(86vh,780px)}}
 .sheet-in:has(.fc) .sheet-b>[data-gus="faqchat"]{flex:1;min-height:0;display:flex;flex-direction:column}
 .fc-thread{min-height:0}
+.ar-src{margin-top:26px;padding:14px 16px;border-radius:var(--r-md);background:var(--gray);font-size:13.5px;line-height:1.55;color:#4A4F57}
+.ar-src b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink);margin-bottom:4px}
+.ar-body ol{padding-left:22px;display:grid;gap:8px}
+.md-table a{color:var(--ink);font-weight:700}
+.md-table thead th{font-size:12.5px;color:var(--ink-2);font-weight:700;background:#ECECE8}
+
+/* comparison tables become stacked cards on phones (no sideways scrolling) */
+@media(max-width:639px){
+  .md-table.cmp{background:transparent;overflow:visible}
+  .cmp table,.cmp tbody,.cmp tr,.cmp th,.cmp td{display:block;width:auto}
+  .cmp thead{display:none}
+  .cmp tbody{display:grid;gap:8px}
+  .cmp tr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 10px;background:var(--gray);border-radius:var(--r-md);padding:14px 16px}
+  .cmp tr:first-child{background:var(--butter)}
+  .cmp tbody th{grid-column:1/-1;width:auto;padding:0;border:0;font-size:17px;color:var(--ink)}
+  .cmp td{padding:0;border:0;font-size:14px}
+  .cmp td[data-l="Often chosen for"]{grid-column:1/-1;color:#4A4F57;margin-bottom:4px}
+  .cmp td::before{content:attr(data-l);display:block;font-size:11.5px;font-weight:700;color:var(--ink-2)}
+  .cmp td[data-l="Often chosen for"]::before{display:none}
+}

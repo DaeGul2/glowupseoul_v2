@@ -13,7 +13,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 P = os.path.join(ROOT, 'client', 'public', 'proposals')
 OUT = os.path.join(P, 'd')
 LIVE = 'https://glowupseoul.onrender.com/proposals/d/'
-V = '27'
+V = '29'
 DATE = '2026-10-17'
 DATE_H = '17 Oct 2026'
 
@@ -230,7 +230,7 @@ TAKE = {
     'co2_laser': ('romie', 'Lasers target more specific problems than skin boosters. Choose them after a consultation with a doctor.', 'DbA-y2eh02k', 'Romie, This or That'),
     'ulthera': ('local', 'A woman in her 40s we met in Gangnam told us Ulthera is the most popular treatment among her friends.', 'DacMHY4hqbU', 'Seoul Skin Talk, episode 1'),
 }
-GUIDE_IMG = {'first-time-in-korea': 'romie-closeup.jpg', 'trustworthy-clinic': 'romie-profile.jpg', 'this-or-that': 'romie-red.jpg',
+GUIDE_IMG = {'seoul-skin-treatment-guide': 'clinic-lobby.jpg', 'first-time-in-korea': 'romie-closeup.jpg', 'trustworthy-clinic': 'romie-profile.jpg', 'this-or-that': 'romie-red.jpg',
              'cheapest-clinic': 'romie-desk.jpg', 'what-koreans-get-done': 'street-ep1.jpg'}
 ARTICLES = []   # dicts: slug, title, cat, excerpt, img, mins, body, faq pairs, related
 
@@ -244,6 +244,27 @@ def take_html(slug):
     text = f'“{e(q)}”' if kind == 'romie' else e(q)
     return f'<aside class="ar-take{" local" if kind == "local" else ""}"><img src="{img}" alt=""><div><p>{text}</p><small>{lab} · <a href="{reel(rid)}" target="_blank" rel="noopener">{e(src)} on Instagram</a></small></div></aside>'
 
+
+def dev_row(sl):
+    return DET[f'treatments/{sl}']
+
+
+def price_of(r):
+    return f'₩{r["price_krw"]:,}' if r.get('price_krw') else 'Ask us'
+
+
+def compare_table(rows, link_pre=''):
+    head = '<thead><tr><th>Treatment</th><th>Often chosen for</th><th>Downtime</th><th>Lasts</th><th>From</th></tr></thead>'
+    body = ''.join(f'<tr><th scope="row"><a href="{link_pre}{r["slug"]}.html">{e(r["name"])}</a></th><td data-l="Often chosen for">{e(", ".join(c["name"] for c in (r.get("concern_links") or []) if c.get("name")))}</td>'
+                   f'<td data-l="Downtime">{e(REC[r["recovery_level"]])}</td><td data-l="Lasts">{e(DUR_T[r["duration"]])}</td><td data-l="From">{e(price_of(r))}</td></tr>' for r in rows)
+    return f'<div class="md-table cmp"><table>{head}<tbody>{body}</tbody></table></div>'
+
+
+CONSULT_QS = ['Is this the right treatment for my concern, or would you suggest something else?', 'How many sessions would you suggest for me, and how far apart?',
+              'What does the price include, and could anything be added on the day?', 'What should I avoid afterwards, and for how long?',
+              'What kind of result is realistic for me, and when might I notice it?']
+LASERS = {'pico_laser', 'co2_laser'}
+SOURCES = f'<p class="ar-src"><b>Sources</b> Partner clinic information, Romie’s Q&amp;A videos on Instagram and our experience coordinating treatments in Seoul. Last reviewed {DATE_H}.</p>'
 
 for slug, cat in DEVICE_CAT.items():
     row = DET[f'treatments/{slug}']
@@ -263,7 +284,7 @@ for slug, cat in DEVICE_CAT.items():
         (f'How long does {name} last?', f'Results usually last {DUR[dur]}, though it can vary from person to person.' + (' ' + row['cautions'][0] if row.get('cautions') and dur in ('months_3_6', 'temporary') else '')),
         (f'Is there downtime after {name}?', row.get('recovery_note') or REC[rec]),
         (f'Does {name} hurt?', f'Many people describe it as {PAIN[pain].lower()}, but everyone feels it a little differently.' + (f' What it feels like: {sensation}.' if sensation else '')),
-        (f'How much does {name} cost in Seoul?', f'Reference prices at our partner clinics start from {price_txt}' + (f' ({pnote}, {usd})' if pnote and usd else (f' ({usd})' if usd else '')) + '. You get a full written quote before anything is booked.'),
+        (f'How much does {name} cost in Seoul?', f'Reference prices at our partner clinics start from {price_txt}' + (f' ({pnote}, {usd})' if pnote and usd else (f' ({usd})' if usd else '')) + '. You’d get a full written quote before anything is booked.'),
     ]
     if concerns:
         faq.append((f'Who might {name} suit?', f'It’s often considered by people who’d like to improve {concerns}. Your doctor can tell you at the consultation whether it suits you.'))
@@ -272,6 +293,21 @@ for slug, cat in DEVICE_CAT.items():
     if row.get('benefits') or row.get('cautions'):
         pc = '<div class="ar-pc">' + (f'<div><h3>Why people love it</h3><ul>{"".join(f"<li>{e(b)}</li>" for b in row["benefits"])}</ul></div>' if row.get('benefits') else '') + \
              (f'<div><h3>Good to know</h3><ul>{"".join(f"<li>{e(b)}</li>" for b in row["cautions"])}</ul></div>' if row.get('cautions') else '') + '</div>'
+    peers = [dev_row(x) for x, c in DEVICE_CAT.items() if c == cat and x != slug]
+    if len(peers) < 2:
+        mine = {c['concern_id'] for c in links}
+        peers += [dev_row(x) for x in DEVICE_CAT if x != slug and dev_row(x) not in peers and mine & {c['concern_id'] for c in (dev_row(x).get('concern_links') or [])}][:3 - len(peers)]
+    compare = f'<h2>How {e(name)} compares</h2><p>Similar options people often ask about. Your doctor can help you choose between them.</p>' + compare_table([row] + peers) if peers else ''
+    prep = ['Send Romie a clear photo of the area in natural light, so she can suggest clinics that fit.',
+            'Let your doctor know about any medication, supplements, allergies or past treatments.']
+    if slug in LASERS:
+        prep.append('If you use retinoids, you may be asked to pause them 5–7 days before a laser. Your clinic will confirm.')
+    prep.append(f'Plan your days so the downtime ({REC[rec].lower()}) fits around your trip.')
+    after = [x for x in [row.get('recovery_note')] + (row.get('cautions') or []) if x]
+    after.append('Follow the aftercare your clinic gives you, and message Romie if anything feels off. We check in on day 1, 7 and 30.')
+    extra = (compare + f'<h2>Before your appointment</h2><ul>{"".join(f"<li>{e(x)}</li>" for x in prep)}</ul>'
+             + f'<h2>After your treatment</h2><ul>{"".join(f"<li>{e(x)}</li>" for x in after)}</ul>'
+             + f'<h2>Questions you might ask at your consultation</h2><ul>{"".join(f"<li>{e(x)}</li>" for x in CONSULT_QS)}</ul>')
     body = f'''<div class="ar-quick"><h2>Quick answer</h2><p>{e(quick)}</p></div>
 <ul class="ar-facts">
   <li><span>Downtime</span><b>{e(REC[rec])}</b></li>
@@ -285,7 +321,7 @@ for slug, cat in DEVICE_CAT.items():
 {take_html(slug)}
 {f"<h2>Often chosen for</h2>{why}" if why else ""}
 {pc}
-{f'<p><strong>Recovery:</strong> {e(row["recovery_note"])}</p>' if row.get("recovery_note") else ""}
+{extra}
 <h2>Questions people ask about {e(name)}</h2>
 <div class="faq-list ar-faq">{"".join(f'<details class="faq-i"><summary><span>{e(q)}</span></summary><div class="faq-a"><p>{e(a)}</p></div></details>' for q, a in faq)}</div>
 </div>'''
@@ -308,6 +344,23 @@ def say(fid, h2=None):
 checks = ''.join(f'<li><b>{e(t)}</b><span>{e(p)}</span></li>' for t, p in D['checks'])
 skin_list = ''.join(f'<li><b>{e(t)}</b><span>{e(p)}</span></li>' for t, p in D['checklist']['skin'])
 GUIDES = [
+    dict(slug='seoul-skin-treatment-guide', title='Skin treatments in Seoul: a complete guide for first-time visitors',
+         excerpt='Everything in one place: popular treatments with downtime and reference prices, how to choose a clinic, where to go, how long to stay, and what happens after you fly home.',
+         quick='Most visitors come to Seoul for non-surgical skin treatments such as skin boosters, lifting devices, lasers and injectables. Many of these have little or no downtime, so 1–2 days in Seoul is often enough. It can help to compare clinics on credentials and how well doctors listen, to look at the total price rather than the cheapest headline price, and to message a coordinator 2–4 weeks before you travel.',
+         body=('<h2>Why people come to Seoul for skin treatments</h2>'
+               '<p>Seoul has thousands of clinics, with more than three thousand in Gangnam alone. Visitors often tell us they come for modern equipment, experienced doctors and prices that can be more affordable than at home. With that much choice, the hard part is usually not finding a clinic but finding the right one for you.</p>'
+               '<h2>Popular treatments at a glance</h2><p>Reference prices from our partner clinics, to help you plan. Tap a treatment to read the full guide.</p>'
+               + compare_table([dev_row(x) for x in DEVICE_CAT]) + note('참고가 노출은 한국 의료광고법 기준 확인 필요')
+               + say('start', 'If it’s your first treatment')
+               + say('trust', 'How to choose a clinic') + f'<ul class="ar-check">{checks}</ul>' + say('tiktok')
+               + say('area', 'Where in Seoul: Gangnam or Apgujeong?')
+               + say('days', 'How long to stay') + say('when', 'When to start planning')
+               + f'<h3>Before you fly</h3><ul class="ar-check">{skin_list}</ul>'
+               + '<h2>What treatment day can look like</h2><ol>' + ''.join(f'<li><b>{e(x["d"])}: {e(x["t"])}.</b> {e(x["p"])}</li>' for x in D['itinerary']['skin']) + '</ol>'
+               + say('alone', 'Coming on your own') + say('lang')
+               + '<h2>Prices and paying</h2>' + say('prices') + say('cheap') + say('free') + say('pay')
+               + '<h2>After you fly home</h2>' + say('home') + say('bumps') + say('wrong')),
+         faq=['start', 'alone', 'days', 'when', 'prices', 'free', 'trust', 'area', 'lang'], related=['first-time-in-korea', 'trustworthy-clinic', 'this-or-that']),
     dict(slug='first-time-in-korea', title='Your first treatment in Korea: where to start',
          excerpt='A few gentle suggestions for your first visit: what you might try, how to prepare and how long to stay.',
          quick='It really depends on your skin and what you’d like to change. If you’d like a gentle start, many first-timers enjoy a skin booster. It can also help to have a rough idea of what you want before you visit, to plan 1–2 days in Seoul for skin treatments, and to message us 2–4 weeks ahead.',
@@ -361,7 +414,7 @@ street['faq'] = [('What treatments are popular with Koreans?', 'In our street in
 street['related'] = ['ulthera', 'botox', 'rejuran']
 GUIDES.append(street)
 for g in reversed(GUIDES):
-    ARTICLES.insert(0, dict(slug=g['slug'], kind='guide', title=g['title'], short=g['title'], cat='Guides', excerpt=g['excerpt'],
+    ARTICLES.insert(0, dict(slug=g['slug'], kind='guide', title=g['title'], short=g['title'], cat='Guides', excerpt=g['excerpt'], pillar=(g['slug'] == 'seoul-skin-treatment-guide'),
                             img=f'../../assets/{GUIDE_IMG[g["slug"]]}', card_img=f'../assets/{GUIDE_IMG[g["slug"]]}', body=g['body'], faq=g['faq'],
                             related=g['related'], mins=max(3, math.ceil(words(g['body']) / 200))))
 ARTICLES.sort(key=lambda a: (a['kind'] != 'guide', CATS.index(a['cat'])))
@@ -401,13 +454,14 @@ for a in ARTICLES:
   </header>
   <figure class="ar-img"><img src="{a["img"]}" alt=""></figure>
   {a["body"]}
+  {SOURCES}
   <section class="ar-ask"><h2>Not sure it’s right for you?</h2><p>Send Romie a photo and your concern. She’ll tell you honestly, even if the answer is “you don’t need this”.</p><a class="btn" href="{WA}?text={e(ask_text)}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Ask Romie on WhatsApp</a></section>
   <p class="ar-fine">This guide is general information, not medical advice. Whether a treatment suits you is decided by your doctor at consultation. Prices are reference prices from partner clinics for planning only.</p>
 </article>
 <section class="w ar-related"><h2>Keep reading</h2><div class="jc-grid">{related(a)}</div></section>'''
     url = f'{LIVE}journal/{a["slug"]}.html'
     ld = {'@context': 'https://schema.org', '@graph': [
-        {'@type': 'Article', 'headline': a['title'], 'description': a['excerpt'], 'datePublished': DATE, 'dateModified': DATE, 'url': url,
+        {'@type': 'Article', 'headline': a['title'], 'description': a['excerpt'], 'datePublished': DATE, 'dateModified': DATE, 'url': url, 'wordCount': words(a['body']),
          'author': {'@type': 'Person', 'name': 'Romie', 'jobTitle': 'Founder & coordinator, Glow Up Seoul'},
          'publisher': {'@type': 'Organization', 'name': 'Glow Up Seoul'}, 'inLanguage': 'en'},
         faq_ld(a['faq']),
@@ -417,11 +471,11 @@ for a in ARTICLES:
         f.write(shell('journal', a['title'] + ' · Glow Up Seoul (시안 D)', a['excerpt'], body, pre='../', ld=ld))
 
 # ---------------- journal list ----------------
-feat = BY['first-time-in-korea']
+feat = BY['seoul-skin-treatment-guide']
 chips = ''.join(f'<button type="button" data-f="{e(c)}" aria-pressed="{"true" if i == 0 else "false"}">{e(c)}</button>' for i, c in enumerate(['All'] + CATS))
 jbody = f'''<section class="w ph"><span class="k">Journal</span><h1>Seoul treatments, <mark class="hl">explained simply.</mark></h1>
-  <p class="lead">Short, honest guides to the treatments people ask Romie about most: what it is, how it feels, how long it lasts and roughly what it costs in Seoul.</p>
-  {note("새롬님 의견 반영: 시술 정보는 블로그 글로. 글은 정적 HTML이라 AI 검색(ChatGPT·Perplexity 등)이 읽을 수 있음. 실제 오픈 때 검색 허용(noindex 해제) 필요")}</section>
+  <p class="lead">In-depth, honest guides to the treatments people ask Romie about most: what it is, how it feels, how long it lasts, how it compares and roughly what it costs in Seoul.</p>
+  {note("새롬님 의견 반영: 시술 정보는 블로그 글로, AI 검색용으로 길고 정보성 있게. 글마다 한 줄 답·비교표·준비·관리·질문·출처·날짜. 정적 HTML이라 AI(ChatGPT·Perplexity 등)가 읽을 수 있음. 오픈 때 검색 허용(noindex 해제)·사이트맵·llms.txt 추가 필요")}</section>
 <section class="w">
   <a class="j-feature" href="journal/{feat["slug"]}.html"><img src="{feat["card_img"]}" alt=""><div class="jf-body"><span class="k">Start here</span><h2>{e(feat["title"])}</h2><p>{e(feat["excerpt"])}</p><span class="jc-meta">{feat["mins"]} min read · Romie</span></div></a>
   <div class="j-filter" role="group" aria-label="Filter guides">{chips}</div>
@@ -467,7 +521,7 @@ open(os.path.join(OUT, 'faq.html'), 'w', encoding='utf-8', newline='\n').write(
 # ---------------- home (10/17 v3: short scroll; details live in modals + floating "Ask Romie") ----------------
 dms = ''.join('<div class="g-dm">' + ''.join(f'<p class="g-bub g-bub--{w}">{e(t)}</p>' for w, t in d['m']) + f'<small>{e(d["when"])}</small></div>' for d in D['dms'])
 reels = ''.join(f'<a class="g-reel" href="{reel(r["id"])}" target="_blank" rel="noopener"><img src="../assets/{r["cover"]}" alt="" loading="lazy"><span class="g-reel-k">{e(r["k"])}</span><span class="g-reel-t">{e(r["t"])}</span><span class="g-reel-d">▶ {e(r["dur"])}</span></a>' for r in D['reels'])
-home_cards = ''.join(card(BY[s]) for s in ['first-time-in-korea', 'rejuran', 'ulthera', 'this-or-that', 'botox'])
+home_cards = ''.join(card(BY[s]) for s in ['seoul-skin-treatment-guide', 'first-time-in-korea', 'rejuran', 'ulthera', 'this-or-that', 'botox'])
 HOW = [
     ('match', 'Find the right clinic', 'Tell me what you’d like to change. I send 2–3 verified clinics with honest prices and downtime.'),
     ('with', 'Come with you', 'I book it, translate, and sit next to you at the consultation and treatment. Coming alone is fine.'),
