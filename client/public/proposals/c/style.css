@@ -215,3 +215,17 @@ h1,h2,h3{font-family:var(--display);font-weight:800;letter-spacing:-.03em;line-h
 }
 .md h3{font-size:clamp(20px,5.2vw,26px);margin:26px 0 8px}
 .md h3:first-child{margin-top:0}
+
+/* ---- first-screen: what this service is ---- */
+.t-main .g-svc{position:relative;z-index:1;list-style:none;margin:0 0 20px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:560px}
+.t-main .g-svc li{display:flex;gap:10px;align-items:flex-start;background:rgba(255,255,255,.72);border-radius:var(--r-md);padding:12px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.t-main .g-svc-i{width:32px;height:32px;flex:0 0 auto;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center}
+.t-main .g-svc li:nth-child(4) .g-svc-i{background:var(--coral)}
+.t-main .g-svc-i svg{width:17px;height:17px}
+.t-main .g-svc-t{display:grid;gap:2px;min-width:0}
+.t-main .g-svc-t b{font:700 13.5px/1.2 var(--body)}
+.t-main .g-svc-t small{font-size:12px;line-height:1.3;color:#4A535E}
+.t-main p{margin:14px 0 16px}
+@supports (corner-shape:squircle){.t-main .g-svc li{corner-shape:squircle}}
+.fc{font-family:var(--body)}
+.fc-who b{font-family:var(--display);font-weight:800;letter-spacing:-.02em}

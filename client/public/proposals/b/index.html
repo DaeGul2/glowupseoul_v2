@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
-<link rel="stylesheet" href="../shared/base.css?v=10">
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="../shared/base.css?v=14">
+<link rel="stylesheet" href="style.css?v=14">
 </head>
 <body data-site="b" data-page="home">
 <div data-gus="header"></div>
@@ -19,11 +19,13 @@
 
 <section class="w hero">
   <div>
+    <span class="k hero-k">Medical beauty concierge · Seoul</span>
     <h1>Your friend in Seoul for <mark>clinics.</mark></h1>
-    <p>I’m Romie. I find the right clinic for you (not the loudest one), come with you on the day, and keep checking on you after you fly home. It’s free for you.</p>
+    <p>I’m Romie. I match international patients with verified skin &amp; plastic surgery clinics, come with you on the day, and look after you once you’re home.</p>
+    <div data-gus="service"></div>
     <div class="btns">
       <a class="btn" href="https://wa.me/821064871060" data-wa="Hi Romie! 👋"><span class="ico-wa" aria-hidden="true"></span>Text me on WhatsApp</a>
-      <a class="btn o" href="faq.html">Questions?</a>
+      <a class="btn o" href="faq.html">FAQ</a>
     </div>
     <div data-gus="status"></div>
   </div>
@@ -70,7 +72,11 @@
 
 <section class="w">
   <div class="sh"><span class="k">FAQ</span><h2>You’re probably wondering…</h2></div>
-  <div data-gus="faq" data-ids="free,start,alone,trust,know,cheap"></div>
+  <div data-views="chat">
+  <div class="vt" role="group" aria-label="How to view the FAQ"><button type="button" data-view-btn="chat">💬 Chat with Romie</button><button type="button" data-view-btn="list">☰ All questions</button></div>
+  <div data-view="chat"><div data-gus="faqchat" data-ids="start,alone,trust,know,cheap,free,when,days,wrong"></div></div>
+  <div data-view="list" hidden><div data-gus="faq" data-ids="free,start,alone,trust,know,cheap"></div></div>
+  </div>
   <a class="more" href="faq.html">All 22 questions →</a>
 </section>
 
@@ -99,8 +105,8 @@
 
 </main>
 <div data-gus="footer"></div>
-<script src="../shared/data.js?v=10"></script>
+<script src="../shared/data.js?v=14"></script>
 <script>window.GUS.site={logo:'glow<i></i>up seoul',cta:'Text Romie',barLabel:'Text Romie on WhatsApp',nav:[['home','index.html','Home'],['faq','faq.html','FAQ']]};</script>
-<script src="../shared/app.js?v=10"></script>
+<script src="../shared/app.js?v=14"></script>
 </body>
 </html>

@@ -17,6 +17,19 @@ window.GUS.data = {
     address: 'Gangnam-gu, Seoul',   // TODO 새롬님: 상세 주소
   },
 
+  // 첫 화면 "이게 뭐 하는 서비스인지" — 세 시안 공통
+  service: {
+    label: 'Medical beauty concierge · Seoul',
+    line: 'We match international patients with verified skin and plastic surgery clinics in Seoul, go with you on the day, and look after you once you’re home.',
+    points: [
+      { ico: 'match', t: 'Clinic matching', d: '2–3 verified clinics for your concern, with honest prices' },
+      { ico: 'with', t: 'With you on the day', d: 'Booking, interpreting and a coordinator by your side' },
+      { ico: 'care', t: 'Aftercare', d: 'Check-ins on day 1, 7 and 30, even back home' },
+      { ico: 'free', t: 'Free for patients', d: 'Clinics pay us, only after your treatment' },
+    ],
+    trust: 'Registered with Korea’s Ministry of Health & Welfare · 500+ patients from 25+ countries',
+  },
+
   // 인스타 릴스에서 뽑은 실사 (자막 없는 프레임). 고화질 원본 받으면 assets/ 에서 같은 이름으로 교체.
   photos: [
     { id: 'mic', src: 'romie-mic.jpg', cap: 'Street interviews in Gangnam', alt: 'Romie holding a microphone on a Gangnam street', pos: '50% 25%' },

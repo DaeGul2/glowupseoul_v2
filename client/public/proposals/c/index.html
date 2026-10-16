@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@600;700;800&family=Onest:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="../shared/base.css?v=10">
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="../shared/base.css?v=14">
+<link rel="stylesheet" href="style.css?v=14">
 </head>
 <body data-site="c" data-page="home">
 <div data-gus="header"></div>
@@ -18,9 +18,10 @@
 <section class="w">
   <div class="bento">
     <div class="tile t-main">
-      <span class="k" style="background:rgba(255,255,255,.75);align-self:flex-start;position:relative;z-index:1">Korean beauty concierge</span>
+      <span class="k" style="background:rgba(255,255,255,.75);align-self:flex-start;position:relative;z-index:1">Medical beauty concierge · Seoul</span>
       <h1 style="margin-top:16px">Glow up in Seoul. <em>Minus the guesswork.</em></h1>
-      <p>Pick what you want to fix. Romie finds the right clinic, comes with you on the day, and checks on you after.</p>
+      <p>We match international patients with verified skin &amp; plastic surgery clinics in Seoul, go with you on the day, and look after you once you’re home.</p>
+      <div data-gus="service"></div>
       <div class="btns" style="position:relative;z-index:1">
         <a class="btn coral" href="https://wa.me/821064871060" data-wa="Hi Romie! 👋"><span class="ico-wa" aria-hidden="true"></span>Text Romie</a>
         <a class="btn ghost" href="treatments.html">See the menu</a>
@@ -53,7 +54,11 @@
 
 <section class="w">
   <div class="sh"><h2>Quick answers</h2><a class="more" href="faq.html">All FAQ →</a></div>
-  <div data-gus="faq" data-ids="free,start,alone,trust,cheap"></div>
+  <div data-views="chat">
+  <div class="vt" role="group" aria-label="How to view the FAQ"><button type="button" data-view-btn="chat">💬 Chat with Romie</button><button type="button" data-view-btn="list">☰ All questions</button></div>
+  <div data-view="chat"><div data-gus="faqchat" data-ids="start,alone,trust,cheap,free,know,when,prices,wrong"></div></div>
+  <div data-view="list" hidden><div data-gus="faq" data-ids="free,start,alone,trust,cheap"></div></div>
+  </div>
 </section>
 
 <section class="w sec">
@@ -64,8 +69,8 @@
 </section>
 </main>
 <div data-gus="footer"></div>
-<script src="../shared/data.js?v=10"></script>
+<script src="../shared/data.js?v=14"></script>
 <script>window.GUS.site={logo:'glowup<b>.</b>seoul',cta:'Text Romie',barLabel:'Text Romie on WhatsApp',nav:[['home','index.html','Home'],['treatments','treatments.html','Menu'],['faq','faq.html','FAQ']]};</script>
-<script src="../shared/app.js?v=10"></script>
+<script src="../shared/app.js?v=14"></script>
 </body>
 </html>

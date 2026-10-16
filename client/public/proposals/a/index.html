@@ -10,14 +10,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="../shared/base.css?v=10">
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="../shared/base.css?v=14">
+<link rel="stylesheet" href="style.css?v=14">
 </head>
 <body data-site="a" data-page="home">
 <div class="app">
   <aside class="side">
-    <h1>Text <span>Romie.</span></h1>
-    <p>Your friend in Seoul for clinics. She finds the right one, comes with you, and keeps checking on you after you fly home.</p>
+    <span class="side-k">Medical beauty concierge · Seoul</span>
+    <h2 class="side-h">Text <span>Romie.</span></h2>
+    <p>She matches you with a verified clinic in Seoul, goes with you on the day, and checks on you after you fly home. Free for patients.</p>
     <ul class="facts"><li><b>500+</b>patients from 25+ countries</li><li><b>₩0</b>for you, always</li><li><b>24h</b>personal reply</li></ul>
     <p style="font-size:13px">Registered with Korea’s Ministry of Health &amp; Welfare</p>
   </aside>
@@ -28,6 +29,17 @@
       <div class="who"><b>Romie · Glow Up Seoul</b><span data-gus="status" data-short="1"></span></div>
       <a href="https://wa.me/821064871060" data-wa="Hi Romie! 👋"><span class="ico-wa" aria-hidden="true"></span>WhatsApp</a>
     </header>
+
+    <section class="pin" aria-label="About Glow Up Seoul">
+      <div class="pin-top">
+        <span class="pin-badge">Glow Up Seoul</span>
+        <span class="pin-k">Medical beauty concierge · Seoul</span>
+      </div>
+      <h1 class="pin-h">Your clinic trip to Seoul, handled by one person.</h1>
+      <p class="pin-line">We match international patients with verified skin and plastic surgery clinics, go with you on the day, and look after you once you’re home.</p>
+      <div data-gus="service"></div>
+      <p class="pin-trust">✓ Registered with Korea’s Ministry of Health &amp; Welfare · 500+ patients · 25+ countries</p>
+    </section>
 
     <div class="thread" id="thread" aria-live="polite"></div>
     <div class="legal" id="legal"></div>
@@ -49,9 +61,9 @@
   </aside>
 </div>
 
-<script src="../shared/data.js?v=10"></script>
+<script src="../shared/data.js?v=14"></script>
 <script>window.GUS.site={noBar:true};</script>
-<script src="../shared/app.js?v=10"></script>
+<script src="../shared/app.js?v=14"></script>
 <script>
 (function () {
   const G = window.GUS, D = G.data, esc = G.esc, A = G.asset;
@@ -74,10 +86,10 @@
 
   /* ---------- the conversation ---------- */
   day('Today');
+  add('them', 'Hi! I’m <b>Romie</b>, the coordinator behind Glow Up Seoul 👋');
+  add('them', 'I help people from abroad find the <b>right</b> clinic in Seoul. Not the loudest one on TikTok.');
   const mic = photo('mic');
   add('them', `<img src="${A(mic.src)}" alt="${esc(mic.alt)}"><p class="cap">That’s me, interviewing people in Gangnam 🎤</p>`, 'b-img');
-  add('them', 'Hi! I’m <b>Romie</b> 👋');
-  add('them', 'I help people from abroad find the <b>right</b> clinic in Seoul. Not the loudest one on TikTok.');
   add('them', 'Then I come with you. I book it, translate, sit next to you, and keep checking on you after you fly home.');
   add('them', `<div class="b-stats">${D.stats.map((s) => `<div><b>${esc(s.n)}</b><span>${esc(s.l)}</span></div>`).join('')}<p class="reg">Registered with Korea’s Ministry of Health &amp; Welfare ${G.note('등록번호 표시')}</p></div>`, 'b-plain');
   add('me', 'Wait, how much does that cost?');

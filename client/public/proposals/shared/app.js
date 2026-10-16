@@ -93,7 +93,7 @@
     const hm = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
     const h = parseInt(hm.slice(0, 2), 10);
     const open = h >= C.hoursKST[0] && h < C.hoursKST[1];
-    return { open, hm, text: open ? `Online now · ${hm} in Seoul` : `Replies from 9am Seoul time · now ${hm}`, short: open ? 'Online now' : `Replies from 9am KST · ${hm} now` };
+    return { open, hm, text: open ? `Online now · ${hm} in Seoul` : `Replies from 9am Seoul time · now ${hm}`, short: open ? 'Online now' : 'Back at 9am Seoul time' };
   };
 
   /* review bar */
@@ -155,7 +155,16 @@
   }
 
   /* content blocks */
+  const ICO = {
+    match: '<circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4M8 11l2 2 4-4"/>',
+    with: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.6"/><path d="M15.6 14.3A5 5 0 0 1 21.5 19"/>',
+    care: '<path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3.5 20.5l1.4-4.6A8.5 8.5 0 1 1 21 11.5z"/><path d="M12.3 15l-2.7-2.6a1.8 1.8 0 0 1 2.7-2.3 1.8 1.8 0 0 1 2.7 2.3z"/>',
+    free: '<path d="M3 12.2V4h8.2L21 13.8 13.8 21z"/><circle cx="7.6" cy="7.6" r="1.4"/>',
+  };
+  G.ico = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[k] || ''}</svg>`;
   const blocks = {
+    service: () => `<ul class="g-svc">${D.service.points.map((p) => `<li><span class="g-svc-i">${G.ico(p.ico)}</span><span class="g-svc-t"><b>${esc(p.t)}</b><small>${esc(p.d)}</small></span></li>`).join('')}</ul>`,
+    trust: () => `<p class="g-trust">${esc(D.service.trust)}</p>`,
     status: (el) => { const s = G.status(); return `<span class="g-status${s.open ? ' is-open' : ''}"><i></i>${esc(el.dataset.short ? s.short : s.text)}</span>`; },
     stats: () => `<ul class="g-stats">${D.stats.map((s) => `<li><b>${esc(s.n)}</b><span>${esc(s.l)}</span></li>`).join('')}</ul>`,
     steps: () => `<ol class="g-steps">${D.steps.map((s, i) => `<li><span class="g-step-n">${i + 1}</span><h3>${esc(s.t)}</h3><p>${esc(s.get)}</p><small>${esc(s.time)}</small></li>`).join('')}</ol>`,
@@ -200,6 +209,73 @@
     if (!id) return;
     const d = el.querySelector('#' + CSS.escape(id));
     if (d && d.tagName === 'DETAILS') { d.open = true; setTimeout(() => d.scrollIntoView({ block: 'center' }), 60); }
+  }
+
+  /* FAQ as a KakaoTalk-style chat (시안 B·C, A 참고) */
+  function mountFAQChat(el) {
+    const AV = ASSETS + 'romie-closeup.jpg';
+    const st = G.status();
+    const ids = (el.dataset.ids || '').split(',').filter(Boolean);
+    const order = ids.length ? ids : ['start', 'alone', 'trust', 'know', 'cheap', 'free', 'botoxbooster', 'skinbotox', 'when', 'days', 'wrong', 'area', 'lang', 'prices', 'pay', 'visa', 'tiktok', 'laser', 'copy', 'bumps', 'home', 'what'];
+    el.innerHTML = `<div class="fc">
+  <div class="fc-top"><img src="${AV}" alt=""><div class="fc-who"><b>Romie</b><span class="g-status${st.open ? ' is-open' : ''}"><i></i>${esc(st.short)}</span></div><a href="${G.wa('Hi Romie! 👋')}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>WhatsApp</a></div>
+  <div class="fc-thread" role="log" aria-live="polite"><p class="fc-day">Today</p></div>
+  <div class="fc-dock"><div class="fc-chips" aria-label="Questions"></div>
+    <form class="fc-comp"><label class="sr" for="fc-in-${el.dataset.k || 'x'}">Your question</label><input id="fc-in-${el.dataset.k || 'x'}" type="text" placeholder="Or type your own question…" autocomplete="off" enterkeyhint="send"><button type="submit" aria-label="Send on WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></form>
+  </div>
+</div>`;
+    const th = el.querySelector('.fc-thread');
+    const chips = el.querySelector('.fc-chips');
+    let last = null;
+    const add = (who, html, cls) => {
+      const r = document.createElement('div');
+      const first = who !== last; last = who;
+      r.className = 'fc-row fc-' + who + (first ? ' first' : '');
+      r.innerHTML = (who === 'them' ? `<img class="fc-av" src="${AV}" alt="">` : '') + `<div class="fc-col">${first && who === 'them' ? '<span class="fc-name">Romie</span>' : ''}<div class="fc-b ${cls || ''}">${html}</div></div>`;
+      th.appendChild(r);
+      return r;
+    };
+    const down = () => th.scrollTo({ top: th.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    const answer = (f) => esc(f.a) + (f.note ? ' ' + G.note(f.note) : '') + (f.reel ? `<a class="fc-reel" href="${G.reel(f.reel)}" target="_blank" rel="noopener">▶ Watch me answer this</a>` : '');
+    const asked = new Set();
+    const render = () => {
+      const left = order.filter((id) => !asked.has(id)).map((id) => D.faq.find((f) => f.id === id)).filter(Boolean);
+      chips.innerHTML = left.map((f, i) => `<button type="button" data-q="${f.id}"${i === 0 ? ' class="hot"' : ''}>${esc(f.q)}</button>`).join('') || `<a class="hot" href="${G.wa('Hi Romie! I have a question: ')}" target="_blank" rel="noopener">Ask Romie on WhatsApp</a>`;
+    };
+    add('them', 'Hi! I’m Romie 👋 Ask me anything about coming to Seoul for treatment. Tap a question below.');
+    const pre = D.faq.find((f) => f.id === 'what');
+    if (pre) { asked.add('what'); add('me', esc(pre.q)); add('them', answer(pre)); }
+    render();
+    chips.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-q]');
+      if (!b) return;
+      const f = D.faq.find((x) => x.id === b.dataset.q);
+      asked.add(f.id); render();
+      add('me', esc(f.q), 'pop');
+      const ty = add('them', '<span class="fc-typing"><i></i><i></i><i></i></span>', 'fc-plain');
+      down();
+      setTimeout(() => { const bb = ty.querySelector('.fc-b'); bb.className = 'fc-b pop'; bb.innerHTML = answer(f); down(); }, 700);
+    });
+    el.querySelector('.fc-comp').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const inp = e.currentTarget.querySelector('input');
+      const t = inp.value.trim();
+      if (!t) { inp.focus(); return; }
+      window.open(G.wa('Hi Romie! ' + t), '_blank', 'noopener');
+      add('me', esc(t), 'pop');
+      add('them', 'WhatsApp just opened with your question. Hit send there and I’ll reply personally 💬', 'pop');
+      inp.value = ''; down();
+    });
+  }
+
+  /* chat / list toggle */
+  function wireViews() {
+    document.querySelectorAll('[data-views]').forEach((box) => {
+      const btns = box.querySelectorAll('[data-view-btn]');
+      const set = (v) => { btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.viewBtn === v))); box.querySelectorAll('[data-view]').forEach((p) => (p.hidden = p.dataset.view !== v)); };
+      btns.forEach((b) => b.addEventListener('click', () => set(b.dataset.viewBtn)));
+      set(/^#faq-/.test(location.hash) ? 'list' : box.dataset.views || 'chat');
+    });
   }
 
   /* catalog (시안 C) */
@@ -334,8 +410,17 @@ ${rel.length ? `<section class="td-sec"><h2>Also worth a look</h2><div class="tc
     else if (k === 'detail') mountDetail(el);
     else if (k === 'concerns') mountConcerns(el);
     else if (k === 'contact') mountContact(el);
+    else if (k === 'faqchat') mountFAQChat(el);
     else if (blocks[k]) el.innerHTML = blocks[k](el);
   });
+  wireViews();
+  /* hide the floating WhatsApp bar while a chat widget is on screen (it has its own composer) */
+  const gbar = document.querySelector('.gbar');
+  if (gbar && 'IntersectionObserver' in window) {
+    const seen = new Set();
+    const io = new IntersectionObserver((es) => { es.forEach((e) => (e.isIntersecting ? seen.add(e.target) : seen.delete(e.target))); gbar.classList.toggle('is-hidden', seen.size > 0); }, { rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.fc-dock').forEach((d) => io.observe(d));
+  }
   document.querySelectorAll('[data-wa]').forEach((a) => { a.href = G.wa(a.dataset.wa); a.target = '_blank'; a.rel = 'noopener'; });
   document.querySelectorAll('[data-src]').forEach((im) => { im.src = ASSETS + im.dataset.src; });
 })();

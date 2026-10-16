@@ -9,19 +9,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@600;700;800&family=Onest:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="../shared/base.css?v=10">
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="../shared/base.css?v=14">
+<link rel="stylesheet" href="style.css?v=14">
 </head>
 <body data-site="c" data-page="faq">
 <div data-gus="header"></div>
 <main id="main">
 <section class="w ph"><span class="k">22 questions</span><h1 style="margin-top:12px">Quick answers.</h1><p>The things everyone asks before their first trip. Many of them Romie answered on camera too.</p></section>
-<section class="w"><div data-gus="faq"></div></section>
+<section class="w" data-views="chat">
+  <div class="vt" role="group" aria-label="How to view the FAQ"><button type="button" data-view-btn="chat">💬 Chat with Romie</button><button type="button" data-view-btn="list">☰ All questions</button></div>
+  <div data-view="chat"><div data-gus="faqchat"></div></div>
+  <div data-view="list" hidden><div data-gus="faq"></div></div>
+</section>
 <section class="w sec"><div class="ask"><div><h2>Still wondering?</h2><p>Ask Romie directly. She replies personally.</p></div><div data-gus="contact"></div></div></section>
 </main>
 <div data-gus="footer"></div>
-<script src="../shared/data.js?v=10"></script>
+<script src="../shared/data.js?v=14"></script>
 <script>window.GUS.site={logo:'glowup<b>.</b>seoul',cta:'Text Romie',barLabel:'Text Romie on WhatsApp',nav:[['home','index.html','Home'],['treatments','treatments.html','Menu'],['faq','faq.html','FAQ']]};</script>
-<script src="../shared/app.js?v=10"></script>
+<script src="../shared/app.js?v=14"></script>
 </body>
 </html>
