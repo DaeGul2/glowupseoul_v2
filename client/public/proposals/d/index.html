@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
-<link rel="stylesheet" href="../shared/base.css?v=21">
-<link rel="stylesheet" href="style.css?v=21">
+<link rel="stylesheet" href="../shared/base.css?v=24">
+<link rel="stylesheet" href="style.css?v=24">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "Glow Up Seoul", "url": "https://glowupseoul.onrender.com/proposals/d/", "description": "We match international patients with verified skin and plastic surgery clinics in Seoul, go with you on the day, and look after you once you’re home.", "founder": {"@type": "Person", "name": "Romie"}, "sameAs": ["https://www.instagram.com/glowupseoul/"], "contactPoint": {"@type": "ContactPoint", "contactType": "customer service", "telephone": "+82-10-6487-1060", "availableLanguage": ["English", "Chinese", "Indonesian"]}}</script>
 </head>
 <body data-site="d" data-page="home">
@@ -29,7 +29,7 @@
       <span class="k soft" style="align-self:flex-start">Medical beauty concierge · Seoul</span>
       <h1>Your friend in Seoul for <mark class="hl">clinics.</mark></h1>
       <p class="lead">I’m Romie. I match international patients with verified skin &amp; plastic surgery clinics, come with you on the day, and look after you once you’re home.</p>
-      <div class="btns"><a class="btn" href="https://wa.me/821064871060?text=Hi Romie! 👋" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Text me on WhatsApp</a><a class="btn o" href="faq.html">Questions?</a></div>
+      <div class="btns"><a class="btn" href="https://wa.me/821064871060?text=Hi Romie! 👋" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Text me on WhatsApp</a><button type="button" class="btn o" data-open="m-how" aria-haspopup="dialog">How it works</button></div>
       <p class="trust">✓ Free for patients &nbsp;·&nbsp; ✓ Registered with Korea’s Ministry of Health &amp; Welfare &nbsp;·&nbsp; ✓ 500+ patients</p>
     </div>
     <div class="tile t-collage" aria-label="Photos from Romie's Instagram">
@@ -41,15 +41,18 @@
   </div>
 </section>
 
-<section class="w sec">
-  <div class="sh"><span class="k">how it works</span><h2>One person, start to finish.</h2></div>
-  <ul class="how4"><li><span class="hw-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4M8 11l2 2 4-4"/></svg></span><h3>Find the right clinic</h3><p>Tell me what you’d like to change. I send 2–3 verified clinics with honest prices.</p></li><li><span class="hw-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.6"/><path d="M15.6 14.3A5 5 0 0 1 21.5 19"/></svg></span><h3>Come with you</h3><p>I book it, translate, and sit next to you on the day. Coming alone is fine.</p></li><li><span class="hw-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3.5 20.5l1.4-4.6A8.5 8.5 0 1 1 21 11.5z"/><path d="M12.3 15l-2.7-2.6a1.8 1.8 0 0 1 2.7-2.3 1.8 1.8 0 0 1 2.7 2.3z"/></svg></span><h3>Check on you after</h3><p>Day 1, 7 and 30, even after you fly home.</p></li><li><span class="hw-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12.2V4h8.2L21 13.8 13.8 21z"/><circle cx="7.6" cy="7.6" r="1.4"/></svg></span><h3>Free for you</h3><p>Clinics pay us, only after your treatment.</p></li></ul>
-  <span class="note">무료·수수료 구조 = 현 glowupseoul.com 문구 기준. 확인 필요</span>
+<section class="w qsec" aria-label="Explore">
+  <div class="qt-grid">
+    <button type="button" class="qt qt-how" data-open="m-how" aria-haspopup="dialog"><span class="qt-k">How it works</span><b>One person, start to finish</b><span class="qt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.6"/><path d="M15.6 14.3A5 5 0 0 1 21.5 19"/></svg></span><span class="qt-go" aria-hidden="true">↗</span></button>
+    <button type="button" class="qt qt-faq" data-open="m-chat" aria-haspopup="dialog"><span class="qt-k">FAQ</span><b>Ask me anything</b><span class="qt-bub">Can I come alone?</span><span class="qt-go" aria-hidden="true">↗</span></button>
+    <button type="button" class="qt qt-msgs" data-open="m-msgs" aria-haspopup="dialog"><span class="qt-k">From patients</span><b>Real messages</b><span class="qt-bub">Romieeee is it normal that I still have some bumps on my skin? 😭</span><span class="qt-go" aria-hidden="true">↗</span></button>
+    <button type="button" class="qt qt-reels" data-open="m-reels" aria-haspopup="dialog"><span class="qt-k">Instagram</span><b>Watch me answer</b><img src="../assets/cover-street1.jpg" alt="" loading="lazy"><span class="qt-go" aria-hidden="true">↗</span></button>
+  </div>
 </section>
 
-<section class="w">
-  <div class="sh-row sh"><div style="display:grid;gap:12px"><span class="k butter" style="justify-self:start">journal</span><h2>Romie’s guides.</h2></div><a class="more" href="journal.html">All 19 →</a></div>
-  <div class="jc-row jc-3"><a class="jc guide" href="journal/first-time-in-korea.html" data-cat="Guides">
+<section class="w qsec">
+  <div class="sh-row sh"><div style="display:grid;gap:10px"><span class="k butter" style="justify-self:start">journal</span><h2>Romie’s guides.</h2></div><a class="more" href="journal.html">All 19 →</a></div>
+  <div class="jc-row"><a class="jc guide" href="journal/first-time-in-korea.html" data-cat="Guides">
   <span class="jc-img"><img src="../assets/romie-closeup.jpg" alt="" loading="lazy" decoding="async"></span>
   <span class="jc-body"><span class="jc-cat">Guides</span><span class="jc-t">Your first treatment in Korea: where to start</span><span class="jc-ex">Start with a skin booster, know what you want before you walk in, and give yourself 1–2 days in Seoul.</span><span class="jc-meta">3 min read · Romie</span></span>
 </a><a class="jc" href="journal/rejuran.html" data-cat="Skin boosters">
@@ -58,34 +61,13 @@
 </a><a class="jc" href="journal/ulthera.html" data-cat="Lifting">
   <span class="jc-img"><img src="../assets/tx/ulthera.jpg" alt="" loading="lazy" decoding="async"></span>
   <span class="jc-body"><span class="jc-cat">Lifting</span><span class="jc-t">Ulthera</span><span class="jc-ex">Non-invasive HIFU lifting that targets the SMAS layer.</span><span class="jc-meta">3 min read · Romie</span></span>
+</a><a class="jc guide" href="journal/this-or-that.html" data-cat="Guides">
+  <span class="jc-img"><img src="../assets/romie-red.jpg" alt="" loading="lazy" decoding="async"></span>
+  <span class="jc-body"><span class="jc-cat">Guides</span><span class="jc-t">Botox or skin booster? Booster or laser? Gangnam or Apgujeong?</span><span class="jc-ex">Three choices everyone asks about, answered the way Romie answers friends.</span><span class="jc-meta">3 min read · Romie</span></span>
+</a><a class="jc" href="journal/botox.html" data-cat="Injectables">
+  <span class="jc-img"><img src="../assets/tx/botox.jpg" alt="" loading="lazy" decoding="async"></span>
+  <span class="jc-body"><span class="jc-cat">Injectables</span><span class="jc-t">Botox</span><span class="jc-ex">Relaxes muscles for a slimmer jaw or smoother lines.</span><span class="jc-meta">3 min read · Romie</span></span>
 </a></div>
-</section>
-
-<section class="w sec">
-  <div class="sh-row sh"><div style="display:grid;gap:12px"><span class="k">FAQ</span><h2>Ask me anything.</h2></div><a class="more" href="faq.html">All 22 →</a></div>
-  <div data-gus="faqchat" data-ids="start,alone,trust,know,cheap,free,when,days,wrong"></div>
-</section>
-
-<section class="w">
-  <div class="dmz">
-    <div class="sh"><span class="k">from patients</span><h2>Real messages.</h2></div>
-    <div class="g-dms"><div class="g-dm"><p class="g-bub g-bub--them">Romieeee is it normal that I still have some bumps on my skin? 😭</p><p class="g-bub g-bub--me">Ohh it depends on your skin type, but sometimes it takes 1–2 weeks!</p><p class="g-bub g-bub--them">Oh okay good!!!! Thanks haha ❤️</p><small>3 days after treatment</small></div><div class="g-dm"><p class="g-bub g-bub--them">I’m doing well! A bit sore, strong headache, but just icing and elevating. 10am is perfect tomorrow!</p><p class="g-bub g-bub--me">Keep icing and resting well tonight. I’ll schedule the cab for 10am tomorrow as planned. Let me know if you need anything at all!</p><small>Surgery, night 1</small></div><div class="g-dm"><p class="g-bub g-bub--me">I was so happy to have you as my first client from Austria 😊 Safe travels back home</p><p class="g-bub g-bub--them">Thank you, it was really nice to meet you in person. I hope we can ski together next year in Austria!</p><small>Flight home</small></div></div>
-    <span class="note">인스타 캐러셀 DM 캡처를 텍스트로 옮김. 게재 전 당사자 동의 재확인</span>
-  </div>
-</section>
-
-<section class="w sec">
-  <div class="sh-row sh"><div style="display:grid;gap:12px"><span class="k">instagram</span><h2>Seoul Skin Talk.</h2></div><a class="more" href="https://www.instagram.com/glowupseoul/" target="_blank" rel="noopener">@glowupseoul →</a></div>
-  <div class="g-reels"><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DbXgZs9BYgr/" target="_blank" rel="noopener"><img src="../assets/cover-qa-concierge.jpg" alt="" loading="lazy"><span class="g-reel-k">Q&amp;A</span><span class="g-reel-t">What does a beauty concierge do?</span><span class="g-reel-d">▶ 0:52</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DcIzInAh49R/" target="_blank" rel="noopener"><img src="../assets/cover-qa-trust.jpg" alt="" loading="lazy"><span class="g-reel-k">Q&amp;A</span><span class="g-reel-t">How do you know a clinic is trustworthy?</span><span class="g-reel-d">▶ 0:57</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DbvLWIuh8kj/" target="_blank" rel="noopener"><img src="../assets/cover-qa-mistakes.jpg" alt="" loading="lazy"><span class="g-reel-k">Q&amp;A</span><span class="g-reel-t">The biggest mistake foreigners make</span><span class="g-reel-d">▶ 1:35</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DbA-y2eh02k/" target="_blank" rel="noopener"><img src="../assets/cover-thisorthat.jpg" alt="" loading="lazy"><span class="g-reel-k">This or that</span><span class="g-reel-t">Botox or skin boosters?</span><span class="g-reel-d">▶ 1:34</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DbHTuuaBNYt/" target="_blank" rel="noopener"><img src="../assets/cover-qa-take.jpg" alt="" loading="lazy"><span class="g-reel-k">Hot take</span><span class="g-reel-t">Never book the cheapest clinic</span><span class="g-reel-d">▶ 0:51</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DacMHY4hqbU/" target="_blank" rel="noopener"><img src="../assets/cover-street1.jpg" alt="" loading="lazy"><span class="g-reel-k">Street</span><span class="g-reel-t">What do Koreans actually get done?</span><span class="g-reel-d">▶ 1:49</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DauBo70hiDR/" target="_blank" rel="noopener"><img src="../assets/cover-street-men.jpg" alt="" loading="lazy"><span class="g-reel-k">Street</span><span class="g-reel-t">Korean men’s skincare secrets</span><span class="g-reel-d">▶ 1:33</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/Da9yI06h4-i/" target="_blank" rel="noopener"><img src="../assets/cover-street-girls.jpg" alt="" loading="lazy"><span class="g-reel-k">Street</span><span class="g-reel-t">Would Korean girls recommend clinics?</span><span class="g-reel-d">▶ 1:47</span></a></div>
-</section>
-
-<section class="w">
-  <div class="end2">
-    <h2>Say hi.</h2>
-    <p>Tell me what you’d like to change and roughly when you’re coming. That’s enough to start.</p>
-    <a class="btn" href="https://wa.me/821064871060?text=Hi Romie! 👋 I&#x27;m thinking about coming to Seoul." target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Text Romie on WhatsApp</a>
-    <small>WhatsApp +82 10 6487 1060 · WeChat glowupseoul · glowupinseoul@gmail.com</small>
-  </div>
 </section>
 </main>
 <footer class="gf"><div class="gf-in">
@@ -99,8 +81,34 @@
   </div>
   <p class="gf-legal">Glow Up Seoul · Foreign Patient Attraction Agency registered with the Ministry of Health &amp; Welfare, Korea · Reg. no. <span class="note">등록번호</span> · Business no. <span class="note">사업자번호</span> · Gangnam-gu, Seoul<br>We’re a concierge, not a clinic. Medical decisions are made between you and your doctor. © 2026 Glow Up Seoul</p>
 </div></footer>
-<script src="../shared/data.js?v=21"></script>
-<script>window.GUS.site={barLabel:'Text Romie on WhatsApp'};</script>
-<script src="../shared/app.js?v=21"></script>
+<div class="fab-wrap">
+  <a class="fab-wa" href="https://wa.me/821064871060?text=Hi Romie! 👋" target="_blank" rel="noopener" aria-label="Message Romie on WhatsApp"><span class="ico-wa" aria-hidden="true"></span></a>
+  <button type="button" class="fab" data-open="m-chat" aria-haspopup="dialog"><img src="../assets/romie-closeup.jpg" alt=""><span>Ask Romie</span></button>
+</div>
+<dialog class="sheet" id="m-chat" aria-labelledby="m-chat-t"><div class="sheet-in">
+  <header class="sheet-h"><div><h2 id="m-chat-t">Ask Romie</h2><p class="sheet-sub"><span data-gus="status"></span> · <a href="https://wa.me/821064871060?text=Hi Romie! 👋" target="_blank" rel="noopener">WhatsApp</a></p></div><button type="button" class="sheet-x" data-close aria-label="Close">×</button></header>
+  <div class="sheet-b"><div data-gus="faqchat" data-ids="start,alone,trust,know,cheap,free,when,days,wrong,botoxbooster,area"></div><p class="sheet-more"><a href="faq.html">See all 22 questions as a list →</a></p></div>
+</div></dialog>
+<dialog class="sheet" id="m-how" aria-labelledby="m-how-t"><div class="sheet-in">
+  <header class="sheet-h"><div><h2 id="m-how-t">How it works</h2></div><button type="button" class="sheet-x" data-close aria-label="Close">×</button></header>
+  <div class="sheet-b"><ul class="how-list"><li><span class="hw-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4M8 11l2 2 4-4"/></svg></span><div><h3>Find the right clinic</h3><p>Tell me what you’d like to change. I send 2–3 verified clinics with honest prices and downtime.</p></div></li><li><span class="hw-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.6"/><path d="M15.6 14.3A5 5 0 0 1 21.5 19"/></svg></span><div><h3>Come with you</h3><p>I book it, translate, and sit next to you at the consultation and treatment. Coming alone is fine.</p></div></li><li><span class="hw-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3.5 20.5l1.4-4.6A8.5 8.5 0 1 1 21 11.5z"/><path d="M12.3 15l-2.7-2.6a1.8 1.8 0 0 1 2.7-2.3 1.8 1.8 0 0 1 2.7 2.3z"/></svg></span><div><h3>Check on you after</h3><p>Day 1, 7 and 30, even after you fly home. Send me a photo any time.</p></div></li><li><span class="hw-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12.2V4h8.2L21 13.8 13.8 21z"/><circle cx="7.6" cy="7.6" r="1.4"/></svg></span><div><h3>Free for you</h3><p>Clinics pay us a referral fee, only after your treatment. You pay the clinic the normal price.</p></div></li></ul>
+<span class="note">무료·수수료 구조 = 현 glowupseoul.com 문구 기준. 확인 필요</span>
+<h3 class="sheet-h3">What’s included</h3>
+<div class="tiers2">
+  <div><h4>Care <small>skin · free</small></h4><ul><li>1:1 with Romie from day one</li><li>Verified clinic match</li><li>With you on the day</li><li>1-week check-in</li></ul></div>
+  <div><h4>Premium Care <small>surgery · free</small></h4><ul><li>Everything in Care</li><li>Airport pickup</li><li>Pharmacy + medication covered</li><li>Day 1 · 7 · 30 check-ins</li></ul></div>
+</div>
+<a class="btn sheet-cta" href="https://wa.me/821064871060?text=Hi Romie! 👋" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Start on WhatsApp</a></div>
+</div></dialog><dialog class="sheet" id="m-msgs" aria-labelledby="m-msgs-t"><div class="sheet-in">
+  <header class="sheet-h"><div><h2 id="m-msgs-t">Real messages</h2><p class="sheet-sub">Shared with permission. Names removed.</p></div><button type="button" class="sheet-x" data-close aria-label="Close">×</button></header>
+  <div class="sheet-b"><div class="g-dms"><div class="g-dm"><p class="g-bub g-bub--them">Romieeee is it normal that I still have some bumps on my skin? 😭</p><p class="g-bub g-bub--me">Ohh it depends on your skin type, but sometimes it takes 1–2 weeks!</p><p class="g-bub g-bub--them">Oh okay good!!!! Thanks haha ❤️</p><small>3 days after treatment</small></div><div class="g-dm"><p class="g-bub g-bub--them">They gave me little stickers to replace every two days, said only moisturizer on my neck and no running</p><p class="g-bub g-bub--me">It looks amazing 😍 I’m so happy everything went well</p><p class="g-bub g-bub--them">Me too!!! Couldn’t have done it without you</p><small>Treatment day</small></div><div class="g-dm"><p class="g-bub g-bub--them">I’m doing well! A bit sore, strong headache, but just icing and elevating. 10am is perfect tomorrow!</p><p class="g-bub g-bub--me">Keep icing and resting well tonight. I’ll schedule the cab for 10am tomorrow as planned. Let me know if you need anything at all!</p><small>Surgery, night 1</small></div><div class="g-dm"><p class="g-bub g-bub--me">I was so happy to have you as my first client from Austria 😊 Safe travels back home</p><p class="g-bub g-bub--them">Thank you, it was really nice to meet you in person. I hope we can ski together next year in Austria!</p><small>Flight home</small></div><div class="g-dm"><p class="g-bub g-bub--them">Thank you so much lovie. It was so nice with you. Hopefully see you soon 💗</p><p class="g-bub g-bub--me">It was my pleasure! Hope everything else you planned went well</p><small>Last day</small></div><div class="g-dm"><p class="g-bub g-bub--them">I definitely could not have done it without you 🥹 Thank you so much!</p><small>Pickup day</small></div></div><span class="note">인스타 캐러셀 DM 캡처를 텍스트로 옮김. 게재 전 당사자 동의 재확인</span></div>
+</div></dialog><dialog class="sheet" id="m-reels" aria-labelledby="m-reels-t"><div class="sheet-in">
+  <header class="sheet-h"><div><h2 id="m-reels-t">Seoul Skin Talk</h2><p class="sheet-sub">Romie’s Q&amp;A and street interviews in Gangnam</p></div><button type="button" class="sheet-x" data-close aria-label="Close">×</button></header>
+  <div class="sheet-b"><div class="reel-grid"><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DbXgZs9BYgr/" target="_blank" rel="noopener"><img src="../assets/cover-qa-concierge.jpg" alt="" loading="lazy"><span class="g-reel-k">Q&amp;A</span><span class="g-reel-t">What does a beauty concierge do?</span><span class="g-reel-d">▶ 0:52</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DcIzInAh49R/" target="_blank" rel="noopener"><img src="../assets/cover-qa-trust.jpg" alt="" loading="lazy"><span class="g-reel-k">Q&amp;A</span><span class="g-reel-t">How do you know a clinic is trustworthy?</span><span class="g-reel-d">▶ 0:57</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DbvLWIuh8kj/" target="_blank" rel="noopener"><img src="../assets/cover-qa-mistakes.jpg" alt="" loading="lazy"><span class="g-reel-k">Q&amp;A</span><span class="g-reel-t">The biggest mistake foreigners make</span><span class="g-reel-d">▶ 1:35</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DbA-y2eh02k/" target="_blank" rel="noopener"><img src="../assets/cover-thisorthat.jpg" alt="" loading="lazy"><span class="g-reel-k">This or that</span><span class="g-reel-t">Botox or skin boosters?</span><span class="g-reel-d">▶ 1:34</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DbHTuuaBNYt/" target="_blank" rel="noopener"><img src="../assets/cover-qa-take.jpg" alt="" loading="lazy"><span class="g-reel-k">Hot take</span><span class="g-reel-t">Never book the cheapest clinic</span><span class="g-reel-d">▶ 0:51</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DacMHY4hqbU/" target="_blank" rel="noopener"><img src="../assets/cover-street1.jpg" alt="" loading="lazy"><span class="g-reel-k">Street</span><span class="g-reel-t">What do Koreans actually get done?</span><span class="g-reel-d">▶ 1:49</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/DauBo70hiDR/" target="_blank" rel="noopener"><img src="../assets/cover-street-men.jpg" alt="" loading="lazy"><span class="g-reel-k">Street</span><span class="g-reel-t">Korean men’s skincare secrets</span><span class="g-reel-d">▶ 1:33</span></a><a class="g-reel" href="https://www.instagram.com/glowupseoul/reel/Da9yI06h4-i/" target="_blank" rel="noopener"><img src="../assets/cover-street-girls.jpg" alt="" loading="lazy"><span class="g-reel-k">Street</span><span class="g-reel-t">Would Korean girls recommend clinics?</span><span class="g-reel-d">▶ 1:47</span></a></div><p class="sheet-more"><a href="https://www.instagram.com/glowupseoul/" target="_blank" rel="noopener">More on Instagram @glowupseoul →</a></p></div>
+</div></dialog>
+<script src="../shared/data.js?v=24"></script>
+<script>window.GUS.site={noBar:true};</script>
+<script src="../shared/app.js?v=24"></script>
+<script src="d.js?v=24"></script>
 </body>
 </html>

@@ -13,7 +13,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 P = os.path.join(ROOT, 'client', 'public', 'proposals')
 OUT = os.path.join(P, 'd')
 LIVE = 'https://glowupseoul.onrender.com/proposals/d/'
-V = '21'
+V = '24'
 DATE = '2026-10-17'
 DATE_H = '17 Oct 2026'
 
@@ -134,7 +134,29 @@ def footer(pre):
 </div></footer>'''
 
 
-def shell(page, title, desc, body, pre='', ld=None):
+def sheet(mid, title, inner, sub=''):
+    """modal: bottom sheet on phones, centered dialog on desktop (native <dialog>)"""
+    sb = f'<p class="sheet-sub">{sub}</p>' if sub else ''
+    return f'''<dialog class="sheet" id="{mid}" aria-labelledby="{mid}-t"><div class="sheet-in">
+  <header class="sheet-h"><div><h2 id="{mid}-t">{title}</h2>{sb}</div><button type="button" class="sheet-x" data-close aria-label="Close">×</button></header>
+  <div class="sheet-b">{inner}</div>
+</div></dialog>'''
+
+
+def chat_sheet(pre, ids=''):
+    ci = f' data-ids="{ids}"' if ids else ''
+    sub = f'<span data-gus="status"></span> · <a href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener">WhatsApp</a>'
+    return sheet('m-chat', 'Ask Romie', f'<div data-gus="faqchat"{ci}></div><p class="sheet-more"><a href="{pre}faq.html">See all 22 questions as a list →</a></p>', sub)
+
+
+def fab(pre):
+    return f'''<div class="fab-wrap">
+  <a class="fab-wa" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener" aria-label="Message Romie on WhatsApp"><span class="ico-wa" aria-hidden="true"></span></a>
+  <button type="button" class="fab" data-open="m-chat" aria-haspopup="dialog"><img src="{pre}../assets/romie-closeup.jpg" alt=""><span>Ask Romie</span></button>
+</div>'''
+
+
+def shell(page, title, desc, body, pre='', ld=None, modals='', chat_ids=''):
     sh = pre + '../shared/'
     ldj = f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>' if ld else ''
     return f'''<!doctype html>
@@ -161,9 +183,13 @@ def shell(page, title, desc, body, pre='', ld=None):
 {body}
 </main>
 {footer(pre)}
+{fab(pre)}
+{chat_sheet(pre, chat_ids) if page != 'faq' else ''}
+{modals}
 <script src="{sh}data.js?v={V}"></script>
-<script>window.GUS.site={{barLabel:'Text Romie on WhatsApp'}};</script>
+<script>window.GUS.site={{noBar:true}};</script>
 <script src="{sh}app.js?v={V}"></script>
+<script src="{pre}d.js?v={V}"></script>
 </body>
 </html>
 '''
@@ -438,24 +464,35 @@ open(os.path.join(OUT, 'faq.html'), 'w', encoding='utf-8', newline='\n').write(
     shell('faq', 'FAQ · Glow Up Seoul (시안 D)', 'Answers to common questions about treatments in Seoul: cost, safety, travel and aftercare.', fbody,
           ld={'@context': 'https://schema.org', **faq_ld([(f['q'], f['a']) for f in D['faq']])}))
 
-# ---------------- home (simplified 10/17: one idea per section, fewer blocks) ----------------
-dms = ''.join('<div class="g-dm">' + ''.join(f'<p class="g-bub g-bub--{w}">{e(t)}</p>' for w, t in d['m']) + f'<small>{e(d["when"])}</small></div>' for d in [D['dms'][0], D['dms'][2], D['dms'][3]])
+# ---------------- home (10/17 v3: short scroll; details live in modals + floating "Ask Romie") ----------------
+dms = ''.join('<div class="g-dm">' + ''.join(f'<p class="g-bub g-bub--{w}">{e(t)}</p>' for w, t in d['m']) + f'<small>{e(d["when"])}</small></div>' for d in D['dms'])
 reels = ''.join(f'<a class="g-reel" href="{reel(r["id"])}" target="_blank" rel="noopener"><img src="../assets/{r["cover"]}" alt="" loading="lazy"><span class="g-reel-k">{e(r["k"])}</span><span class="g-reel-t">{e(r["t"])}</span><span class="g-reel-d">▶ {e(r["dur"])}</span></a>' for r in D['reels'])
-home_cards = ''.join(card(BY[s]) for s in ['first-time-in-korea', 'rejuran', 'ulthera'])
+home_cards = ''.join(card(BY[s]) for s in ['first-time-in-korea', 'rejuran', 'ulthera', 'this-or-that', 'botox'])
 HOW = [
-    ('match', 'Find the right clinic', 'Tell me what you’d like to change. I send 2–3 verified clinics with honest prices.'),
-    ('with', 'Come with you', 'I book it, translate, and sit next to you on the day. Coming alone is fine.'),
-    ('care', 'Check on you after', 'Day 1, 7 and 30, even after you fly home.'),
-    ('free', 'Free for you', 'Clinics pay us, only after your treatment.'),
+    ('match', 'Find the right clinic', 'Tell me what you’d like to change. I send 2–3 verified clinics with honest prices and downtime.'),
+    ('with', 'Come with you', 'I book it, translate, and sit next to you at the consultation and treatment. Coming alone is fine.'),
+    ('care', 'Check on you after', 'Day 1, 7 and 30, even after you fly home. Send me a photo any time.'),
+    ('free', 'Free for you', 'Clinics pay us a referral fee, only after your treatment. You pay the clinic the normal price.'),
 ]
-how = ''.join(f'<li><span class="hw-i">{ico(k)}</span><h3>{e(t)}</h3><p>{e(d)}</p></li>' for k, t, d in HOW)
+how = ''.join(f'<li><span class="hw-i">{ico(k)}</span><div><h3>{e(t)}</h3><p>{e(d)}</p></div></li>' for k, t, d in HOW)
+how_modal = sheet('m-how', 'How it works', f"""<ul class="how-list">{how}</ul>
+{note("무료·수수료 구조 = 현 glowupseoul.com 문구 기준. 확인 필요")}
+<h3 class="sheet-h3">What’s included</h3>
+<div class="tiers2">
+  <div><h4>Care <small>skin · free</small></h4><ul><li>1:1 with Romie from day one</li><li>Verified clinic match</li><li>With you on the day</li><li>1-week check-in</li></ul></div>
+  <div><h4>Premium Care <small>surgery · free</small></h4><ul><li>Everything in Care</li><li>Airport pickup</li><li>Pharmacy + medication covered</li><li>Day 1 · 7 · 30 check-ins</li></ul></div>
+</div>
+<a class="btn sheet-cta" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Start on WhatsApp</a>""")
+msgs_modal = sheet('m-msgs', 'Real messages', f'<div class="g-dms">{dms}</div>{note("인스타 캐러셀 DM 캡처를 텍스트로 옮김. 게재 전 당사자 동의 재확인")}', 'Shared with permission. Names removed.')
+reels_modal = sheet('m-reels', 'Seoul Skin Talk', f'<div class="reel-grid">{reels}</div><p class="sheet-more"><a href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">More on Instagram @{e(C["instagram"])} →</a></p>', 'Romie’s Q&amp;A and street interviews in Gangnam')
+first_dm = e(D['dms'][0]['m'][0][1])
 hbody = f"""<section class="w">
   <div class="hero2">
     <div class="tile t-main">
       <span class="k soft" style="align-self:flex-start">{e(D["service"]["label"])}</span>
       <h1>Your friend in Seoul for <mark class="hl">clinics.</mark></h1>
       <p class="lead">I’m Romie. I match international patients with verified skin &amp; plastic surgery clinics, come with you on the day, and look after you once you’re home.</p>
-      <div class="btns"><a class="btn" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Text me on WhatsApp</a><a class="btn o" href="faq.html">Questions?</a></div>
+      <div class="btns"><a class="btn" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Text me on WhatsApp</a><button type="button" class="btn o" data-open="m-how" aria-haspopup="dialog">How it works</button></div>
       <p class="trust">✓ Free for patients &nbsp;·&nbsp; ✓ Registered with Korea’s Ministry of Health &amp; Welfare &nbsp;·&nbsp; ✓ 500+ patients</p>
     </div>
     <div class="tile t-collage" aria-label="Photos from Romie's Instagram">
@@ -467,48 +504,26 @@ hbody = f"""<section class="w">
   </div>
 </section>
 
-<section class="w sec">
-  <div class="sh"><span class="k">how it works</span><h2>One person, start to finish.</h2></div>
-  <ul class="how4">{how}</ul>
-  {note("무료·수수료 구조 = 현 glowupseoul.com 문구 기준. 확인 필요")}
-</section>
-
-<section class="w">
-  <div class="sh-row sh"><div style="display:grid;gap:12px"><span class="k butter" style="justify-self:start">journal</span><h2>Romie’s guides.</h2></div><a class="more" href="journal.html">All {len(ARTICLES)} →</a></div>
-  <div class="jc-row jc-3">{home_cards}</div>
-</section>
-
-<section class="w sec">
-  <div class="sh-row sh"><div style="display:grid;gap:12px"><span class="k">FAQ</span><h2>Ask me anything.</h2></div><a class="more" href="faq.html">All 22 →</a></div>
-  <div data-gus="faqchat" data-ids="start,alone,trust,know,cheap,free,when,days,wrong"></div>
-</section>
-
-<section class="w">
-  <div class="dmz">
-    <div class="sh"><span class="k">from patients</span><h2>Real messages.</h2></div>
-    <div class="g-dms">{dms}</div>
-    {note("인스타 캐러셀 DM 캡처를 텍스트로 옮김. 게재 전 당사자 동의 재확인")}
+<section class="w qsec" aria-label="Explore">
+  <div class="qt-grid">
+    <button type="button" class="qt qt-how" data-open="m-how" aria-haspopup="dialog"><span class="qt-k">How it works</span><b>One person, start to finish</b><span class="qt-ico">{ico("with")}</span><span class="qt-go" aria-hidden="true">↗</span></button>
+    <button type="button" class="qt qt-faq" data-open="m-chat" aria-haspopup="dialog"><span class="qt-k">FAQ</span><b>Ask me anything</b><span class="qt-bub">Can I come alone?</span><span class="qt-go" aria-hidden="true">↗</span></button>
+    <button type="button" class="qt qt-msgs" data-open="m-msgs" aria-haspopup="dialog"><span class="qt-k">From patients</span><b>Real messages</b><span class="qt-bub">{first_dm}</span><span class="qt-go" aria-hidden="true">↗</span></button>
+    <button type="button" class="qt qt-reels" data-open="m-reels" aria-haspopup="dialog"><span class="qt-k">Instagram</span><b>Watch me answer</b><img src="../assets/cover-street1.jpg" alt="" loading="lazy"><span class="qt-go" aria-hidden="true">↗</span></button>
   </div>
 </section>
 
-<section class="w sec">
-  <div class="sh-row sh"><div style="display:grid;gap:12px"><span class="k">instagram</span><h2>Seoul Skin Talk.</h2></div><a class="more" href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">@{e(C["instagram"])} →</a></div>
-  <div class="g-reels">{reels}</div>
-</section>
-
-<section class="w">
-  <div class="end2">
-    <h2>Say hi.</h2>
-    <p>Tell me what you’d like to change and roughly when you’re coming. That’s enough to start.</p>
-    <a class="btn" href="{WA}?text={e("Hi Romie! 👋 I'm thinking about coming to Seoul.")}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Text Romie on WhatsApp</a>
-    <small>WhatsApp {e(C["waDisplay"])} · WeChat {e(C["wechat"])} · {e(C["email"])}</small>
-  </div>
+<section class="w qsec">
+  <div class="sh-row sh"><div style="display:grid;gap:10px"><span class="k butter" style="justify-self:start">journal</span><h2>Romie’s guides.</h2></div><a class="more" href="journal.html">All {len(ARTICLES)} →</a></div>
+  <div class="jc-row">{home_cards}</div>
 </section>"""
+HOME_MODALS = how_modal + msgs_modal + reels_modal
 ld_home = {'@context': 'https://schema.org', '@type': 'Organization', 'name': 'Glow Up Seoul', 'url': LIVE, 'description': D['service']['line'],
            'founder': {'@type': 'Person', 'name': 'Romie'}, 'sameAs': ['https://www.instagram.com/glowupseoul/'],
            'contactPoint': {'@type': 'ContactPoint', 'contactType': 'customer service', 'telephone': '+82-10-6487-1060', 'availableLanguage': ['English', 'Chinese', 'Indonesian']}}
 open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8', newline='\n').write(
-    shell('home', 'Glow Up Seoul · your friend in Seoul for clinics (시안 D)', D['service']['line'], hbody, ld=ld_home))
+    shell('home', 'Glow Up Seoul · your friend in Seoul for clinics (시안 D)', D['service']['line'], hbody, ld=ld_home, modals=HOME_MODALS,
+          chat_ids='start,alone,trust,know,cheap,free,when,days,wrong,botoxbooster,area'))
 
 print(f'wrote D: home, journal ({len(ARTICLES)} articles), faq')
 for a in ARTICLES:
