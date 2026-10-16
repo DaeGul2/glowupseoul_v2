@@ -13,7 +13,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 P = os.path.join(ROOT, 'client', 'public', 'proposals')
 OUT = os.path.join(P, 'd')
 LIVE = 'https://glowupseoul.onrender.com/proposals/d/'
-V = '20'
+V = '21'
 DATE = '2026-10-17'
 DATE_H = '17 Oct 2026'
 
@@ -438,90 +438,72 @@ open(os.path.join(OUT, 'faq.html'), 'w', encoding='utf-8', newline='\n').write(
     shell('faq', 'FAQ · Glow Up Seoul (시안 D)', 'Answers to common questions about treatments in Seoul: cost, safety, travel and aftercare.', fbody,
           ld={'@context': 'https://schema.org', **faq_ld([(f['q'], f['a']) for f in D['faq']])}))
 
-# ---------------- home ----------------
-P_ = {p['id']: p for p in D['photos']}
-photos = ''.join(f'<figure class="g-photo"><img src="../assets/{P_[i]["src"]}" alt="{e(P_[i]["alt"])}" loading="lazy" style="object-position:{P_[i].get("pos", "50% 30%")}"><figcaption>{e(P_[i]["cap"])}</figcaption></figure>'
-                 for i in ['mic', 'lobby', 'red', 'airport', 'street', 'window', 'men', 'wow'])
-dms = ''.join('<div class="g-dm">' + ''.join(f'<p class="g-bub g-bub--{w}">{e(t)}</p>' for w, t in d['m']) + f'<small>{e(d["when"])}</small></div>' for d in D['dms'])
+# ---------------- home (simplified 10/17: one idea per section, fewer blocks) ----------------
+dms = ''.join('<div class="g-dm">' + ''.join(f'<p class="g-bub g-bub--{w}">{e(t)}</p>' for w, t in d['m']) + f'<small>{e(d["when"])}</small></div>' for d in [D['dms'][0], D['dms'][2], D['dms'][3]])
 reels = ''.join(f'<a class="g-reel" href="{reel(r["id"])}" target="_blank" rel="noopener"><img src="../assets/{r["cover"]}" alt="" loading="lazy"><span class="g-reel-k">{e(r["k"])}</span><span class="g-reel-t">{e(r["t"])}</span><span class="g-reel-d">▶ {e(r["dur"])}</span></a>' for r in D['reels'])
-mq = ''.join(f'<span>{e(t)}</span>' for t in D['marquee'])
-home_cards = ''.join(card(BY[s]) for s in ['first-time-in-korea', 'rejuran', 'ulthera', 'this-or-that', 'botox', 'pico_laser', 'what-koreans-get-done'])
-hbody = f'''<section class="w">
-  <div class="bento">
+home_cards = ''.join(card(BY[s]) for s in ['first-time-in-korea', 'rejuran', 'ulthera'])
+HOW = [
+    ('match', 'Find the right clinic', 'Tell me what you’d like to change. I send 2–3 verified clinics with honest prices.'),
+    ('with', 'Come with you', 'I book it, translate, and sit next to you on the day. Coming alone is fine.'),
+    ('care', 'Check on you after', 'Day 1, 7 and 30, even after you fly home.'),
+    ('free', 'Free for you', 'Clinics pay us, only after your treatment.'),
+]
+how = ''.join(f'<li><span class="hw-i">{ico(k)}</span><h3>{e(t)}</h3><p>{e(d)}</p></li>' for k, t, d in HOW)
+hbody = f"""<section class="w">
+  <div class="hero2">
     <div class="tile t-main">
       <span class="k soft" style="align-self:flex-start">{e(D["service"]["label"])}</span>
       <h1>Your friend in Seoul for <mark class="hl">clinics.</mark></h1>
       <p class="lead">I’m Romie. I match international patients with verified skin &amp; plastic surgery clinics, come with you on the day, and look after you once you’re home.</p>
-      {svc()}
-      <div class="btns"><a class="btn" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Text me on WhatsApp</a><a class="btn o" href="journal.html">Read the journal</a></div>
-      <div data-gus="status"></div>
+      <div class="btns"><a class="btn" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Text me on WhatsApp</a><a class="btn o" href="faq.html">Questions?</a></div>
+      <p class="trust">✓ Free for patients &nbsp;·&nbsp; ✓ Registered with Korea’s Ministry of Health &amp; Welfare &nbsp;·&nbsp; ✓ 500+ patients</p>
     </div>
     <div class="tile t-collage" aria-label="Photos from Romie's Instagram">
       <figure class="p1"><img src="../assets/romie-mic.jpg" alt="Romie with a microphone in Gangnam" style="object-position:50% 20%" fetchpriority="high"><figcaption>gangnam, last week</figcaption></figure>
       <figure class="p2"><img src="../assets/airport2.jpg" alt="Romie hugging a patient at the airport" style="object-position:50% 30%"><figcaption>airport pickup</figcaption></figure>
       <figure class="p3"><img src="../assets/romie-desk.jpg" alt="Romie planning a clinic shortlist" style="object-position:50% 35%"><figcaption>your shortlist</figcaption></figure>
       <span class="stk s1">hi, i’m romie ✌️</span>
-      <span class="stk s2">I come with you</span>
-    </div>
-    <div class="mini">
-      <div class="tile t-free"><b>₩0</b><p>for you. Clinics pay us, only after your treatment.</p>{note("현 사이트 문구 기준, 확인 필요")}</div>
-      <div class="tile t-num"><ul><li><b>500+</b><span>patients</span></li><li><b>25+</b><span>countries</span></li></ul></div>
     </div>
   </div>
 </section>
 
-<div class="mq"><div class="g-marquee" aria-label="{e(", ".join(D["marquee"]))}"><div class="g-marquee-track" aria-hidden="true">{mq}{mq}</div></div></div>
-
 <section class="w sec">
-  <div class="sh"><span class="k">what I do</span><h2>Three things. That’s it.</h2></div>
-  <div class="do">
-    <article><span class="n">01</span><h3>Find the right clinic</h3><p>Tell me what you’d like to change. I send 2–3 verified clinics with honest prices and downtime, not just the ones with the biggest ad budget.</p><img src="../assets/romie-profile.jpg" alt="" loading="lazy"></article>
-    <article><span class="n">02</span><h3>Come with you</h3><p>I book it, meet you, sit next to you at the consultation, translate everything and walk you to the pharmacy. Coming alone is totally fine.</p><img src="../assets/street-ep1.jpg" alt="" loading="lazy"></article>
-    <article><span class="n">03</span><h3>Check on you after</h3><p>Day 1, day 7, day 30. Send me a photo any time. If something feels off, I talk to the clinic for you, even after you’re home.</p><img src="../assets/airport.jpg" alt="" loading="lazy"></article>
-  </div>
+  <div class="sh"><span class="k">how it works</span><h2>One person, start to finish.</h2></div>
+  <ul class="how4">{how}</ul>
+  {note("무료·수수료 구조 = 현 glowupseoul.com 문구 기준. 확인 필요")}
 </section>
 
 <section class="w">
-  <div class="sh-row sh"><div style="display:grid;gap:12px"><span class="k butter" style="justify-self:start">journal</span><h2>Romie’s notes on Seoul treatments.</h2></div><a class="more" href="journal.html">All {len(ARTICLES)} guides →</a></div>
-  <div class="jc-row">{home_cards}</div>
+  <div class="sh-row sh"><div style="display:grid;gap:12px"><span class="k butter" style="justify-self:start">journal</span><h2>Romie’s guides.</h2></div><a class="more" href="journal.html">All {len(ARTICLES)} →</a></div>
+  <div class="jc-row jc-3">{home_cards}</div>
 </section>
 
 <section class="w sec">
-  <div class="free">
-    <div><span class="k butter">the money part</span><h2 style="margin-top:16px">Free for you. <span>Really.</span></h2>
-      <p style="margin-top:16px">Clinics pay me a referral fee, and only after your treatment is done. You pay the clinic directly at the normal walk-in price, with a written quote before anything is booked.</p>{note("무료·수수료 구조 = 현 glowupseoul.com 문구 기준. 확인 필요")}</div>
-    <div class="tiers">
-      <div class="tier"><h3>Care <small>skin · free</small></h3><ul><li>1:1 with me from day one</li><li>Verified clinic match</li><li>I’m with you on the day</li><li>1-week check-in</li></ul></div>
-      <div class="tier"><h3>Premium Care <small>surgery · free</small></h3><ul><li>Everything in Care</li><li>Airport pickup</li><li>Pharmacy + medication covered</li><li>Day 1 · 7 · 30 check-ins</li></ul></div>
-    </div>
-  </div>
-</section>
-
-<section class="w">
-  <div class="sh"><span class="k">camera roll</span><h2>Behind the scenes.</h2><p>Clinic visits, airport pickups and street interviews in Gangnam, straight from our Instagram.</p></div>
-  <div class="g-photos">{photos}</div>
-  {note("사진은 인스타 릴스 화면(720p)에서 뽑은 것. 고화질 원본 받으면 교체")}
-</section>
-
-<section class="w sec">
-  <div class="sh-row sh"><div style="display:grid;gap:12px"><span class="k">FAQ</span><h2>You’re probably wondering…</h2></div><a class="more" href="faq.html">All 22 →</a></div>
-  {faq_views(['free', 'start', 'alone', 'trust', 'know', 'cheap'], 'start,alone,trust,know,cheap,free,when,days,wrong')}
+  <div class="sh-row sh"><div style="display:grid;gap:12px"><span class="k">FAQ</span><h2>Ask me anything.</h2></div><a class="more" href="faq.html">All 22 →</a></div>
+  <div data-gus="faqchat" data-ids="start,alone,trust,know,cheap,free,when,days,wrong"></div>
 </section>
 
 <section class="w">
   <div class="dmz">
-    <div class="sh"><span class="k">real messages</span><h2>Texts that make me cry at 2am.</h2><p style="color:#5A4038">Shared with permission. Names removed.</p></div>
+    <div class="sh"><span class="k">from patients</span><h2>Real messages.</h2></div>
     <div class="g-dms">{dms}</div>
     {note("인스타 캐러셀 DM 캡처를 텍스트로 옮김. 게재 전 당사자 동의 재확인")}
   </div>
 </section>
 
 <section class="w sec">
-  <div class="sh"><span class="k">seoul skin talk</span><h2>Watch me answer.</h2></div>
+  <div class="sh-row sh"><div style="display:grid;gap:12px"><span class="k">instagram</span><h2>Seoul Skin Talk.</h2></div><a class="more" href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">@{e(C["instagram"])} →</a></div>
   <div class="g-reels">{reels}</div>
 </section>
 
-{ask_block("Tell Romie what you want to fix.", "Your message gets written for you. Send it on WhatsApp, WeChat or email.")}'''
+<section class="w">
+  <div class="end2">
+    <h2>Say hi.</h2>
+    <p>Tell me what you’d like to change and roughly when you’re coming. That’s enough to start.</p>
+    <a class="btn" href="{WA}?text={e("Hi Romie! 👋 I'm thinking about coming to Seoul.")}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Text Romie on WhatsApp</a>
+    <small>WhatsApp {e(C["waDisplay"])} · WeChat {e(C["wechat"])} · {e(C["email"])}</small>
+  </div>
+</section>"""
 ld_home = {'@context': 'https://schema.org', '@type': 'Organization', 'name': 'Glow Up Seoul', 'url': LIVE, 'description': D['service']['line'],
            'founder': {'@type': 'Person', 'name': 'Romie'}, 'sameAs': ['https://www.instagram.com/glowupseoul/'],
            'contactPoint': {'@type': 'ContactPoint', 'contactType': 'customer service', 'telephone': '+82-10-6487-1060', 'availableLanguage': ['English', 'Chinese', 'Indonesian']}}

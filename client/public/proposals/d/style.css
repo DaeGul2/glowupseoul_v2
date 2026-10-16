@@ -291,3 +291,26 @@ mark.hl::after{content:"";position:absolute;left:-2%;right:-2%;bottom:.05em;heig
   :root{--r-xl:56px;--r-lg:42px;--r-md:30px;--r-sm:22px}
   .tile,.do article,.jc,.jc-img,.free,.tier,.g-photo,.g-photo img,.faq-i,.dmz,.g-dm,.g-reel,.ask,.cf,.cf input,.cf-pre,.j-feature,.j-feature img,.ar-img,.ar-quick,.ar-facts li,.md-table,.ar-why,.ar-pc>div,.ar-take,.ar-ask,.ar-check li,.gf-in,.t-collage figure,.t-collage img,.ar-body blockquote{corner-shape:squircle}
 }
+
+/* ---- home, simplified (10/17) ---- */
+.hero2{display:grid;gap:10px;padding-top:14px}
+.hero2 .t-main{display:flex;flex-direction:column;justify-content:flex-end}
+.hero2 .t-main h1{font-size:clamp(44px,12.5vw,92px)}
+.hero2 .t-main .lead{margin-bottom:22px}
+.trust{margin-top:18px;font-size:13px;line-height:1.5;color:#4A4F57}
+.hero2 .t-collage{min-height:360px}
+@media(min-width:900px){.hero2{grid-template-columns:1.2fr .8fr;gap:14px}.hero2 .t-main{padding:52px 46px;min-height:560px}.hero2 .t-collage{min-height:560px}}
+.how4{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.how4 li{border-radius:var(--r-lg);padding:18px;display:flex;flex-direction:column;gap:8px;min-height:180px}
+.how4 li:nth-child(1){background:var(--sky)}.how4 li:nth-child(2){background:var(--matcha)}.how4 li:nth-child(3){background:var(--lilac)}.how4 li:nth-child(4){background:var(--butter)}
+.hw-i{width:40px;height:40px;border-radius:50%;background:#fff;display:grid;place-items:center}
+.hw-i svg{width:21px;height:21px}
+.how4 h3{font-size:19px;letter-spacing:-.02em;margin-top:4px}
+.how4 p{font-size:14px;line-height:1.45;color:#33373D;margin:0}
+@media(min-width:900px){.how4{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.how4 li{min-height:230px;padding:24px}.how4 h3{font-size:22px}}
+@media(min-width:900px){.jc-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible;margin:0;padding:0;gap:16px}.jc-3 .jc{flex:none}}
+.end2{border-radius:calc(var(--r-xl) + 8px);padding:clamp(30px,7vw,64px) clamp(20px,5vw,56px);display:grid;gap:18px;justify-items:center;text-align:center;background:radial-gradient(90% 80% at 0% 0%,#E8F1FF,transparent 60%),radial-gradient(80% 80% at 100% 100%,#FFE6DA,transparent 60%),#FFF8E6}
+.end2 h2{font-size:clamp(52px,15vw,112px)}
+.end2 p{max-width:36ch;font-size:17px;color:#3B4048;margin:0}
+.end2 small{font-size:13px;color:#4A4F57}
+@supports (corner-shape:squircle){.how4 li,.end2{corner-shape:squircle}}
