@@ -33,6 +33,16 @@ h1{font-size:clamp(30px,7vw,52px);font-weight:900;letter-spacing:-.035em;margin:
 .a .top{background:#D3DFEA}.a .t{font-family:"Bricolage Grotesque",system-ui;font-weight:800}.a .t span{background:#FFE55A;padding:0 .08em;border-radius:.12em}
 .b .top{background:#FFEF9E}.b .t{font-family:Unbounded,system-ui;font-weight:800;font-size:28px}
 .c .top{background:linear-gradient(160deg,#E4F7F1,#E2EEFF)}.c .t{font-family:Gabarito,system-ui;font-weight:800}.c .t span{color:#FF5A36}
+.d-card{display:grid;gap:0;border-radius:40px;overflow:hidden;background:#FFEF9E;margin-bottom:14px}
+@supports (corner-shape:squircle){.d-card{corner-shape:squircle;border-radius:56px}}
+.d-card .top{background:linear-gradient(135deg,#CDE2FF,#DCEBC3 55%,#FFD9C9);min-height:0;padding:28px 24px 24px}
+.d-card .t{font-family:Gabarito,system-ui;font-weight:800;font-size:clamp(30px,7vw,44px)}
+.d-card .body{margin:8px}
+.d-tag{display:inline-block;background:#111;color:#fff;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:700;align-self:flex-start}
+.d-quote{background:#FFF8D9;border-radius:20px;padding:12px 14px;font-size:13.5px;color:#4a4520}
+.d-grid{display:grid;gap:14px}
+@media(min-width:880px){.d-grid{grid-template-columns:1.2fr .8fr}}
+h2.prev{font-size:15px;margin:30px 0 12px;color:#5c5f66}
 h2{font-size:18px;margin:44px 0 12px;letter-spacing:-.02em}
 .grid2{display:grid;gap:12px}
 @media(min-width:760px){.grid2{grid-template-columns:1fr 1fr}}
@@ -49,6 +59,23 @@ h2{font-size:18px;margin:44px 0 12px;letter-spacing:-.02em}
   <h1>홈페이지 시안 3안</h1>
   <p class="sub">2026-10-16 · 인스타 @glowupseoul 전체 게시물·릴스·DM·Threads 답글과 유사 업종 14곳을 보고 만든 시안입니다. 새롬님 요청대로 <b>단순하게</b>, <b>모바일 우선</b>, 사진은 전부 인스타 릴스에서 가져온 실사입니다. 휴대폰으로 열어보세요. 각 페이지 맨 위 검은 바에서 A/B/C 를 바로 오갈 수 있고, 주황 점선 메모는 확인이 필요한 자리예요.</p>
 
+  <div class="card d-card">
+    <div class="top"><span class="d-tag">새롬님 피드백 반영 · 10/17</span><span class="t" style="margin-top:10px">D · B×C 믹스 + Journal</span></div>
+    <div class="body">
+      <div class="d-grid">
+        <div style="display:grid;gap:12px">
+          <p class="d-quote">“2안과 3안의 어디쯤이 좋을 것 같아요” · “시술정보는 블로그 글 형식으로 장비 하나씩 소개… AI 검색에 잘 나오면 정보성 글을 블로그 형태로 한 페이지 만들어서 빼도 괜찮구요”</p>
+          <p>B 스크랩북의 사진·스티커·파스텔 + C 메뉴의 벤토 구조. 시술 메뉴는 빼고, 장비별 소개 글 14개와 Romie 가이드 5개를 <b>Journal(블로그)</b> 로 옮겼어요.</p>
+          <ul><li>홈: 서비스 소개 · 하는 일 3가지 · Journal 미리보기 · 무료 구조 · 사진 · FAQ(대화형) · 실제 DM · 릴스 · 문의</li><li>Journal: 글마다 "한 줄 답 → 핵심 4칸 → 설명 → 자주 묻는 질문" 구조</li><li>AI 검색용: 글·FAQ를 정적 HTML로 만들고 구조화 데이터(Article·FAQ) 추가. ChatGPT·Claude 크롤러는 자바스크립트를 실행하지 않아서 이렇게 해야 읽혀요</li></ul>
+        </div>
+        <div style="display:grid;gap:8px;align-content:start">
+          <div class="pages"><a href="d/journal.html">Journal</a><a href="d/journal/first-time-in-korea.html">가이드 예시</a><a href="d/journal/rejuran.html">장비 글 예시</a><a href="d/faq.html">FAQ</a></div>
+          <a class="go" href="d/index.html">D 열기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <h2 class="prev">이전 시안 (참고용)</h2>
   <div class="cards">
     <div class="card a">
       <div class="top"><span class="k">시안 A · 1페이지</span><span class="t">Text <span>Romie.</span></span></div>

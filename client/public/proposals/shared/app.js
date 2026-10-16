@@ -97,14 +97,15 @@
   };
 
   /* review bar */
-  const PAGES = { a: ['index.html'], b: ['index.html', 'faq.html'], c: ['index.html', 'treatments.html', 'treatment.html', 'faq.html'] };
-  const NAMES = { a: 'A · Text Romie', b: 'B · Scrapbook', c: 'C · Menu' };
+  const PAGES = { d: ['index.html', 'journal.html', 'faq.html'], a: ['index.html'], b: ['index.html', 'faq.html'], c: ['index.html', 'treatments.html', 'treatment.html', 'faq.html'] };
+  const NAMES = { d: 'D · B×C 믹스 ★', a: 'A · Text Romie', b: 'B · Scrapbook', c: 'C · Menu' };
+  const ROOT = new URL('../', SHARED).href;
   function reviewBar() {
     const file = location.pathname.split('/').pop() || 'index.html';
     const bar = document.createElement('div');
     bar.className = 'rv-bar';
-    bar.innerHTML = `<a href="../index.html">시안 목록</a>` +
-      Object.keys(NAMES).map((k) => `<a class="${k === site ? 'on' : ''}" href="../${k}/${PAGES[k].includes(file) ? file + location.search : 'index.html'}">${NAMES[k]}</a>`).join('') +
+    bar.innerHTML = `<a href="${ROOT}index.html">시안 목록</a>` +
+      Object.keys(NAMES).map((k) => { const href = k === site ? location.href : ROOT + k + '/' + (PAGES[k].includes(file) ? file + location.search : 'index.html'); return `<a class="${k === site ? 'on' : ''}" href="${href}">${NAMES[k]}</a>`; }).join('') +
       `<button type="button" class="rv-notes">메모 숨기기</button>`;
     document.body.prepend(bar);
     const btn = bar.querySelector('.rv-notes');
