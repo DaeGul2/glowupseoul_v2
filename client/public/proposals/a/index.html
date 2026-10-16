@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="../shared/base.css?v=25">
-<link rel="stylesheet" href="style.css?v=25">
+<link rel="stylesheet" href="../shared/base.css?v=26">
+<link rel="stylesheet" href="style.css?v=26">
 </head>
 <body data-site="a" data-page="home">
 <div class="app">
@@ -61,9 +61,9 @@
   </aside>
 </div>
 
-<script src="../shared/data.js?v=25"></script>
+<script src="../shared/data.js?v=26"></script>
 <script>window.GUS.site={noBar:true};</script>
-<script src="../shared/app.js?v=25"></script>
+<script src="../shared/app.js?v=26"></script>
 <script>
 (function () {
   const G = window.GUS, D = G.data, esc = G.esc, A = G.asset;
@@ -115,7 +115,7 @@
   add('them', 'Ask me anything with the buttons below, or just type what you’d like to change. I usually reply within a few hours ✨');
 
   /* ---------- quick questions ---------- */
-  const order = ['start', 'alone', 'trust', 'know', 'cheap', 'botoxbooster', 'skinbotox', 'when', 'days', 'wrong', 'area', 'lang', 'prices', 'pay', 'visa', 'tiktok', 'laser', 'copy', 'bumps', 'home'];
+  const order = ['alone', 'trust', 'start', 'know', 'cheap', 'botoxbooster', 'skinbotox', 'when', 'days', 'wrong', 'area', 'lang', 'prices', 'pay', 'visa', 'tiktok', 'laser', 'copy', 'bumps', 'home'];
   const asked = new Set();
   const chips = document.getElementById('chips');
   let expanded = false;
@@ -124,8 +124,9 @@
     if (!left.length) { chips.className = 'chips'; chips.innerHTML = `<button type="button" class="hot" data-wa-chip>Text Romie on WhatsApp</button>`; return; }
     const list = expanded ? left : left.slice(0, 2);
     chips.className = 'chips' + (expanded ? ' is-open' : '');
-    chips.innerHTML = list.map((f, i) => `<button type="button" data-q="${f.id}"${i === 0 && !expanded ? ' class="hot"' : ''}>${esc(f.q)}</button>`).join('') +
-      (left.length > 2 ? `<button type="button" class="more" data-more aria-expanded="${expanded}">${expanded ? 'Show fewer' : `More questions (${left.length - 2})`}</button>` : '');
+    const more = left.length > 2 ? `<button type="button" class="more" data-more aria-expanded="${expanded}">${expanded ? 'Show fewer' : `See all ${left.length}`}</button>` : '';
+    chips.innerHTML = `<div class="chips-h"><span>${expanded ? 'All questions' : 'Suggested questions'}</span>${more}</div>` +
+      list.map((f, i) => `<button type="button" data-q="${f.id}"${i === 0 && !expanded ? ' class="hot"' : ''}>${esc(f.q)}</button>`).join('');
   }
   function scrollEnd() { window.scrollTo({ top: document.documentElement.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }
   function ask(id) {

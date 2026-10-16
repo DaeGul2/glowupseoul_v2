@@ -1,0 +1,7 @@
+<!doctype html><meta charset="utf-8"><title>harness</title>
+<style>body{margin:0;background:#888;display:flex;gap:12px;padding:8px;font:12px system-ui}iframe{border:0;background:#fff;flex:0 0 auto}div{display:grid;gap:4px;align-content:start}</style>
+<script>
+const q=new URLSearchParams(location.search);
+const p=q.get('p'), h=q.get('h')||'844', w=q.get('w')||'390';
+document.write(p.split(',').map(u=>`<div><b>${u}</b><iframe style="width:${w}px;height:${h}px" src="/proposals/${u}"></iframe></div>`).join(''));
+</script>

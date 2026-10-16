@@ -13,7 +13,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 P = os.path.join(ROOT, 'client', 'public', 'proposals')
 OUT = os.path.join(P, 'd')
 LIVE = 'https://glowupseoul.onrender.com/proposals/d/'
-V = '25'
+V = '27'
 DATE = '2026-10-17'
 DATE_H = '17 Oct 2026'
 
@@ -256,17 +256,17 @@ for slug, cat in DEVICE_CAT.items():
     links = [c for c in (row.get('concern_links') or []) if c.get('name')]
     concerns = ', '.join(c['name'].lower() for c in links)
     price_txt = f'₩{price:,}' if price else 'on consultation'
-    quick = f'{row["summary"]} {"No downtime" if rec == "immediate" else "Downtime is " + REC[rec].lower()}, results last {DUR[dur]}, and reference prices in Seoul start from {price_txt}' + (f' ({pnote})' if pnote else '') + '.'
+    quick = f'{row["summary"]} {"No downtime" if rec == "immediate" else "Downtime is " + REC[rec].lower()}, results usually last {DUR[dur]}, and reference prices in Seoul start from {price_txt}' + (f' ({pnote})' if pnote else '') + '.'
     sensation = table.get('sensation')
     faq = [
         (f'What is {name}?', row['summary']),
-        (f'How long does {name} last?', f'Results usually last {DUR[dur]}.' + (' ' + row['cautions'][0] if row.get('cautions') and dur in ('months_3_6', 'temporary') else '')),
+        (f'How long does {name} last?', f'Results usually last {DUR[dur]}, though it can vary from person to person.' + (' ' + row['cautions'][0] if row.get('cautions') and dur in ('months_3_6', 'temporary') else '')),
         (f'Is there downtime after {name}?', row.get('recovery_note') or REC[rec]),
-        (f'Does {name} hurt?', f'Most people describe it as {PAIN[pain].lower()}.' + (f' What it feels like: {sensation}.' if sensation else '')),
+        (f'Does {name} hurt?', f'Many people describe it as {PAIN[pain].lower()}, but everyone feels it a little differently.' + (f' What it feels like: {sensation}.' if sensation else '')),
         (f'How much does {name} cost in Seoul?', f'Reference prices at our partner clinics start from {price_txt}' + (f' ({pnote}, {usd})' if pnote and usd else (f' ({usd})' if usd else '')) + '. You get a full written quote before anything is booked.'),
     ]
     if concerns:
-        faq.append((f'Who is {name} good for?', f'People who want to improve {concerns}. Your doctor confirms whether it suits you at the consultation.'))
+        faq.append((f'Who might {name} suit?', f'It’s often considered by people who’d like to improve {concerns}. Your doctor can tell you at the consultation whether it suits you.'))
     why = ''.join((f'<details class="ar-why"><summary>{e(c["name"])}</summary><p>{e(c["reason"])}</p></details>' if c.get('reason') else f'<p class="ar-why" style="padding:15px 18px;font-weight:700">{e(c["name"])}</p>') for c in links)
     pc = ''
     if row.get('benefits') or row.get('cautions'):
@@ -283,7 +283,7 @@ for slug, cat in DEVICE_CAT.items():
 <div class="ar-body">
 {body_md}
 {take_html(slug)}
-{f"<h2>Good for</h2>{why}" if why else ""}
+{f"<h2>Often chosen for</h2>{why}" if why else ""}
 {pc}
 {f'<p><strong>Recovery:</strong> {e(row["recovery_note"])}</p>' if row.get("recovery_note") else ""}
 <h2>Questions people ask about {e(name)}</h2>
@@ -309,26 +309,26 @@ checks = ''.join(f'<li><b>{e(t)}</b><span>{e(p)}</span></li>' for t, p in D['che
 skin_list = ''.join(f'<li><b>{e(t)}</b><span>{e(p)}</span></li>' for t, p in D['checklist']['skin'])
 GUIDES = [
     dict(slug='first-time-in-korea', title='Your first treatment in Korea: where to start',
-         excerpt='Start with a skin booster, know what you want before you walk in, and give yourself 1–2 days in Seoul.',
-         quick='Start with a skin booster: it suits almost every skin type and you see results in two to three weeks. Before you book, decide what you actually want, because most clinics have a salesperson. Plan 1–2 days in Seoul for skin treatments and message us 2–4 weeks ahead.',
-         body=say('start', 'Start with a skin booster') + say('know', 'Know what you want before you walk in') + say('copy', 'Don’t copy someone else’s treatment list')
-         + say('days', 'How many days you need') + say('when', 'When to message us') + f'<h2>Before you fly: a quick checklist</h2><ul class="ar-check">{skin_list}</ul>',
+         excerpt='A few gentle suggestions for your first visit: what you might try, how to prepare and how long to stay.',
+         quick='It really depends on your skin and what you’d like to change. If you’d like a gentle start, many first-timers enjoy a skin booster. It can also help to have a rough idea of what you want before you visit, to plan 1–2 days in Seoul for skin treatments, and to message us 2–4 weeks ahead.',
+         body=say('start', 'A gentle first step') + say('know', 'Having a rough idea helps') + say('copy', 'Your plan can be your own')
+         + say('days', 'How long to stay') + say('when', 'When to message us') + f'<h2>Before you fly: a quick checklist</h2><ul class="ar-check">{skin_list}</ul>',
          faq=['start', 'know', 'copy', 'days', 'when'], related=['rejuran', 'juvelook', 'aqua_peel']),
     dict(slug='trustworthy-clinic', title='How to tell if a clinic in Seoul is trustworthy',
-         excerpt='Official certificates first, then the thing that matters most: doctors who actually listen.',
-         quick='Check official signals first: certifications, case volume and government recognition. Then look for doctors who listen and explain. Don’t choose a clinic just because it is everywhere on social media.',
-         body=say('trust', 'Official signals, and the one I trust most') + say('tiktok', 'Don’t judge a clinic by how often you see it') + f'<h2>What we check before every recommendation</h2><ul class="ar-check">{checks}</ul>'
-         + '<p>If a clinic doesn’t pass, it doesn’t join our network. We’ve turned down popular clinics that didn’t meet the standard.</p>' + say('wrong', 'If something goes wrong'),
+         excerpt='Some signals worth checking, and the one Romie looks for most: doctors who listen.',
+         quick='Official signals like certifications, case volume and government recognition are a good place to start. It also helps to look for doctors who listen and explain things, and to compare a few clinics rather than choosing one only because it’s everywhere online.',
+         body=say('trust', 'Signals worth checking') + say('tiktok', 'Visibility isn’t everything') + f'<h2>What we check before every recommendation</h2><ul class="ar-check">{checks}</ul>'
+         + '<p>We only add clinics we’d be happy to go to ourselves, and we’ve passed on some popular ones along the way.</p>' + say('wrong', 'If something goes wrong'),
          faq=['trust', 'tiktok', 'wrong'], related=['cheapest-clinic', 'first-time-in-korea']),
     dict(slug='this-or-that', title='Botox or skin booster? Booster or laser? Gangnam or Apgujeong?',
-         excerpt='Three choices everyone asks about, answered the way Romie answers friends.',
-         quick='Botox and skin boosters do different jobs, so many people need both. Skin boosters improve your skin overall, while lasers target a specific problem. Gangnam has more skin clinics, Apgujeong has more plastic surgeons.',
+         excerpt='Three choices people often ask about, with the way Romie would talk them through with a friend.',
+         quick='Botox and skin boosters do different jobs, so some people choose both. Skin boosters tend to work on your skin overall, while lasers usually target something specific. As a rough guide, Gangnam has more skin clinics and Apgujeong more plastic surgeons. Your doctor can help you decide.',
          body=say('botoxbooster', 'Botox or skin booster?') + take_html('rejuran').replace('../../', '../../') + say('skinbotox', 'Isn’t Botox just for wrinkles?') + say('laser', 'Skin booster or laser?') + say('area', 'Gangnam or Apgujeong?'),
          faq=['botoxbooster', 'skinbotox', 'laser', 'area'], related=['botox', 'rejuran', 'pico_laser']),
-    dict(slug='cheapest-clinic', title='Why the cheapest clinic in Seoul usually isn’t',
-         excerpt='The lowest price on the menu is often a bait price. Compare the total of everything you’ll get.',
-         quick='The cheapest treatment on a menu is often a bait price: once you’re in the clinic, other treatments get added and the total ends up similar or higher. Compare the total price of everything in your plan, and ask for a written quote before you book.',
-         body=say('cheap', 'The bait price') + '<h2>Compare the whole plan</h2><p>Ask for the total price of everything in your plan, not just the headline treatment. That is the number to compare between clinics.</p>'
+    dict(slug='cheapest-clinic', title='Is the cheapest clinic in Seoul really the cheapest?',
+         excerpt='Why it can be worth looking past the lowest price on the menu and comparing the total for everything you’d get.',
+         quick='Sometimes the cheapest treatment on a menu is there to bring you in, and once other treatments are added the total can end up similar or higher. Comparing the total price of everything in your plan, and asking for a written quote before you book, usually gives a fairer picture.',
+         body=say('cheap', 'Look past the headline price') + '<h2>Comparing the whole plan</h2><p>It can help to ask for the total price of everything in your plan, not just the headline treatment. That total is usually the fairest number to compare between clinics.</p>'
          + say('prices', 'Reference prices vs your quote') + say('free', 'How Glow Up Seoul is paid'),
          faq=['cheap', 'prices', 'free'], related=['trustworthy-clinic', 'first-time-in-korea']),
 ]
@@ -338,7 +338,7 @@ for g in GUIDES:
 
 street = dict(slug='what-koreans-get-done', title='What Koreans actually get done at skin clinics (we asked on the street)',
               excerpt='Regular Botox, skin boosters and Ulthera came up most when we asked locals in Gangnam.',
-              quick='Locals we interviewed in Gangnam mostly keep it simple: regular Botox, skin boosters and Ulthera came up most, along with laser hair removal and acne care. Their advice to visitors: compare clinics carefully, read reviews and take your time.')
+              quick='The locals we interviewed in Gangnam mostly kept it simple: regular Botox, skin boosters and Ulthera came up most, along with laser hair removal and acne care. Their advice to visitors was to compare clinics carefully, read reviews and take your time.')
 street['body'] = f'''<div class="ar-quick"><h2>Quick answer</h2><p>{e(street["quick"])}</p></div>
 <div class="ar-body">
 <p>For our Seoul Skin Talk series we asked people on the streets of Gangnam what they actually get done. Faces are blurred in the videos.</p>
@@ -523,7 +523,7 @@ ld_home = {'@context': 'https://schema.org', '@type': 'Organization', 'name': 'G
            'contactPoint': {'@type': 'ContactPoint', 'contactType': 'customer service', 'telephone': '+82-10-6487-1060', 'availableLanguage': ['English', 'Chinese', 'Indonesian']}}
 open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8', newline='\n').write(
     shell('home', 'Glow Up Seoul · your friend in Seoul for clinics (시안 D)', D['service']['line'], hbody, ld=ld_home, modals=HOME_MODALS,
-          chat_ids='start,alone,trust,know,cheap,free,when,days,wrong,botoxbooster,area'))
+          chat_ids='alone,trust,start,know,cheap,free,when,days,wrong,botoxbooster,area'))
 
 print(f'wrote D: home, journal ({len(ARTICLES)} articles), faq')
 for a in ARTICLES:

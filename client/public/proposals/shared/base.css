@@ -120,3 +120,13 @@ body.has-gbar{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 .fc-chips .fc-more{border-style:dashed;background:transparent;text-align:center;color:var(--fc-ink2)}
 .fc-chips.is-open{max-height:min(42svh,320px);overflow-y:auto;overscroll-behavior:contain}
 .fc-chips.is-open .fc-more{position:sticky;bottom:0;background:#fff}
+
+/* ---- chat: taller window, compact question area (10/17) ---- */
+.fc{height:min(80svh,720px);min-height:500px}
+.fc-dock{padding:6px 0 10px}
+.fc-chips{gap:5px;padding:2px 12px 8px}
+.fc-chips-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 1px;font-size:12px;font-weight:600;color:var(--fc-ink2)}
+.fc-chips button,.fc-chips a{padding:9px 13px;border-radius:14px;font-size:13.5px}
+.fc-chips .fc-more{flex:0 0 auto;border:0;background:transparent;padding:4px 2px;border-radius:0;font-size:12.5px;font-weight:700;color:var(--fc-ink);text-decoration:underline;text-underline-offset:3px;text-align:right}
+.fc-chips.is-open{max-height:min(34svh,260px);overflow-y:auto;overscroll-behavior:contain}
+.fc-chips.is-open .fc-chips-h{position:sticky;top:0;z-index:1;background:#F7F9FB;padding:2px 0 4px}

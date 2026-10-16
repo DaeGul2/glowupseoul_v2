@@ -217,7 +217,7 @@
     const AV = ASSETS + 'romie-closeup.jpg';
     const st = G.status();
     const ids = (el.dataset.ids || '').split(',').filter(Boolean);
-    const order = ids.length ? ids : ['start', 'alone', 'trust', 'know', 'cheap', 'free', 'botoxbooster', 'skinbotox', 'when', 'days', 'wrong', 'area', 'lang', 'prices', 'pay', 'visa', 'tiktok', 'laser', 'copy', 'bumps', 'home', 'what'];
+    const order = ids.length ? ids : ['alone', 'trust', 'start', 'know', 'cheap', 'free', 'botoxbooster', 'skinbotox', 'when', 'days', 'wrong', 'area', 'lang', 'prices', 'pay', 'visa', 'tiktok', 'laser', 'copy', 'bumps', 'home', 'what'];
     el.innerHTML = `<div class="fc">
   <div class="fc-top"><img src="${AV}" alt=""><div class="fc-who"><b>Romie</b><span class="g-status${st.open ? ' is-open' : ''}"><i></i>${esc(st.short)}</span></div><a href="${G.wa('Hi Romie! 👋')}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>WhatsApp</a></div>
   <div class="fc-thread" role="log" aria-live="polite"><p class="fc-day">Today</p></div>
@@ -241,14 +241,14 @@
     const asked = new Set();
     // questions stack vertically (no sideways scrolling): 3 suggestions, then "More questions" opens the full list
     let expanded = false;
-    const SHOW = 3;
+    const SHOW = 2;
     const render = () => {
       const left = order.filter((id) => !asked.has(id)).map((id) => D.faq.find((f) => f.id === id)).filter(Boolean);
       if (!left.length) { chips.className = 'fc-chips'; chips.innerHTML = `<a class="hot" href="${G.wa('Hi Romie! I have a question: ')}" target="_blank" rel="noopener">Ask Romie on WhatsApp</a>`; return; }
       const list = expanded ? left : left.slice(0, SHOW);
-      const more = left.length > SHOW ? `<button type="button" class="fc-more" data-more aria-expanded="${expanded}">${expanded ? 'Show fewer' : `More questions (${left.length - SHOW})`}</button>` : '';
+      const more = left.length > SHOW ? `<button type="button" class="fc-more" data-more aria-expanded="${expanded}">${expanded ? 'Show fewer' : `See all ${left.length}`}</button>` : '';
       chips.className = 'fc-chips' + (expanded ? ' is-open' : '');
-      chips.innerHTML = `<p class="fc-chips-h">${expanded ? 'All questions' : 'Tap a question'}</p>` + list.map((f, i) => `<button type="button" data-q="${f.id}"${i === 0 && !expanded ? ' class="hot"' : ''}>${esc(f.q)}</button>`).join('') + more;
+      chips.innerHTML = `<div class="fc-chips-h"><span>${expanded ? 'All questions' : 'Suggested questions'}</span>${more}</div>` + list.map((f, i) => `<button type="button" data-q="${f.id}"${i === 0 && !expanded ? ' class="hot"' : ''}>${esc(f.q)}</button>`).join('');
       if (expanded) chips.scrollTop = 0;
     };
     add('them', 'Hi! I’m Romie 👋 Ask me anything about coming to Seoul for treatment. Tap a question below.');
