@@ -13,7 +13,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 P = os.path.join(ROOT, 'client', 'public', 'proposals')
 OUT = os.path.join(P, 'd')
 LIVE = 'https://glowupseoul.onrender.com/proposals/d/'
-V = '30'
+V = '31'
 DATE = '2026-10-17'
 DATE_H = '17 Oct 2026'
 
@@ -44,7 +44,7 @@ ico = lambda k: f'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 
 
 def note(t):
-    return f'<span class="note">{e(t)}</span>'
+    return ''   # 10/17: review notes removed from D (it reads as one real site now)
 
 
 # ---------------- markdown (DB descriptions) ----------------
@@ -128,9 +128,9 @@ def footer(pre):
     <a href="{WA}" target="_blank" rel="noopener">WhatsApp {e(C["waDisplay"])}</a>
     <a href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">Instagram @{e(C["instagram"])}</a>
     <a href="mailto:{e(C["email"])}">{e(C["email"])}</a>
-    <span>WeChat {e(C["wechat"])} {note("ID 확인")}</span>
+    <span>WeChat {e(C["wechat"])}</span>
   </div>
-  <p class="gf-legal">Glow Up Seoul · Foreign Patient Attraction Agency registered with the Ministry of Health &amp; Welfare, Korea · Reg. no. {note("등록번호")} · Business no. {note("사업자번호")} · {e(C["address"])}<br>We’re a concierge, not a clinic. Medical decisions are made between you and your doctor. © 2026 Glow Up Seoul</p>
+  <p class="gf-legal">Glow Up Seoul · Foreign Patient Attraction Agency registered with the Ministry of Health &amp; Welfare, Korea · {e(C["address"])}<br>We’re a concierge, not a clinic. Medical decisions are made between you and your doctor. © 2026 Glow Up Seoul</p>
 </div></footer>'''
 
 
@@ -156,8 +156,10 @@ def fab(pre):
 </div>'''
 
 
-def shell(page, title, desc, body, pre='', ld=None, modals='', chat_ids=''):
+def shell(page, title, desc, body, pre='', ld=None, modals='', chat_ids='', css='', tail=''):
     sh = pre + '../shared/'
+    title = title.replace(' (시안 D)', '')
+    xcss = f'<link rel="stylesheet" href="{css}?v={V}">' if css else ''
     ldj = f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>' if ld else ''
     return f'''<!doctype html>
 <html lang="en">
@@ -175,6 +177,7 @@ def shell(page, title, desc, body, pre='', ld=None, modals='', chat_ids=''):
 <link rel="stylesheet" href="{FONTS}">
 <link rel="stylesheet" href="{sh}base.css?v={V}">
 <link rel="stylesheet" href="{pre}style.css?v={V}">
+{xcss}
 {ldj}
 </head>
 <body data-site="d" data-page="{page}">
@@ -187,9 +190,10 @@ def shell(page, title, desc, body, pre='', ld=None, modals='', chat_ids=''):
 {chat_sheet(pre, chat_ids) if page != 'faq' else ''}
 {modals}
 <script src="{sh}data.js?v={V}"></script>
-<script>window.GUS.site={{noBar:true}};</script>
+<script>window.GUS.site={{noBar:true,noReview:true}};</script>
 <script src="{sh}app.js?v={V}"></script>
 <script src="{pre}d.js?v={V}"></script>
+{tail}
 </body>
 </html>
 '''
@@ -422,14 +426,37 @@ ARTICLES.sort(key=lambda a: (a['kind'] != 'guide', CATS.index(a['cat'])))
 BY = {a['slug']: a for a in ARTICLES}
 
 
-# ---------------- The Glow Journal: its own blog at d/journal/ (10/17: split off from the main site) ----------------
-# No wide photo crops: guides get a pastel cover with a small portrait polaroid, device posts a square photo.
+# ---------------- Journal (d/journal/): same header, footer and look as the rest of the site ----------------
+# 10/17: no AI treatment photos. Guides show Romie's real photos as a polaroid on a pastel card,
+# treatments get a pastel tile with a simple line icon. Lists show names only; the detail lives in the article.
 HUE = {'seoul-skin-treatment-guide': 'butter', 'first-time-in-korea': 'sky', 'trustworthy-clinic': 'matcha', 'this-or-that': 'lilac',
        'cheapest-clinic': 'peach', 'what-koreans-get-done': 'coral',
        'Lifting': 'sky', 'Skin boosters': 'lilac', 'Lasers': 'matcha', 'Injectables': 'peach', 'Facials & wellness': 'butter'}
 COVER_T = {'seoul-skin-treatment-guide': 'The Seoul skin guide', 'first-time-in-korea': 'Your first treatment in Korea',
            'trustworthy-clinic': 'Is this clinic trustworthy?', 'this-or-that': 'This or that?',
            'cheapest-clinic': 'Is cheapest worth it?', 'what-koreans-get-done': 'What Koreans actually get done'}
+TAG = {'ulthera': 'HIFU lift', 'thermage': 'RF firming', 'shurink': 'HIFU lift', 'inmode': 'RF contouring', 'thread_lift': 'Instant lift',
+       'rejuran': 'Salmon PN booster', 'juvelook': 'Collagen booster', 'pico_laser': 'Pigment & tone', 'co2_laser': 'Resurfacing',
+       'botox': 'Lines & jaw', 'filler': 'Volume', 'tear_trough': 'Under-eye', 'aqua_peel': 'Deep-clean facial', 'iv_glow': 'Glow drip'}
+GLYPH = {
+    'lift': '<path d="M12 19V6"/><path d="M7 11l5-5 5 5"/><path d="M5 21h14"/>',
+    'focus': '<circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="8"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/>',
+    'waves': '<path d="M3 7.5c3-3 6 3 9 0s6-3 9 0"/><path d="M3 12.5c3-3 6 3 9 0s6-3 9 0"/><path d="M3 17.5c3-3 6 3 9 0s6-3 9 0"/>',
+    'contour': '<path d="M6 3.5c-1.5 6 0 11 6 16.5 6-5.5 7.5-10.5 6-16.5"/><path d="M9 14c1.8 1.4 4.2 1.4 6 0"/>',
+    'thread': '<path d="M3.5 19C6.5 9 17.5 9 20.5 19"/><path d="M7 19c2-5.5 8-5.5 10 0"/><circle cx="12" cy="5.5" r="1.6"/>',
+    'drop': '<path d="M12 3c4 5 6.5 8.5 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 11.5 8 8 12 3z"/><path d="M9.3 15a2.7 2.7 0 0 0 2.7 2.7"/>',
+    'spark': '<path d="M11 3l1.9 5.6 5.6 1.9-5.6 1.9L11 18l-1.9-5.6-5.6-1.9 5.6-1.9z"/><path d="M18.5 15.5v5M16 18h5"/>',
+    'sun': '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+    'dots': '<g fill="currentColor" stroke="none">' + ''.join(f'<circle cx="{x}" cy="{y}" r="1.5"/>' for x in (6, 12, 18) for y in (6, 12, 18)) + '</g>',
+    'smooth': '<circle cx="12" cy="12" r="9"/><path d="M8.3 14.2c2 1.9 5.4 1.9 7.4 0"/><path d="M9 9.6h.01M15 9.6h.01"/>',
+    'volume': '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="10" opacity=".4"/>',
+    'eye': '<path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.6"/>',
+    'bubbles': '<circle cx="9" cy="14.5" r="5"/><circle cx="17" cy="7.5" r="3"/><circle cx="18.3" cy="16.8" r="1.8"/>',
+    'glow': '<path d="M12 7c3 3.8 4.8 6.4 4.8 8.7a4.8 4.8 0 0 1-9.6 0C7.2 13.4 9 10.8 12 7z"/><path d="M12 1.8v2M4.8 4.8l1.4 1.4M19.2 4.8l-1.4 1.4"/>',
+}
+DEV_GLYPH = {'ulthera': 'lift', 'shurink': 'focus', 'thermage': 'waves', 'inmode': 'contour', 'thread_lift': 'thread', 'rejuran': 'drop',
+             'juvelook': 'spark', 'pico_laser': 'sun', 'co2_laser': 'dots', 'botox': 'smooth', 'filler': 'volume', 'tear_trough': 'eye',
+             'aqua_peel': 'bubbles', 'iv_glow': 'glow'}
 JA = '../../assets/'   # assets, seen from d/journal/
 JHOME = 'journal/index.html'
 
@@ -438,31 +465,27 @@ def hue(a):
     return 'hue-' + HUE.get(a['slug'], HUE.get(a['cat'], 'sky'))
 
 
+def glyph(slug):
+    return f'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{GLYPH[DEV_GLYPH[slug]]}</svg>'
+
+
 def polaroid(a, base=JA):
     return f'<span class="pol"><img src="{base}{GUIDE_IMG[a["slug"]]}" alt="" loading="lazy" decoding="async"></span>'
 
 
-def cover(a, title=True, base=JA):
-    k = 'Start here' if a.get('pillar') else 'Romie’s guide'
-    t = f'<span class="cv-k">{k}</span><span class="cv-t">{e(COVER_T[a["slug"]])}</span>' if title else ''
-    return f'<span class="cv {hue(a)}">{t}{polaroid(a, base)}</span>'
+def cover(a, title=True, base=JA, meta=''):
+    k = '<span class="cv-k">Start here</span>' if a.get('pillar') and title else ''
+    t = f'<span class="cv-t">{e(COVER_T[a["slug"]])}</span>' if title else ''
+    m = f'<span class="cv-m">{meta}</span>' if meta else ''
+    return f'<span class="cv {hue(a)}">{k}{polaroid(a, base)}{t}{m}</span>'
 
 
-def thumb(a):
+def tile(a, cls='tl', meta=''):
     if a['kind'] == 'guide':
-        return f'<span class="th {hue(a)}">{polaroid(a)}</span>'
-    return f'<span class="th {hue(a)}"><img src="{JA}tx/{a["slug"]}.jpg" alt="" loading="lazy" decoding="async"></span>'
-
-
-def post_row(a):
-    meta = (a['meta'] + ' · ') if a.get('meta') else ''
-    t = a['short'] if a['kind'] == 'device' else a['title']
-    return (f'<a class="pr" href="{a["slug"]}.html">{thumb(a)}<span class="pr-b"><span class="pr-c">{e(a["cat"])}</span><span class="pr-t">{e(t)}</span>'
-            f'<span class="pr-x">{e(a["excerpt"])}</span><span class="pr-m">{e(meta)}{a["mins"]} min read</span></span></a>')
-
-
-def gcard(a):
-    return f'<a class="gc" href="{a["slug"]}.html">{cover(a)}<span class="gc-x">{e(a["excerpt"])}</span><span class="pr-m">{a["mins"]} min read</span></a>'
+        inner = cover(a, meta=meta)
+    else:
+        inner = f'<span class="dt {hue(a)}"><span class="dt-i">{glyph(a["slug"])}</span><span class="dt-t">{e(a["short"])}</span><span class="dt-s">{e(TAG[a["slug"]])}</span></span>'
+    return f'<a class="{cls}" href="{a["slug"]}.html">{inner}</a>'
 
 
 def related(a):
@@ -471,7 +494,7 @@ def related(a):
         lst = same + [BY['first-time-in-korea'] if a['cat'] in ('Skin boosters', 'Facials & wellness') else BY['this-or-that']]
     else:
         lst = [BY[s] for s in a['related'] if s in BY]
-    return ''.join(post_row(x) for x in lst)
+    return ''.join(tile(x) for x in lst)
 
 
 def add_toc(body_html):
@@ -491,68 +514,17 @@ def add_toc(body_html):
     return re.sub(r'<h2>(.*?)</h2>', rep, body_html), toc
 
 
-def blog_shell(title, desc, body, ld=None, kind='website'):
-    sh = '../../shared/'
-    ldj = f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>' if ld else ''
-    return f'''<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#FFFCF4">
-<title>{e(title)}</title>
-<meta name="description" content="{e(desc)}">
-<meta property="og:title" content="{e(title)}">
-<meta property="og:description" content="{e(desc)}">
-<meta property="og:type" content="{kind}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="{FONTS}">
-<link rel="stylesheet" href="{sh}base.css?v={V}">
-<link rel="stylesheet" href="../style.css?v={V}">
-<link rel="stylesheet" href="journal.css?v={V}">
-{ldj}
-</head>
-<body data-site="d" data-page="journal" class="blog">
-<header class="bh"><div class="bh-in">
-  <a class="bh-brand" href="index.html"><b>the glow journal<i></i></b><small>by Romie · Glow Up Seoul</small></a>
-  <a class="bh-main" href="../index.html">Glow Up Seoul ↗</a>
-</div></header>
-<main id="main">
-{body}
-</main>
-<footer class="bf"><div class="bf-in">
-  <div class="bf-author">
-    <span class="pol"><img src="{JA}romie-seated.jpg" alt="Romie" loading="lazy"></span>
-    <div><b>Written by Romie</b>
-      <p>Romie founded Glow Up Seoul, a foreign patient agency registered with Korea’s Ministry of Health &amp; Welfare. She started researching Seoul clinics for friends in 2014 and has coordinated treatments for international patients since 2022. {note("경력 연도 확인")}</p>
-      <div class="bf-links"><a href="../index.html">Glow Up Seoul</a><a href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">Instagram</a><a href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener">WhatsApp</a></div>
-    </div>
-  </div>
-  <p class="bf-legal">The Glow Journal is general information, not medical advice. Whether a treatment suits you is decided by your doctor at consultation. Prices are reference prices from partner clinics, for planning only. © 2026 Glow Up Seoul</p>
-</div></footer>
-{fab('../')}
-{chat_sheet('../')}
-<script src="{sh}data.js?v={V}"></script>
-<script>window.GUS.site={{noBar:true}};</script>
-<script src="{sh}app.js?v={V}"></script>
-<script src="../d.js?v={V}"></script>
-<script>(function(){{var t=document.querySelector('.bl-toc details');if(t&&matchMedia('(min-width:1000px)').matches)t.open=true;}})();</script>
-</body>
-</html>
-'''
-
+TOC_JS = "<script>(function(){var t=document.querySelector('.bl-toc details');if(t&&matchMedia('(min-width:1000px)').matches)t.open=true;})();</script>"
 
 # write articles
 os.makedirs(os.path.join(OUT, 'journal'), exist_ok=True)
 for a in ARTICLES:
     ask_text = f"Hi Romie! I read your guide on {a['short']}. "
     body_html, toc = add_toc(a['body'])
-    fig = polaroid(a) if a['kind'] == 'guide' else f'<span class="sq"><img src="{JA}tx/{a["slug"]}.jpg" alt=""></span>'
+    fig = polaroid(a) if a['kind'] == 'guide' else f'<span class="dic">{glyph(a["slug"])}</span>'
     toc_html = ('<aside class="bl-toc"><details><summary>In this guide</summary><ol>' + ''.join(f'<li><a href="#{i}">{t}</a></li>' for i, t in toc) + '</ol></details></aside>') if len(toc) > 2 else ''
     body = f'''<article class="w bl-art">
-  <nav class="ar-crumb" aria-label="Breadcrumb"><a href="index.html">The Glow Journal</a><span>›</span><span>{e(a["cat"])}</span></nav>
+  <nav class="ar-crumb" aria-label="Breadcrumb"><a href="index.html">Journal</a><span>›</span><span>{e(a["cat"])}</span></nav>
   <header class="bl-head {hue(a)}">
     <figure class="bl-fig">{fig}</figure>
     <span class="k">{e(a["cat"])}</span>
@@ -569,37 +541,34 @@ for a in ARTICLES:
     </div>
   </div>
 </article>
-<section class="w bl-related"><h2>Keep reading</h2><div class="prs">{related(a)}</div></section>'''
+<section class="w bl-related"><h2>Keep reading</h2><div class="tiles">{related(a)}</div></section>'''
     url = f'{LIVE}journal/{a["slug"]}.html'
     ld = {'@context': 'https://schema.org', '@graph': [
         {'@type': 'Article', 'headline': a['title'], 'description': a['excerpt'], 'datePublished': DATE, 'dateModified': DATE, 'url': url, 'wordCount': words(a['body']),
          'author': {'@type': 'Person', 'name': 'Romie', 'jobTitle': 'Founder & coordinator, Glow Up Seoul'},
-         'publisher': {'@type': 'Organization', 'name': 'Glow Up Seoul'}, 'isPartOf': {'@type': 'Blog', 'name': 'The Glow Journal', 'url': LIVE + JHOME}, 'inLanguage': 'en'},
+         'publisher': {'@type': 'Organization', 'name': 'Glow Up Seoul'}, 'isPartOf': {'@type': 'Blog', 'name': 'Glow Up Seoul Journal', 'url': LIVE + JHOME}, 'inLanguage': 'en'},
         faq_ld(a['faq']),
-        {'@type': 'BreadcrumbList', 'itemListElement': [{'@type': 'ListItem', 'position': 1, 'name': 'The Glow Journal', 'item': LIVE + JHOME},
+        {'@type': 'BreadcrumbList', 'itemListElement': [{'@type': 'ListItem', 'position': 1, 'name': 'Journal', 'item': LIVE + JHOME},
                                                          {'@type': 'ListItem', 'position': 2, 'name': a['title'], 'item': url}]}]}
     with open(os.path.join(OUT, 'journal', a['slug'] + '.html'), 'w', encoding='utf-8', newline='\n') as f:
-        f.write(blog_shell(a['title'] + ' · The Glow Journal (시안 D)', a['excerpt'], body, ld=ld, kind='article'))
+        f.write(shell('journal', a['title'] + ' · Glow Up Seoul', a['excerpt'], body, pre='../', ld=ld, css='journal.css', tail=TOC_JS))
 
 # ---------------- journal home ----------------
 feat = BY['seoul-skin-treatment-guide']
 guides = [a for a in ARTICLES if a['kind'] == 'guide' and a['slug'] != feat['slug']]
 dcats = [c for c in CATS if c != 'Guides']
 chips = ''.join(f'<button type="button" data-f="{e(c)}" aria-pressed="{"true" if i == 0 else "false"}">{e(c)}</button>' for i, c in enumerate(['All'] + CATS))
-dev_secs = ''.join(f'<section class="bl-sec" data-sec="{e(c)}"><h2>{e(c)} <small>{sum(1 for a in ARTICLES if a["cat"] == c)}</small></h2><div class="prs">'
-                   + ''.join(post_row(a) for a in ARTICLES if a['cat'] == c) + '</div></section>' for c in dcats)
-jbody = f'''<section class="w bl-mast">
-  <h1>the glow<br>journal<i></i></h1>
-  <p>Honest, in-depth guides to Seoul skin treatments: what it is, how it feels, how long it lasts and roughly what it costs.</p>
-  <div class="bl-by"><img src="{JA}romie-closeup.jpg" alt=""><span>by <b>Romie</b>, coordinator in Seoul · {len(ARTICLES)} guides · updated {DATE_H}</span></div>
-  {note("새롬님 의견 반영: 정보성 글은 메인 사이트와 분리된 블로그로. AI 검색용으로 길고 자세하게(글마다 한 줄 답·비교표·목차·출처·날짜). 정적 HTML이라 AI가 읽을 수 있음. 오픈 때 검색 허용·사이트맵·llms.txt 추가")}
-</section>
+dev_secs = ''.join(f'<section class="bl-sec" data-sec="{e(c)}"><h2>{e(c)}</h2><div class="tiles">'
+                   + ''.join(tile(a) for a in ARTICLES if a['cat'] == c) + '</div></section>' for c in dcats)
+feat_tile = tile(feat, 'tl tl-feat', f'{feat["mins"]} min read →')
+jbody = f'''<section class="w ph"><span class="k">Journal</span><h1>Seoul treatments, <mark class="hl">simply.</mark></h1>
+  <p class="lead">Romie’s guides to what people ask about most. Tap one to read.</p></section>
 <nav class="bl-cats" aria-label="Topics"><div class="bl-cats-in" role="group">{chips}</div></nav>
 <div class="w">
   <section class="bl-sec" data-sec="Guides">
-    <a class="bl-feat {hue(feat)}" href="{feat["slug"]}.html">{cover(feat)}<span class="bl-feat-b"><b>{e(feat["title"])}</b><span class="gc-x">{e(feat["excerpt"])}</span><span class="pr-m">{feat["mins"]} min read · Romie</span><span class="bl-feat-go">Read the guide →</span></span></a>
-    <h2>Romie’s guides <small>{len(guides)}</small></h2>
-    <div class="gcards">{"".join(gcard(a) for a in guides)}</div>
+    {feat_tile}
+    <h2>Romie’s guides</h2>
+    <div class="trow">{"".join(tile(a) for a in guides)}</div>
   </section>
   {dev_secs}
 </div>
@@ -608,15 +577,15 @@ jbody = f'''<section class="w bl-mast">
 (function(){{var nav=document.querySelector('.bl-cats'),b=nav.querySelectorAll('button'),s=document.querySelectorAll('.bl-sec');
 b.forEach(function(x){{x.addEventListener('click',function(){{var f=x.dataset.f;b.forEach(function(y){{y.setAttribute('aria-pressed',String(y===x))}});s.forEach(function(k){{k.hidden=!(f==='All'||k.dataset.sec===f)}});if(window.scrollY>nav.offsetTop)window.scrollTo({{top:nav.offsetTop,behavior:'smooth'}})}})}})}})();
 </script>'''
-ld_list = {'@context': 'https://schema.org', '@type': 'Blog', 'name': 'The Glow Journal', 'url': LIVE + JHOME, 'publisher': {'@type': 'Organization', 'name': 'Glow Up Seoul'},
+ld_list = {'@context': 'https://schema.org', '@type': 'Blog', 'name': 'Glow Up Seoul Journal', 'url': LIVE + JHOME, 'publisher': {'@type': 'Organization', 'name': 'Glow Up Seoul'},
            'author': {'@type': 'Person', 'name': 'Romie'},
            'blogPost': [{'@type': 'BlogPosting', 'headline': a['title'], 'url': f'{LIVE}journal/{a["slug"]}.html', 'datePublished': DATE} for a in ARTICLES]}
 open(os.path.join(OUT, 'journal', 'index.html'), 'w', encoding='utf-8', newline='\n').write(
-    blog_shell('The Glow Journal · Seoul skin treatments explained (시안 D)', 'Honest, in-depth guides to Korean skin treatments by Romie, a coordinator in Seoul.', jbody, ld=ld_list))
-# the old address forwards to the blog home
+    shell('journal', 'Journal · Seoul treatments, simply · Glow Up Seoul', 'Romie’s guides to Korean skin treatments: what it is, how it feels, how long it lasts and what it costs.', jbody, pre='../', ld=ld_list, css='journal.css'))
+# the old address forwards to the journal home
 open(os.path.join(OUT, 'journal.html'), 'w', encoding='utf-8', newline='\n').write(
-    '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="robots" content="noindex"><title>The Glow Journal</title>'
-    '<meta http-equiv="refresh" content="0; url=journal/index.html"><link rel="canonical" href="journal/index.html"><a href="journal/index.html">The Glow Journal</a></html>\n')
+    '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="robots" content="noindex"><title>Journal · Glow Up Seoul</title>'
+    '<meta http-equiv="refresh" content="0; url=journal/index.html"><link rel="canonical" href="journal/index.html"><a href="journal/index.html">Journal</a></html>\n')
 
 
 # ---------------- FAQ page ----------------
@@ -696,7 +665,7 @@ hbody = f"""<section class="w">
 
 <section class="w qsec">
   <a class="jban" href="{JHOME}">
-    <span class="jban-t"><span class="k butter">the glow journal</span><b>Romie’s guides to Seoul treatments.</b><span>{len(ARTICLES)} in-depth reads on what each treatment is, how it feels, how long it lasts and what it costs.</span><span class="jban-go">Open the journal →</span></span>
+    <span class="jban-t"><span class="k butter">journal</span><b>Romie’s guides to Seoul treatments.</b><span>{len(ARTICLES)} in-depth reads on what each treatment is, how it feels, how long it lasts and what it costs.</span><span class="jban-go">Open the journal →</span></span>
     <span class="jban-c" aria-hidden="true">{cover(BY["first-time-in-korea"], False, "../assets/")}{cover(BY["this-or-that"], False, "../assets/")}{cover(BY["trustworthy-clinic"], False, "../assets/")}</span>
   </a>
 </section>"""

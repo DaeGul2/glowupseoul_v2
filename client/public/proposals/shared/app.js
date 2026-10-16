@@ -409,7 +409,7 @@ ${rel.length ? `<section class="td-sec"><h2>Also worth a look</h2><div class="tc
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-copy]'); if (b) copy(b.dataset.copy, b); });
 
   /* boot */
-  reviewBar();
+  if (!cfg.noReview) reviewBar();
   header();
   footer();
   bottomBar();
