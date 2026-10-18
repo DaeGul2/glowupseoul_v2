@@ -8,12 +8,13 @@
 입력: proposals/shared/data.js (문구·FAQ·사진·DM), shared/details.json (운영 DB 시술 설명 스냅샷)
 """
 import html, json, math, os, re, subprocess
+from urllib.parse import quote
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 P = os.path.join(ROOT, 'client', 'public', 'proposals')
 OUT = os.path.join(P, 'd')
 LIVE = 'https://glowupseoul.onrender.com/proposals/d/'
-V = '40'
+V = '41'
 DATE = '2026-10-17'
 DATE_H = '17 Oct 2026'
 GOOGLE_REVIEWS = 'https://www.google.com/maps/place/glowup+seoul/data=!4m6!3m5!1s0x357ca395b5f2fda7:0x348e4305c8a65ae3!9m1!1b1!16s%2Fg%2F11xtyd24zx'
@@ -21,6 +22,10 @@ GOOGLE_REVIEWS = 'https://www.google.com/maps/place/glowup+seoul/data=!4m6!3m5!1
 js = subprocess.run(['node', '-e', "global.window={};require(process.argv[1]);process.stdout.write(JSON.stringify(window.GUS.data))",
                      os.path.join(P, 'shared', 'data.js')], capture_output=True, text=True, encoding='utf-8', check=True).stdout
 D = json.loads(js)
+# 10/18 FAQ — WhatsApp CS 분석으로 다시 짠 짧은 답 (FAQ 페이지 · 홈 · 채팅). d/faq-data.js 가 원본.
+DFAQ = json.loads(subprocess.run(['node', '-e', "global.window={};require(process.argv[1]);process.stdout.write(JSON.stringify(window.GUS.dfaq))",
+                                  os.path.join(OUT, 'faq-data.js')], capture_output=True, text=True, encoding='utf-8', check=True).stdout)
+DFAQ_BY = {f['id']: f for f in DFAQ['items']}
 DET = json.load(open(os.path.join(P, 'shared', 'details.json'), encoding='utf-8'))
 C = D['contact']
 FAQ = {f['id']: f for f in D['faq']}
@@ -120,7 +125,7 @@ def header(page, pre):
     return f'''<header class="gh"><div class="gh-in">
   <a class="gh-logo" href="{pre}index.html" aria-label="Glow Up Seoul home">{LOGO}</a>
   <nav class="gh-nav" aria-label="Main">{links}</nav>
-  <a class="gh-cta" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span><span>Message Romie</span></a>
+  <a class="gh-cta" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener" data-open="m-wa" aria-haspopup="dialog"><span class="ico-wa" aria-hidden="true"></span><span>Message Romie</span></a>
 </div></header>'''
 
 
@@ -156,20 +161,25 @@ def sheet(mid, title, inner, sub=''):
 </div></dialog>'''
 
 
-def chat_sheet(pre, ids=''):
-    ci = f' data-ids="{ids}"' if ids else ''
-    sub = f'<span data-gus="status"></span> · <a href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener">WhatsApp</a>'
-    return sheet('m-chat', 'Ask Romie', f'<div data-gus="faqchat"{ci}></div><p class="sheet-more"><a href="{pre}faq.html">See all 22 questions as a list →</a></p>', sub)
+def chat_sheet(pre):
+    """FAQ 2. 채팅 (d/faq.js 가 [data-d=chat] 에 붙인다)"""
+    sub = f'<span data-gus="status"></span> · <a href="{pre}faq.html#message" data-open="m-wa">Message on WhatsApp</a>'
+    return sheet('m-chat', 'Ask Romie', f'<div data-d="chat"></div><p class="sheet-more"><a href="{pre}faq.html">See all {len(DFAQ["items"])} questions →</a></p>', sub)
+
+
+def wa_sheet():
+    """FAQ 1. WhatsApp 으로 바로 — 질문·여행 틀을 채워서 WhatsApp 을 연다 (d/faq.js)"""
+    return sheet('m-wa', 'Message Romie', '<div data-d="compose"></div>', 'Straight to WhatsApp. She replies personally.')
 
 
 def fab(pre):
     return f'''<div class="fab-wrap">
-  <a class="fab-wa" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener" aria-label="Message Romie on WhatsApp"><span class="ico-wa" aria-hidden="true"></span></a>
+  <a class="fab-wa" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener" data-open="m-wa" aria-haspopup="dialog" aria-label="Message Romie on WhatsApp"><span class="ico-wa" aria-hidden="true"></span></a>
   <button type="button" class="fab" data-open="m-chat" aria-haspopup="dialog"><img src="{pre}../assets/romie-closeup.jpg" alt=""><span>Ask Romie</span></button>
 </div>'''
 
 
-def shell(page, title, desc, body, pre='', ld=None, modals='', chat_ids='', css='', tail='', raw=False):
+def shell(page, title, desc, body, pre='', ld=None, modals='', css='', tail='', raw=False):
     """raw=True: title/desc/ld 를 그대로 넣는다 (서버가 채우는 %%GUS_…%% 자리표시용 템플릿)."""
     sh = pre + '../shared/'
     title = title.replace(' (시안 D)', '')
@@ -205,12 +215,15 @@ def shell(page, title, desc, body, pre='', ld=None, modals='', chat_ids='', css=
 </main>
 {footer(pre)}
 {fab(pre)}
-{chat_sheet(pre, chat_ids) if page != 'faq' else ''}
+{chat_sheet(pre) if page != 'faq' else ''}
+{wa_sheet()}
 {modals}
 <script src="{sh}data.js?v={V}"></script>
 <script>window.GUS.site={{noBar:true,noReview:true}};</script>
 <script src="{sh}app.js?v={V}"></script>
+<script src="{pre}faq-data.js?v={V}"></script>
 <script src="{LENIS}" defer></script>
+<script src="{pre}faq.js?v={V}" defer></script>
 <script src="{pre}d.js?v={V}" defer></script>
 {tail}
 </body>
@@ -229,6 +242,25 @@ def faq_ld(pairs):
     return {'@type': 'FAQPage', 'mainEntity': [{'@type': 'Question', 'name': q, 'acceptedAnswer': {'@type': 'Answer', 'text': a}} for q, a in pairs]}
 
 
+# ---- 10/18 FAQ (d/faq-data.js): short answers from the WhatsApp CS analysis. Journal articles keep the long D['faq'] answers.
+def dfaq_ask(f):
+    t = DFAQ['tpl'][f['tpl']]['text'] if f.get('tpl') else f'Hi Romie! 👋 A question from your FAQ: “{f["q"]}”\n'
+    return f'{WA}?text={quote(t)}'
+
+
+def dfaq_text(f):
+    return f['a'] + (' ' + ' '.join(f'{i + 1}. {s}' for i, s in enumerate(f['steps'])) if f.get('steps') else '')
+
+
+def dfaq_item(f, idp='faq-'):
+    tag = f'<span class="fq-tag">{e(f["tag"])}</span>' if f.get('tag') else ''
+    steps = ('<ol class="fq-steps">' + ''.join(f'<li>{e(s)}</li>' for s in f['steps']) + '</ol>') if f.get('steps') else ''
+    rl = f'<a class="faq-reel" href="{reel(f["reel"])}" target="_blank" rel="noopener">▶ Watch Romie answer</a>' if f.get('reel') else ''
+    return (f'<details class="faq-i" id="{idp}{f["id"]}" data-c="{f["c"]}" data-top="{1 if f.get("top") else 0}" data-k="{e(f.get("k", "").replace("|", " "))}">'
+            f'<summary><span class="fq">{e(f["q"])}</span>{tag}</summary>'
+            f'<div class="faq-a"><p>{e(f["a"])}</p>{steps}<div class="fa-links"><a class="fa-ask" href="{dfaq_ask(f)}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Ask Romie about this</a>{rl}</div></div></details>')
+
+
 def svc():
     return '<ul class="g-svc">' + ''.join(f'<li><span class="g-svc-i">{ico(p["ico"])}</span><span class="g-svc-t"><b>{e(p["t"])}</b><small>{e(p["d"])}</small></span></li>' for p in D['service']['points']) + '</ul>'
 
@@ -236,7 +268,7 @@ def svc():
 def ask_block(title, lead):
     return f'''<section class="w sec"><div class="ask" data-r>
   <div><span class="k">Takes 10 seconds</span><h2 class="split">{title}</h2><p class="lead">{lead}</p></div>
-  <div data-gus="contact"></div>
+  <div data-d="compose"></div>
 </div></section>'''
 
 
@@ -608,22 +640,49 @@ open(os.path.join(OUT, 'journal.html'), 'w', encoding='utf-8', newline='\n').wri
     '<meta http-equiv="refresh" content="0; url=journal/index.html"><link rel="canonical" href="journal/index.html"><a href="journal/index.html">Journal</a></html>\n')
 
 
-# ---------------- FAQ page ----------------
-groups = ''
-for c in D['faqCats']:
-    groups += f'<h2 class="faq-cat">{e(c)}</h2><div class="faq-list">' + ''.join(faq_item(f) for f in D['faq'] if f['c'] == c) + '</div>'
-fbody = f'''<section class="w ph"><span class="mono">FAQ</span><h1 class="split">Questions, answered.</h1><p class="lead">Everything people ask Romie before their first trip. Most of these she has also answered on camera.</p></section>
-<section class="w">
-  <div data-views="chat">
-    <div class="vt" role="group" aria-label="How to view the FAQ"><button type="button" data-view-btn="chat" aria-pressed="false">Chat with Romie</button><button type="button" data-view-btn="list" aria-pressed="true">All questions</button></div>
-    <div data-view="chat" hidden><div data-gus="faqchat"></div></div>
-    <div data-view="list">{groups}</div>
+# ---------------- FAQ page (10/18): three ways in — 1. WhatsApp  2. chat  3. browse ----------------
+# 질문·답은 d/faq-data.js (WhatsApp CS 1,759개 질문 분석). 목록은 정적 HTML 이라 JS 없이도, 크롤러에도 다 보인다.
+FAQ_N = len(DFAQ['items'])
+SVG = lambda body: f'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{body}</svg>'
+MODE_ICO = {
+    'chat': SVG('<path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.1A8 8 0 1 1 20 12z"/><path d="M9 11h.01M12 11h.01M15 11h.01"/>'),
+    'list': SVG('<path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/>'),
+    'search': SVG('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/>'),
+}
+fcats = ''.join(f'<button type="button" data-c="{c}" aria-pressed="false">{e(t)}</button>' for c, t in DFAQ['cats'])
+fsecs = ''.join(f'<section class="fl-sec" data-c="{c}"><h2 class="faq-cat">{e(t)}</h2><div class="faq-list">'
+                + ''.join(dfaq_item(f) for f in DFAQ['items'] if f['c'] == c) + '</div></section>' for c, t in DFAQ['cats'])
+fbody = f'''<section class="w ph ph-faq"><span class="mono">FAQ</span><h1 class="split">Questions, answered.</h1>
+  <p class="lead">The questions people actually ask Romie on WhatsApp, each answered in a line or two.</p></section>
+<section class="w fm" data-modes="list">
+  <div class="fm-tabs" role="tablist" aria-label="How would you like to ask?">
+    <button type="button" role="tab" data-mode="wa" aria-selected="false"><span class="fm-i"><span class="ico-wa" aria-hidden="true"></span></span><span class="fm-t"><b>Message Romie</b><small>Straight to WhatsApp</small></span></button>
+    <button type="button" role="tab" data-mode="chat" aria-selected="false"><span class="fm-i">{MODE_ICO["chat"]}</span><span class="fm-t"><b>Chat</b><small>Instant answers</small></span></button>
+    <button type="button" role="tab" data-mode="list" aria-selected="true"><span class="fm-i">{MODE_ICO["list"]}</span><span class="fm-t"><b>Browse</b><small>All {FAQ_N} questions</small></span></button>
+  </div>
+  <div class="fm-panel" data-mode-panel="wa" hidden><div data-d="compose"></div></div>
+  <div class="fm-panel" data-mode-panel="chat" hidden><div data-d="chat"></div></div>
+  <div class="fm-panel" data-mode-panel="list">
+    <div class="fl" data-d="faqlist">
+      <div class="fl-bar">
+        <label class="fl-search">{MODE_ICO["search"]}<span class="sr">Search the questions</span><input type="search" placeholder="Search, e.g. tax, card, pain" autocomplete="off" enterkeyhint="search"></label>
+        <div class="fl-cats" role="group" aria-label="Topics"><button type="button" data-c="all" aria-pressed="true">All</button><button type="button" data-c="top" aria-pressed="false">Most asked</button>{fcats}</div>
+      </div>
+      <p class="fl-count" aria-live="polite">{FAQ_N} questions</p>
+      <p class="fl-none" hidden>No answer here yet. <a href="{WA}?text={quote("Hi Romie! 👋 ")}" target="_blank" rel="noopener">Ask Romie directly ↗</a></p>
+      {fsecs}
+    </div>
   </div>
 </section>
-{ask_block("Still curious?", "Ask Romie directly. Send a photo too if you like. She replies personally.")}'''
+<section class="w sec fq-end"><div class="end" data-r>
+  <span class="mono">Still curious?</span>
+  <h2 class="split">Ask me anything else.</h2>
+  <p>Send a photo and a few words. I reply personally, usually within an hour.</p>
+  <div class="btns"><a class="btn light" href="{WA}?text={quote("Hi Romie! 👋 ")}" target="_blank" rel="noopener" data-open="m-wa" aria-haspopup="dialog"><span class="ico-wa" aria-hidden="true"></span>Message on WhatsApp</a><a class="btn ghost" href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">Instagram</a></div>
+</div></section>'''
 open(os.path.join(OUT, 'faq.html'), 'w', encoding='utf-8', newline='\n').write(
-    shell('faq', 'FAQ · Glow Up Seoul', 'Answers to common questions about treatments in Seoul: cost, safety, travel and aftercare.', fbody,
-          ld={'@context': 'https://schema.org', **faq_ld([(f['q'], f['a']) for f in D['faq']])}))
+    shell('faq', 'FAQ · Glow Up Seoul', 'Short answers to what people ask before treatment in Seoul: price, tax refund, payment, language, pain, downtime and aftercare.', fbody,
+          ld={'@context': 'https://schema.org', **faq_ld([(f['q'], dfaq_text(f)) for f in DFAQ['items']])}))
 
 
 # ---------------- home (10/18 회의) ----------------
@@ -638,9 +697,9 @@ HOW = [
 EXPECT = [
     ('romie-desk.jpg', '50% 30%', 'Before you fly', 'A shortlist, not a sales pitch',
      'Within a day of your message you get 2–3 verified clinics for your concern, with honest prices, downtime and a rough plan for your days in Seoul.'),
-    ('clinic-lobby.jpg', '50% 55%', 'On the day', 'Someone beside you',
+    ('romie-profile.jpg', '50% 30%', 'On the day', 'Someone beside you',
      'I book the appointments, translate at the consultation and stay with you through treatment. Coming on your own is completely fine.'),
-    ('romie-closeup.jpg', '50% 25%', 'After you fly home', 'Still here when you’re home',
+    ('airport.jpg', '50% 45%', 'After you fly home', 'Still here when you’re home',
      'I check in on day 1, 7 and 30. Send me a photo any time, and if anything feels off I talk to the clinic for you.'),
 ]
 MARQUEE = ['Verified clinics only', 'Free for patients', 'Registered with the Ministry of Health & Welfare', 'English · 中文 · Bahasa',
@@ -661,17 +720,19 @@ stats = ''.join(f'<li data-r style="--i:{i}"><b{num_attrs(s["n"])}>{e(s["n"])}</
 checks_home = ''.join(f'<li data-r style="--i:{i}"><b>{e(t)}</b><span>{e(p)}</span></li>' for i, (t, p) in enumerate(D['checks']))
 mq = ''.join(f'<span>{e(x)}</span>' for x in MARQUEE * 2)
 reels = ''.join(f'<a class="g-reel" href="{reel(r["id"])}" target="_blank" rel="noopener"><img src="../assets/{r["cover"]}" alt="" loading="lazy"><span class="g-reel-k">{e(r["k"])}</span><span class="g-reel-t">{e(r["t"])}</span><span class="g-reel-d">▶ {e(r["dur"])}</span></a>' for r in D['reels'])
-home_faq = ''.join(faq_item(FAQ[i], 'hq-') for i in ['alone', 'free', 'trust', 'days', 'start'])
+# 홈 FAQ = WhatsApp CS 에서 가장 많이 나온 질문 순 (가격 63명 · 예약 시점 52명 · 첫 시술 추천 49명 · 일행 36명 · 다운타임 32명) + 무료 여부
+home_faq = ''.join(dfaq_item(DFAQ_BY[i], 'hq-') for i in ['price', 'free', 'when', 'first', 'group', 'downtime'])
 latest = ''.join(card(BY[s], 'journal/', '../assets/') for s in HOME_PICKS)
 hi = e('Hi Romie! 👋')
 
 hbody = f"""<section class="hero" aria-label="Introduction">
-  <div class="hero-media"><img src="../assets/romie-seated.jpg" alt="Romie, founder of Glow Up Seoul" fetchpriority="high" data-speed="0.12"></div>
+  <div class="hero-media"><img src="../assets/clinic-lobby-hero.jpg" alt="The calm lobby of a partner clinic in Gangnam" fetchpriority="high" data-speed="0.12"></div>
   <div class="hero-in w">
     <span class="mono hero-k">Medical beauty concierge · Seoul</span>
     <h1 class="split hero-h">Your person in Seoul for <em>skin &amp; surgery.</em></h1>
-    <p class="hero-lead">I’m Romie. I match international patients with verified clinics, come with you on the day, and look after you once you’re home.</p>
-    <div class="btns"><a class="btn light" href="{WA}?text={hi}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Message me on WhatsApp</a><a class="btn ghost" href="#how">How it works</a></div>
+    <p class="hero-lead">I match international patients with verified clinics, come with you on the day, and look after you once you’re home.</p>
+    <p class="hero-romie"><img src="../assets/romie-closeup.jpg" alt=""><span><b>Romie · your coordinator</b><small data-gus="status"></small></span></p>
+    <div class="btns"><a class="btn light" href="{WA}?text={hi}" target="_blank" rel="noopener" data-open="m-wa" aria-haspopup="dialog"><span class="ico-wa" aria-hidden="true"></span>Message me on WhatsApp</a><a class="btn ghost" href="#how">How it works</a></div>
   </div>
   <div class="hero-foot w"><span>Registered with Korea’s Ministry of Health &amp; Welfare</span><span class="cue" aria-hidden="true">Scroll</span></div>
 </section>
@@ -725,8 +786,8 @@ hbody = f"""<section class="hero" aria-label="Introduction">
 
 <section class="w sec" id="faq">
   <div class="faq-wrap">
-    <div class="sh"><span class="mono">07 — FAQ</span><h2 class="split">Questions people ask first.</h2><p>Short answers here. Ask me anything else in the chat, or read all 22.</p>
-      <div class="btns"><button type="button" class="btn" data-open="m-chat" aria-haspopup="dialog">Ask Romie</button><a class="btn o" href="faq.html">All questions</a></div></div>
+    <div class="sh"><span class="mono">07 — FAQ</span><h2 class="split">Questions people ask first.</h2><p>The most common questions in my WhatsApp, answered in a line. Anything else, just ask.</p>
+      <div class="btns"><a class="btn" href="{WA}?text={hi}" target="_blank" rel="noopener" data-open="m-wa" aria-haspopup="dialog"><span class="ico-wa" aria-hidden="true"></span>Message me</a><button type="button" class="btn o" data-open="m-chat" aria-haspopup="dialog">Chat</button><a class="more" href="faq.html">All {FAQ_N} questions <span aria-hidden="true">→</span></a></div></div>
     <div class="faq-list">{home_faq}</div>
   </div>
 </section>
@@ -735,16 +796,15 @@ hbody = f"""<section class="hero" aria-label="Introduction">
   <div class="end" data-r>
     <span class="mono">Ready when you are</span>
     <h2 class="split">Tell me what you’d like to change.</h2>
-    <p>Send a photo and a few words. I reply personally, usually within a day.</p>
-    <div class="btns"><a class="btn light" href="{WA}?text={hi}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Message on WhatsApp</a><a class="btn ghost" href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">Instagram</a></div>
+    <p>Send a photo and a few words. I reply personally, usually within an hour.</p>
+    <div class="btns"><a class="btn light" href="{WA}?text={hi}" target="_blank" rel="noopener" data-open="m-wa" aria-haspopup="dialog"><span class="ico-wa" aria-hidden="true"></span>Message on WhatsApp</a><a class="btn ghost" href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">Instagram</a></div>
   </div>
 </section>"""
 ld_home = {'@context': 'https://schema.org', '@type': 'Organization', 'name': 'Glow Up Seoul', 'url': LIVE, 'description': D['service']['line'],
            'founder': {'@type': 'Person', 'name': 'Romie'}, 'sameAs': ['https://www.instagram.com/glowupseoul/'],
            'contactPoint': {'@type': 'ContactPoint', 'contactType': 'customer service', 'telephone': '+82-10-6487-1060', 'availableLanguage': ['English', 'Chinese', 'Indonesian']}}
 open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8', newline='\n').write(
-    shell('home', 'Glow Up Seoul · your person in Seoul for skin & surgery', D['service']['line'], hbody, ld=ld_home,
-          chat_ids='alone,trust,start,know,cheap,free,when,days,wrong,botoxbooster,area'))
+    shell('home', 'Glow Up Seoul · your person in Seoul for skin & surgery', D['service']['line'], hbody, ld=ld_home))
 
 print(f'wrote D: home, journal ({len(ARTICLES)} articles + _post.html template + posts.json), faq')
 for a in ARTICLES:

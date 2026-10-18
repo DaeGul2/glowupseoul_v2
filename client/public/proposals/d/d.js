@@ -35,8 +35,13 @@
   function open(id, opener) {
     const d = document.getElementById(id);
     if (!d) {
-      const chatBtn = document.querySelector('[data-view-btn="chat"]');
-      if (chatBtn) { chatBtn.click(); chatBtn.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      // FAQ page has no chat sheet: switch its own "Chat" tab instead
+      const tab = document.querySelector(id === 'm-chat' ? '[data-mode="chat"]' : '[data-mode="wa"]');
+      if (tab) {
+        tab.click();
+        const y = tab.getBoundingClientRect().top + window.scrollY - (head ? head.offsetHeight : 0) - 16;
+        if (lenis) lenis.scrollTo(y); else window.scrollTo({ top: y, behavior: calm ? 'auto' : 'smooth' });
+      }
       return;
     }
     d._opener = opener || null;
@@ -67,30 +72,108 @@
   });
   document.querySelectorAll('dialog.sheet').forEach((d) => mo.observe(d, { attributes: true, attributeFilter: ['open'] }));
   document.querySelectorAll('.fc-thread,.fc-chips').forEach((el) => el.setAttribute('data-lenis-prevent', ''));
-  if (location.hash === '#ask') setTimeout(() => open('m-chat'), 60);
+  if (!document.querySelector('[data-modes]')) {
+    if (location.hash === '#ask' || location.hash === '#chat') setTimeout(() => open('m-chat'), 60);
+    if (location.hash === '#message') setTimeout(() => open('m-wa'), 60);
+  }
 
-  /* ---------- header + floating buttons + reading progress ---------- */
+  /* ---------- extra motion targets (10/18: "폰에서 애니메이션이 너무 적어 보임") ---------- */
+  // cards and rows rise one after another; section labels, intros and buttons follow their heading
+  document.querySelectorAll('.pcs > .pc, .g-reels > .g-reel, .faq-list > .faq-i, .checks > li, .tiers2 > div, .fm-tabs > button, .gf-cols > div, .ar-facts > li, .ar-check > li').forEach((el) => {
+    if (el.hasAttribute('data-r')) return;
+    el.setAttribute('data-r', '');
+    el.style.setProperty('--i', [...el.parentElement.children].indexOf(el) % 4);
+  });
+  document.querySelectorAll('.sh > .mono, .sh > p, .sh > .btns, .sh-row > .more, .sh-row .mono, .ph > .mono, .ph > .lead, .ar-sum, .ar-by, .rv-foot, .gf-top').forEach((el) => {
+    if (el.hasAttribute('data-r') || el.closest('[data-r]')) return;
+    el.setAttribute('data-r', ''); el.classList.add('r-soft');
+  });
+  const live = !calm && 'IntersectionObserver' in window;
+  // section headings fill word by word as you scroll through them
+  const fills = live ? [...document.querySelectorAll('.sh h2.split, .end h2.split, .bl-related h2')] : [];
+  fills.forEach((h) => { h.classList.add('fill', 'split'); });
+  // photos drift slightly inside their frames
+  const PX = live ? [...document.querySelectorAll('.xp-img img, .pc-m img, .g-reel img, .bl-fig img, .ar-fig img')] : [];
+  PX.forEach((img) => img.classList.add('px'));
+  // "What to expect" cards stack on phones
+  const stack = [...document.querySelectorAll('.xp > .xp-i')];
+
+  /* ---------- one scroll loop: header, progress, hero, parallax, heading fill, stacking, marquee ---------- */
   const prog = document.querySelector('.prog');
   const article = document.querySelector('.bl-art');
   const hero = document.querySelector('.hero');
-  let lastY = window.scrollY;
-  function onScroll() {
-    const y = window.scrollY;
+  const heroImg = hero && hero.querySelector('[data-speed]');
+  const mqTrack = document.querySelector('.mq .g-marquee-track');
+  const mqAnim = !calm && mqTrack && mqTrack.getAnimations ? mqTrack.getAnimations()[0] : null;
+  const seen = new Set();
+  if ('IntersectionObserver' in window && !calm) {
+    const vio = new IntersectionObserver((es) => es.forEach((en) => (en.isIntersecting ? seen.add(en.target) : seen.delete(en.target))), { rootMargin: '10% 0px 10% 0px' });
+    PX.forEach((img) => vio.observe(img.parentElement));
+    fills.forEach((h) => vio.observe(h));
+  }
+  const phone = matchMedia('(max-width: 899px)');
+  let lastY = window.scrollY; let lastT = performance.now(); let rate = 1; let dir = 1; let busyUntil = 0; let ticking = false;
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  function frame(now) {
+    const y = window.scrollY; const vh = innerHeight;
+    const dy = y - lastY; const dt = Math.max(1, now - lastT);
     if (head) {
       head.classList.toggle('is-scrolled', isHome ? y > (hero ? hero.offsetHeight - 80 : 40) : y > 4);
-      head.classList.toggle('is-hidden', y > 400 && y > lastY + 2 && !html.classList.contains('modal-open'));
-      if (y < lastY - 2) head.classList.remove('is-hidden');
+      if (dy > 2 && y > 400 && !html.classList.contains('modal-open')) head.classList.add('is-hidden');
+      if (dy < -2) head.classList.remove('is-hidden');
     }
     if (fab && isHome && hero) fab.classList.toggle('is-top', y < hero.offsetHeight * 0.6);
-    if (prog && article) {
-      const r = article.getBoundingClientRect();
-      const p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - innerHeight)));
-      prog.style.transform = `scaleX(${p})`;
+    if (prog) {
+      let p;
+      if (article) { const r = article.getBoundingClientRect(); p = -r.top / Math.max(1, r.height - vh); }
+      else p = y / Math.max(1, document.documentElement.scrollHeight - vh);
+      prog.style.transform = `scaleX(${clamp(p, 0, 1).toFixed(4)})`;
     }
-    lastY = y;
+    if (!calm) {
+      if (hero) {
+        const hh = hero.offsetHeight;
+        if (y < hh * 1.2) {
+          hero.style.setProperty('--hp', clamp(y / hh, 0, 1).toFixed(3));
+          if (heroImg) heroImg.style.translate = `0 ${(y * parseFloat(heroImg.dataset.speed)).toFixed(1)}px`;
+        }
+      }
+      seen.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (el.classList.contains('fill')) {
+          const words = el._w || (el._w = [...el.querySelectorAll('.wd')]);
+          const p = clamp((vh * 0.92 - r.top) / (vh * 0.42), 0, 1);
+          const lit = Math.ceil(p * words.length);
+          words.forEach((w, i) => w.classList.toggle('lit', i < lit));
+        } else {
+          const img = el.querySelector('.px');
+          if (img) img.style.translate = `0 ${(-((r.top + r.height / 2 - vh / 2) / vh) * r.height * 0.09).toFixed(1)}px`;
+        }
+      });
+      if (stack.length && phone.matches) {
+        stack.forEach((c, i) => {
+          const next = stack[i + 1];
+          if (!next) { c.style.scale = ''; c.style.filter = ''; return; }
+          const a = c.getBoundingClientRect(); const b = next.getBoundingClientRect();
+          const k = clamp((a.bottom - b.top) / a.height, 0, 1);   // how much the next card covers this one
+          c.style.scale = (1 - k * 0.06).toFixed(4);
+          c.style.filter = k > 0.01 ? `brightness(${(1 - k * 0.12).toFixed(3)})` : '';
+        });
+      }
+      if (mqAnim) {
+        if (Math.abs(dy) > 0.5) dir = dy > 0 ? 1 : -1;
+        const target = dir * (1 + clamp(Math.abs(dy) / dt * 9, 0, 7));
+        rate += (target - rate) * 0.12;
+        if (Math.abs(rate - dir) < 0.02 && Math.abs(dy) < 0.5) rate = dir;
+        mqAnim.playbackRate = rate;
+      }
+    }
+    lastY = y; lastT = now;
+    if (now < busyUntil || (mqAnim && Math.abs(rate - dir) > 0.02)) requestAnimationFrame(frame); else ticking = false;
   }
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+  const kick = () => { busyUntil = performance.now() + 400; if (!ticking) { ticking = true; requestAnimationFrame(frame); } };
+  window.addEventListener('scroll', kick, { passive: true });
+  window.addEventListener('resize', kick);
+  kick();
   // tuck the floating buttons away while the footer is on screen, so they never cover legal text
   const foot = document.querySelector('.gf');
   if (fab && foot && 'IntersectionObserver' in window) {
@@ -122,7 +205,7 @@
   document.querySelectorAll('.split').forEach(split);
 
   /* ---------- reveal on scroll ---------- */
-  const targets = document.querySelectorAll('[data-r], .split, .rv-img');
+  const targets = document.querySelectorAll('[data-r], .split, .rv-img, .svc > li, .stats > li');
   if (calm || !('IntersectionObserver' in window)) {
     targets.forEach((t) => t.classList.add('in'));
   } else {
@@ -134,20 +217,6 @@
     targets.forEach((t) => io.observe(t));
   }
   if (hero) requestAnimationFrame(() => setTimeout(() => hero.classList.add('in'), 60));
-
-  /* ---------- parallax ---------- */
-  const par = [...document.querySelectorAll('[data-speed]')];
-  if (!calm && par.length) {
-    const tick = () => {
-      par.forEach((el) => {
-        const box = el.parentElement.getBoundingClientRect();
-        if (box.bottom < 0 || box.top > innerHeight) return;
-        el.style.translate = `0 ${(-box.top * parseFloat(el.dataset.speed)).toFixed(1)}px`;
-      });
-    };
-    window.addEventListener('scroll', () => requestAnimationFrame(tick), { passive: true });
-    tick();
-  }
 
   /* ---------- count-up numbers ---------- */
   const nums = document.querySelectorAll('[data-count]');
