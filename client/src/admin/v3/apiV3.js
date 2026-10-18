@@ -56,6 +56,14 @@ export const api = {
   bookingUpdate: (id, body) => req('PATCH', `/api/v3/admin/bookings/${id}`, body),
   bookingDelete: (id)       => req('DELETE', `/api/v3/admin/bookings/${id}`),
 
+  // Journal blog posts (homepage /proposals/d/journal/)
+  blogList:   ()         => req('GET', '/api/v3/admin/blog-posts'),
+  blogGet:    (id)       => req('GET', `/api/v3/admin/blog-posts/${id}`),
+  blogCreate: (body)     => req('POST', '/api/v3/admin/blog-posts', body),
+  blogUpdate: (id, body) => req('PATCH', `/api/v3/admin/blog-posts/${id}`, body),
+  blogDelete: (id)       => req('DELETE', `/api/v3/admin/blog-posts/${id}`),
+  blogPreview: (body)    => req('POST', '/api/v3/admin/blog-posts/_preview', body),   // → full HTML page
+
   // Operational settings (CallMeBot, booking window …)
   settingsGet:   ()     => req('GET', '/api/v3/admin/settings'),
   settingsPatch: (body) => req('PATCH', '/api/v3/admin/settings', body),

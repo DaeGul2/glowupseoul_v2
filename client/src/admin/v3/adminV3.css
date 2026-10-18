@@ -593,3 +593,20 @@
   .v3a-cs-inbox { max-height: 360px; }
   .v3a-cs-side { grid-template-columns: 1fr; }
 }
+
+/* ---------------------------------------------------------------- 블로그 Journal 탭 (BlogAdmin.jsx) */
+.v3a-blog-pub { color: #0f7a40; font-weight: 600; }
+.v3a-blog-ok { margin: 0 0 14px; padding: 12px 16px; border-radius: 10px; background: #e9f7ef; color: #0f5c32; font-weight: 500; }
+.v3a-blog-old { margin-top: 28px; }
+.v3a-blog-old ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; }
+.v3a-blog-old small { color: #8a8c93; margin-left: 6px; }
+.v3a-blog-state { display: flex; align-items: center; gap: 14px; font-size: 14px; }
+.v3a-blog-title { font-size: 20px !important; font-weight: 600; }
+.v3a-blog-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 700px) { .v3a-blog-row { grid-template-columns: 1fr; } }
+.v3a-blog-tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; position: sticky; top: 0; z-index: 2; background: inherit; padding: 6px 0; }
+.v3a-blog-tool { border: 1px solid rgba(16,17,20,.14); background: #fff; border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; }
+.v3a-blog-tool:hover { border-color: #101114; }
+.v3a-blog-tool:disabled { opacity: .5; cursor: wait; }
+.v3a-blog .v3a-md img { max-width: 100%; border-radius: 10px; }
+.v3a-blog-actions { flex-wrap: wrap; }

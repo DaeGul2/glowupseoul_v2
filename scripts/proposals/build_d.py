@@ -13,9 +13,10 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 P = os.path.join(ROOT, 'client', 'public', 'proposals')
 OUT = os.path.join(P, 'd')
 LIVE = 'https://glowupseoul.onrender.com/proposals/d/'
-V = '31'
+V = '40'
 DATE = '2026-10-17'
 DATE_H = '17 Oct 2026'
+GOOGLE_REVIEWS = 'https://www.google.com/maps/place/glowup+seoul/data=!4m6!3m5!1s0x357ca395b5f2fda7:0x348e4305c8a65ae3!9m1!1b1!16s%2Fg%2F11xtyd24zx'
 
 js = subprocess.run(['node', '-e', "global.window={};require(process.argv[1]);process.stdout.write(JSON.stringify(window.GUS.data))",
                      os.path.join(P, 'shared', 'data.js')], capture_output=True, text=True, encoding='utf-8', check=True).stdout
@@ -106,29 +107,41 @@ def words(s):
 
 # ---------------- page shell ----------------
 NAV = [('home', 'index.html', 'Home'), ('journal', 'journal/index.html', 'Journal'), ('faq', 'faq.html', 'FAQ')]
-FONTS = 'https://fonts.googleapis.com/css2?family=Gabarito:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap'
+# 10/18 회의: 파스텔·둥근 Gabarito 톤 → 운영 사이트(onrender)와 같은 Geist + Geist Mono, 웜 화이트·잉크·서울 블루.
+FONTS = 'https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap'
+LENIS = 'https://unpkg.com/lenis@1.1.13/dist/lenis.min.js'
+# 로고: 빨간 점 없앰. "Glow Up · Seoul" — Glow Up 과 Seoul 사이에 작은 점.
+LOGO = 'Glow Up<i aria-hidden="true"></i>Seoul'
 
 
 def header(page, pre):
     cur = ' aria-current="page"'
     links = ''.join(f'<a href="{pre}{h}"{cur if k == page else ""}>{t}</a>' for k, h, t in NAV)
     return f'''<header class="gh"><div class="gh-in">
-  <a class="gh-logo" href="{pre}index.html">glow<i></i>up seoul</a>
+  <a class="gh-logo" href="{pre}index.html" aria-label="Glow Up Seoul home">{LOGO}</a>
   <nav class="gh-nav" aria-label="Main">{links}</nav>
-  <a class="gh-cta" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener">Text Romie</a>
+  <a class="gh-cta" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span><span>Message Romie</span></a>
 </div></header>'''
 
 
 def footer(pre):
     nav = ''.join(f'<a href="{pre}{h}">{t}</a>' for _, h, t in NAV)
     return f'''<footer class="gf"><div class="gf-in">
-  <div class="gf-big">glow<i></i>up seoul</div>
-  <nav class="gf-nav" aria-label="Footer">{nav}</nav>
-  <div class="gf-links">
-    <a href="{WA}" target="_blank" rel="noopener">WhatsApp {e(C["waDisplay"])}</a>
-    <a href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">Instagram @{e(C["instagram"])}</a>
-    <a href="mailto:{e(C["email"])}">{e(C["email"])}</a>
-    <span>WeChat {e(C["wechat"])}</span>
+  <div class="gf-top">
+    <div class="gf-big">{LOGO}</div>
+    <p class="gf-line">A personal concierge for skin &amp; plastic surgery clinics in Seoul.</p>
+  </div>
+  <div class="gf-cols">
+    <div><span class="gf-h">Site</span>{nav}</div>
+    <div><span class="gf-h">Contact</span>
+      <a href="{WA}" target="_blank" rel="noopener">WhatsApp {e(C["waDisplay"])}</a>
+      <a href="mailto:{e(C["email"])}">{e(C["email"])}</a>
+      <span>WeChat {e(C["wechat"])}</span>
+    </div>
+    <div><span class="gf-h">Follow</span>
+      <a href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">Instagram @{e(C["instagram"])}</a>
+      <a href="{GOOGLE_REVIEWS}" target="_blank" rel="noopener">Google reviews</a>
+    </div>
   </div>
   <p class="gf-legal">Glow Up Seoul · Foreign Patient Attraction Agency registered with the Ministry of Health &amp; Welfare, Korea · {e(C["address"])}<br>We’re a concierge, not a clinic. Medical decisions are made between you and your doctor. © 2026 Glow Up Seoul</p>
 </div></footer>'''
@@ -139,7 +152,7 @@ def sheet(mid, title, inner, sub=''):
     sb = f'<p class="sheet-sub">{sub}</p>' if sub else ''
     return f'''<dialog class="sheet" id="{mid}" aria-labelledby="{mid}-t"><div class="sheet-in">
   <header class="sheet-h"><div><h2 id="{mid}-t">{title}</h2>{sb}</div><button type="button" class="sheet-x" data-close aria-label="Close">×</button></header>
-  <div class="sheet-b">{inner}</div>
+  <div class="sheet-b" data-lenis-prevent>{inner}</div>
 </div></dialog>'''
 
 
@@ -156,31 +169,36 @@ def fab(pre):
 </div>'''
 
 
-def shell(page, title, desc, body, pre='', ld=None, modals='', chat_ids='', css='', tail=''):
+def shell(page, title, desc, body, pre='', ld=None, modals='', chat_ids='', css='', tail='', raw=False):
+    """raw=True: title/desc/ld 를 그대로 넣는다 (서버가 채우는 %%GUS_…%% 자리표시용 템플릿)."""
     sh = pre + '../shared/'
     title = title.replace(' (시안 D)', '')
     xcss = f'<link rel="stylesheet" href="{css}?v={V}">' if css else ''
-    ldj = f'<script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>' if ld else ''
+    t, d = (title, desc) if raw else (e(title), e(desc))
+    ldt = ld if raw else (json.dumps(ld, ensure_ascii=False) if ld else '')
+    ldj = f'<script type="application/ld+json">{ldt}</script>' if ldt else ''
     return f'''<!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#FFFFFF">
-<title>{e(title)}</title>
-<meta name="description" content="{e(desc)}">
-<meta property="og:title" content="{e(title)}">
-<meta property="og:description" content="{e(desc)}">
+<meta name="theme-color" content="#FAFAF8">
+<title>{t}</title>
+<meta name="description" content="{d}">
+<meta property="og:title" content="{t}">
+<meta property="og:description" content="{d}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{FONTS}">
 <link rel="stylesheet" href="{sh}base.css?v={V}">
 <link rel="stylesheet" href="{pre}style.css?v={V}">
 {xcss}
+<script>document.documentElement.className='js';setTimeout(function(){{if(!window.GUS_D)document.documentElement.classList.add('rv-off')}},2500)</script>
 {ldj}
 </head>
 <body data-site="d" data-page="{page}">
+<div class="prog" aria-hidden="true"></div>
 {header(page, pre)}
 <main id="main">
 {body}
@@ -192,7 +210,8 @@ def shell(page, title, desc, body, pre='', ld=None, modals='', chat_ids='', css=
 <script src="{sh}data.js?v={V}"></script>
 <script>window.GUS.site={{noBar:true,noReview:true}};</script>
 <script src="{sh}app.js?v={V}"></script>
-<script src="{pre}d.js?v={V}"></script>
+<script src="{LENIS}" defer></script>
+<script src="{pre}d.js?v={V}" defer></script>
 {tail}
 </body>
 </html>
@@ -215,8 +234,8 @@ def svc():
 
 
 def ask_block(title, lead):
-    return f'''<section class="w sec"><div class="ask">
-  <div><span class="k" style="background:#fff;color:var(--ink)">Takes 10 seconds</span><h2 style="margin-top:14px">{title}</h2><p class="lead">{lead}</p></div>
+    return f'''<section class="w sec"><div class="ask" data-r>
+  <div><span class="k">Takes 10 seconds</span><h2 class="split">{title}</h2><p class="lead">{lead}</p></div>
   <div data-gus="contact"></div>
 </div></section>'''
 
@@ -405,7 +424,7 @@ street['body'] = f'''<div class="ar-quick"><h2>Quick answer</h2><p>{e(street["qu
 <h2>Korean men</h2>
 <p>A 33-year-old told us he used to get acne peels from time to time but doesn’t get anything done now. Two men in their 20s said they go to budget “factory” clinics for simple things like laser hair removal, and to more expensive clinics when the result depends on the doctor’s skill.</p>
 <p>Their advice for visitors: there are a lot of clinics, so compare them carefully, read reviews and take your time choosing. <a href="{reel("DauBo70hiDR")}" target="_blank" rel="noopener">Watch the episode</a>.</p>
-<figure style="margin:20px 0"><img src="../../assets/street-men2.jpg" alt="Romie interviewing two men in Gangnam" style="width:100%;border-radius:28px" loading="lazy"></figure>
+<figure class="ar-fig"><img src="../../assets/street-men2.jpg" alt="Romie interviewing two men in Gangnam" loading="lazy"></figure>
 <h2>Young women in Seoul</h2>
 <p>An 18-year-old told us she has had acne extraction, and that friends who are stressed about acne go to clinics. Asked what she would recommend to visitors: Ulthera, a skin booster for clearer skin, and scar treatment. <a href="{reel("Da9yI06h4-i")}" target="_blank" rel="noopener">Watch the episode</a>.</p>
 <h2>Quick questions</h2>
@@ -427,11 +446,6 @@ BY = {a['slug']: a for a in ARTICLES}
 
 
 # ---------------- Journal (d/journal/): same header, footer and look as the rest of the site ----------------
-# 10/17: no AI treatment photos. Guides show Romie's real photos as a polaroid on a pastel card,
-# treatments get a pastel tile with a simple line icon. Lists show names only; the detail lives in the article.
-HUE = {'seoul-skin-treatment-guide': 'butter', 'first-time-in-korea': 'sky', 'trustworthy-clinic': 'matcha', 'this-or-that': 'lilac',
-       'cheapest-clinic': 'peach', 'what-koreans-get-done': 'coral',
-       'Lifting': 'sky', 'Skin boosters': 'lilac', 'Lasers': 'matcha', 'Injectables': 'peach', 'Facials & wellness': 'butter'}
 COVER_T = {'seoul-skin-treatment-guide': 'The Seoul skin guide', 'first-time-in-korea': 'Your first treatment in Korea',
            'trustworthy-clinic': 'Is this clinic trustworthy?', 'this-or-that': 'This or that?',
            'cheapest-clinic': 'Is cheapest worth it?', 'what-koreans-get-done': 'What Koreans actually get done'}
@@ -461,40 +475,43 @@ JA = '../../assets/'   # assets, seen from d/journal/
 JHOME = 'journal/index.html'
 
 
-def hue(a):
-    return 'hue-' + HUE.get(a['slug'], HUE.get(a['cat'], 'sky'))
+GUIDE_POS = {'seoul-skin-treatment-guide': '50% 45%', 'first-time-in-korea': '50% 22%', 'trustworthy-clinic': '50% 30%', 'this-or-that': '50% 30%',
+             'cheapest-clinic': '50% 35%', 'what-koreans-get-done': '50% 40%'}
+HOME_PICKS = ['seoul-skin-treatment-guide', 'first-time-in-korea', 'trustworthy-clinic']
 
 
 def glyph(slug):
-    return f'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{GLYPH[DEV_GLYPH[slug]]}</svg>'
+    return f'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{GLYPH[DEV_GLYPH[slug]]}</svg>'
 
 
-def polaroid(a, base=JA):
-    return f'<span class="pol"><img src="{base}{GUIDE_IMG[a["slug"]]}" alt="" loading="lazy" decoding="async"></span>'
+# 10/18: 파스텔 표지 → 일반 블로그 카드. 카드 = 사진(가이드) 또는 선 아이콘(장비) · 분류 · 이름 · 읽는 시간.
+# server/routes/blogV3.js 가 admin 에서 쓴 DB 글을 "같은 마크업"으로 목록 맨 앞에 끼운다 (posts.json 참고).
+def card_title(a):
+    return COVER_T[a['slug']] if a['kind'] == 'guide' else a['short']
 
 
-def cover(a, title=True, base=JA, meta=''):
-    k = '<span class="cv-k">Start here</span>' if a.get('pillar') and title else ''
-    t = f'<span class="cv-t">{e(COVER_T[a["slug"]])}</span>' if title else ''
-    m = f'<span class="cv-m">{meta}</span>' if meta else ''
-    return f'<span class="cv {hue(a)}">{k}{polaroid(a, base)}{t}{m}</span>'
+def card_meta(a):
+    return f'{a["mins"]} min read' if a['kind'] == 'guide' else f'{TAG[a["slug"]]} · {a["mins"]} min read'
 
 
-def tile(a, cls='tl', meta=''):
+def card_media(a, base=JA):
     if a['kind'] == 'guide':
-        inner = cover(a, meta=meta)
-    else:
-        inner = f'<span class="dt {hue(a)}"><span class="dt-i">{glyph(a["slug"])}</span><span class="dt-t">{e(a["short"])}</span><span class="dt-s">{e(TAG[a["slug"]])}</span></span>'
-    return f'<a class="{cls}" href="{a["slug"]}.html">{inner}</a>'
+        return f'<img src="{base}{GUIDE_IMG[a["slug"]]}" alt="" loading="lazy" decoding="async" style="object-position:{GUIDE_POS[a["slug"]]}">'
+    return f'<span class="pc-g">{glyph(a["slug"])}</span>'
+
+
+def card(a, href_pre='', base=JA):
+    return (f'<a class="pc" href="{href_pre}{a["slug"]}.html" data-cat="{e(a["cat"])}"><span class="pc-m">{card_media(a, base)}</span>'
+            f'<span class="pc-k">{e(a["cat"])}</span><span class="pc-t">{e(card_title(a))}</span><span class="pc-d">{e(card_meta(a))}</span></a>')
 
 
 def related(a):
     if a['kind'] == 'device':
-        same = [x for x in ARTICLES if x['kind'] == 'device' and x['slug'] != a['slug'] and (x['concerns'] & a['concerns'])][:3]
+        same = [x for x in ARTICLES if x['kind'] == 'device' and x['slug'] != a['slug'] and (x['concerns'] & a['concerns'])][:2]
         lst = same + [BY['first-time-in-korea'] if a['cat'] in ('Skin boosters', 'Facials & wellness') else BY['this-or-that']]
     else:
-        lst = [BY[s] for s in a['related'] if s in BY]
-    return ''.join(tile(x) for x in lst)
+        lst = [BY[s] for s in a['related'] if s in BY][:3]
+    return ''.join(card(x) for x in lst)
 
 
 def add_toc(body_html):
@@ -521,27 +538,32 @@ os.makedirs(os.path.join(OUT, 'journal'), exist_ok=True)
 for a in ARTICLES:
     ask_text = f"Hi Romie! I read your guide on {a['short']}. "
     body_html, toc = add_toc(a['body'])
-    fig = polaroid(a) if a['kind'] == 'guide' else f'<span class="dic">{glyph(a["slug"])}</span>'
+    if a['kind'] == 'guide':
+        fig = f'<figure class="bl-fig"><img src="{JA}{GUIDE_IMG[a["slug"]]}" alt="" fetchpriority="high" style="object-position:{GUIDE_POS[a["slug"]]}"></figure>'
+    else:
+        fig = f'<figure class="bl-fig bl-fig-g"><span>{glyph(a["slug"])}</span><figcaption>{e(TAG[a["slug"]])}</figcaption></figure>'
     toc_html = ('<aside class="bl-toc"><details><summary>In this guide</summary><ol>' + ''.join(f'<li><a href="#{i}">{t}</a></li>' for i, t in toc) + '</ol></details></aside>') if len(toc) > 2 else ''
     body = f'''<article class="w bl-art">
-  <nav class="ar-crumb" aria-label="Breadcrumb"><a href="index.html">Journal</a><span>›</span><span>{e(a["cat"])}</span></nav>
-  <header class="bl-head {hue(a)}">
-    <figure class="bl-fig">{fig}</figure>
-    <span class="k">{e(a["cat"])}</span>
-    <h1>{e(a["title"])}</h1>
-    <p class="ar-sum">{e(a["excerpt"])}</p>
-    <div class="ar-by"><img src="{JA}romie-closeup.jpg" alt=""><span><b>Romie</b> · Updated {DATE_H} · {a["mins"]} min read</span></div>
+  <nav class="ar-crumb" aria-label="Breadcrumb"><a href="index.html">Journal</a><span>/</span><span>{e(a["cat"])}</span></nav>
+  <header class="bl-head">
+    <div class="bl-ht">
+      <span class="k">{e(a["cat"])}</span>
+      <h1 class="split">{e(a["title"])}</h1>
+      <p class="ar-sum">{e(a["excerpt"])}</p>
+      <div class="ar-by"><img src="{JA}romie-closeup.jpg" alt=""><span><b>Romie</b> · Updated {DATE_H} · {a["mins"]} min read</span></div>
+    </div>
+    {fig}
   </header>
-  <div class="bl-grid">
+  <div class="bl-grid{'' if toc_html else ' no-toc'}">
     {toc_html}
     <div class="bl-main">
       {body_html}
       {SOURCES}
-      <section class="ar-ask"><h2>Not sure it’s right for you?</h2><p>Send Romie a photo and your concern. She’ll tell you honestly, even if the answer is “you don’t need this”.</p><a class="btn" href="{WA}?text={e(ask_text)}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Ask Romie on WhatsApp</a></section>
+      <section class="ar-ask"><h2>Not sure it’s right for you?</h2><p>Send Romie a photo and your concern. She’ll tell you honestly, even if the answer is “you don’t need this”.</p><a class="btn light" href="{WA}?text={e(ask_text)}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Ask Romie on WhatsApp</a></section>
     </div>
   </div>
 </article>
-<section class="w bl-related"><h2>Keep reading</h2><div class="tiles">{related(a)}</div></section>'''
+<section class="w bl-related"><h2>Keep reading</h2><div class="pcs">{related(a)}</div></section>'''
     url = f'{LIVE}journal/{a["slug"]}.html'
     ld = {'@context': 'https://schema.org', '@graph': [
         {'@type': 'Article', 'headline': a['title'], 'description': a['excerpt'], 'datePublished': DATE, 'dateModified': DATE, 'url': url, 'wordCount': words(a['body']),
@@ -553,35 +575,33 @@ for a in ARTICLES:
     with open(os.path.join(OUT, 'journal', a['slug'] + '.html'), 'w', encoding='utf-8', newline='\n') as f:
         f.write(shell('journal', a['title'] + ' · Glow Up Seoul', a['excerpt'], body, pre='../', ld=ld, css='journal.css', tail=TOC_JS))
 
+# template for admin-written posts: the server fills %%GUS_…%% (server/routes/blogV3.js)
+open(os.path.join(OUT, 'journal', '_post.html'), 'w', encoding='utf-8', newline='\n').write(
+    shell('journal', '%%GUS_TITLE%%', '%%GUS_DESC%%', '%%GUS_BODY%%', pre='../', ld='%%GUS_LD%%', css='journal.css', tail=TOC_JS, raw=True))
+# static posts the server merges with DB posts (same card markup, see card())
+json.dump({'cats': CATS, 'posts': [
+    {'slug': a['slug'], 'title': card_title(a), 'cat': a['cat'], 'meta': card_meta(a), 'kind': a['kind'], 'home': a['slug'] in HOME_PICKS,
+     'media': ({'type': 'photo', 'src': GUIDE_IMG[a['slug']], 'pos': GUIDE_POS[a['slug']]} if a['kind'] == 'guide' else {'type': 'glyph', 'svg': glyph(a['slug'])})}
+    for a in ARTICLES]}, open(os.path.join(OUT, 'journal', 'posts.json'), 'w', encoding='utf-8', newline='\n'), ensure_ascii=False, indent=1)
+
 # ---------------- journal home ----------------
-feat = BY['seoul-skin-treatment-guide']
-guides = [a for a in ARTICLES if a['kind'] == 'guide' and a['slug'] != feat['slug']]
-dcats = [c for c in CATS if c != 'Guides']
 chips = ''.join(f'<button type="button" data-f="{e(c)}" aria-pressed="{"true" if i == 0 else "false"}">{e(c)}</button>' for i, c in enumerate(['All'] + CATS))
-dev_secs = ''.join(f'<section class="bl-sec" data-sec="{e(c)}"><h2>{e(c)}</h2><div class="tiles">'
-                   + ''.join(tile(a) for a in ARTICLES if a['cat'] == c) + '</div></section>' for c in dcats)
-feat_tile = tile(feat, 'tl tl-feat', f'{feat["mins"]} min read →')
-jbody = f'''<section class="w ph"><span class="k">Journal</span><h1>Seoul treatments, <mark class="hl">simply.</mark></h1>
-  <p class="lead">Romie’s guides to what people ask about most. Tap one to read.</p></section>
-<nav class="bl-cats" aria-label="Topics"><div class="bl-cats-in" role="group">{chips}</div></nav>
-<div class="w">
-  <section class="bl-sec" data-sec="Guides">
-    {feat_tile}
-    <h2>Romie’s guides</h2>
-    <div class="trow">{"".join(tile(a) for a in guides)}</div>
-  </section>
-  {dev_secs}
-</div>
+jbody = f'''<section class="w ph"><span class="mono">Journal</span><h1 class="split">Seoul treatments, explained simply.</h1>
+  <p class="lead">Romie’s guides to what people ask about most: what each treatment is, how it feels, how long it lasts and what it costs.</p></section>
+<nav class="bl-cats" aria-label="Topics"><div class="bl-cats-in" role="group">{chips}<!--GUS:DB_CATS--></div></nav>
+<section class="w bl-list"><div class="pcs pcs-j" data-list><!--GUS:DB_POSTS-->{"".join(card(a) for a in ARTICLES)}</div></section>
 {ask_block("Can’t find your treatment?", "Tell Romie what you’d like to change. She’ll walk you through the options, including ones that aren’t in the journal yet.")}
 <script>
-(function(){{var nav=document.querySelector('.bl-cats'),b=nav.querySelectorAll('button'),s=document.querySelectorAll('.bl-sec');
-b.forEach(function(x){{x.addEventListener('click',function(){{var f=x.dataset.f;b.forEach(function(y){{y.setAttribute('aria-pressed',String(y===x))}});s.forEach(function(k){{k.hidden=!(f==='All'||k.dataset.sec===f)}});if(window.scrollY>nav.offsetTop)window.scrollTo({{top:nav.offsetTop,behavior:'smooth'}})}})}})}})();
+(function(){{var nav=document.querySelector('.bl-cats'),b=nav.querySelectorAll('button'),c=document.querySelectorAll('[data-list] .pc');
+nav.addEventListener('click',function(ev){{var x=ev.target.closest('button');if(!x)return;var f=x.dataset.f;nav.querySelectorAll('button').forEach(function(y){{y.setAttribute('aria-pressed',String(y===x))}});
+document.querySelectorAll('[data-list] .pc').forEach(function(k){{k.hidden=!(f==='All'||k.dataset.cat===f)}});document.querySelector('[data-list]').classList.toggle('is-filtered',f!=='All');
+var top=nav.getBoundingClientRect().top+window.scrollY;if(window.scrollY>top)window.scrollTo({{top:top,behavior:'smooth'}})}})}})();
 </script>'''
 ld_list = {'@context': 'https://schema.org', '@type': 'Blog', 'name': 'Glow Up Seoul Journal', 'url': LIVE + JHOME, 'publisher': {'@type': 'Organization', 'name': 'Glow Up Seoul'},
            'author': {'@type': 'Person', 'name': 'Romie'},
            'blogPost': [{'@type': 'BlogPosting', 'headline': a['title'], 'url': f'{LIVE}journal/{a["slug"]}.html', 'datePublished': DATE} for a in ARTICLES]}
 open(os.path.join(OUT, 'journal', 'index.html'), 'w', encoding='utf-8', newline='\n').write(
-    shell('journal', 'Journal · Seoul treatments, simply · Glow Up Seoul', 'Romie’s guides to Korean skin treatments: what it is, how it feels, how long it lasts and what it costs.', jbody, pre='../', ld=ld_list, css='journal.css'))
+    shell('journal', 'Journal · Seoul treatments, explained simply · Glow Up Seoul', 'Romie’s guides to Korean skin treatments: what it is, how it feels, how long it lasts and what it costs.', jbody, pre='../', ld=ld_list, css='journal.css'))
 # the old address forwards to the journal home
 open(os.path.join(OUT, 'journal.html'), 'w', encoding='utf-8', newline='\n').write(
     '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="robots" content="noindex"><title>Journal · Glow Up Seoul</title>'
@@ -589,94 +609,143 @@ open(os.path.join(OUT, 'journal.html'), 'w', encoding='utf-8', newline='\n').wri
 
 
 # ---------------- FAQ page ----------------
-def faq_views(ids, chat_ids=''):
-    lst = ''.join(faq_item(FAQ[i]) for i in ids)
-    ci = f' data-ids="{chat_ids}"' if chat_ids else ''
-    return f'''<div data-views="chat">
-  <div class="vt" role="group" aria-label="How to view the FAQ"><button type="button" data-view-btn="chat" aria-pressed="false">💬 Chat with Romie</button><button type="button" data-view-btn="list" aria-pressed="true">☰ All questions</button></div>
-  <div data-view="chat" hidden><div data-gus="faqchat"{ci}></div></div>
-  <div data-view="list"><div class="faq-list">{lst}</div></div>
-</div>'''
-
-
 groups = ''
 for c in D['faqCats']:
     groups += f'<h2 class="faq-cat">{e(c)}</h2><div class="faq-list">' + ''.join(faq_item(f) for f in D['faq'] if f['c'] == c) + '</div>'
-fbody = f'''<section class="w ph"><span class="k">FAQ</span><h1>Questions? <mark class="hl">Same.</mark></h1><p class="lead">Everything people ask Romie before their first trip. Most of these she has also answered on camera.</p></section>
+fbody = f'''<section class="w ph"><span class="mono">FAQ</span><h1 class="split">Questions, answered.</h1><p class="lead">Everything people ask Romie before their first trip. Most of these she has also answered on camera.</p></section>
 <section class="w">
   <div data-views="chat">
-    <div class="vt" role="group" aria-label="How to view the FAQ"><button type="button" data-view-btn="chat" aria-pressed="false">💬 Chat with Romie</button><button type="button" data-view-btn="list" aria-pressed="true">☰ All questions</button></div>
+    <div class="vt" role="group" aria-label="How to view the FAQ"><button type="button" data-view-btn="chat" aria-pressed="false">Chat with Romie</button><button type="button" data-view-btn="list" aria-pressed="true">All questions</button></div>
     <div data-view="chat" hidden><div data-gus="faqchat"></div></div>
     <div data-view="list">{groups}</div>
   </div>
 </section>
 {ask_block("Still curious?", "Ask Romie directly. Send a photo too if you like. She replies personally.")}'''
 open(os.path.join(OUT, 'faq.html'), 'w', encoding='utf-8', newline='\n').write(
-    shell('faq', 'FAQ · Glow Up Seoul (시안 D)', 'Answers to common questions about treatments in Seoul: cost, safety, travel and aftercare.', fbody,
+    shell('faq', 'FAQ · Glow Up Seoul', 'Answers to common questions about treatments in Seoul: cost, safety, travel and aftercare.', fbody,
           ld={'@context': 'https://schema.org', **faq_ld([(f['q'], f['a']) for f in D['faq']])}))
 
-# ---------------- home (10/17 v3: short scroll; details live in modals + floating "Ask Romie") ----------------
-dms = ''.join('<div class="g-dm">' + ''.join(f'<p class="g-bub g-bub--{w}">{e(t)}</p>' for w, t in d['m']) + f'<small>{e(d["when"])}</small></div>' for d in D['dms'])
-reels = ''.join(f'<a class="g-reel" href="{reel(r["id"])}" target="_blank" rel="noopener"><img src="../assets/{r["cover"]}" alt="" loading="lazy"><span class="g-reel-k">{e(r["k"])}</span><span class="g-reel-t">{e(r["t"])}</span><span class="g-reel-d">▶ {e(r["dur"])}</span></a>' for r in D['reels'])
+
+# ---------------- home (10/18 회의) ----------------
+# 새롬님: 홈 역할 = 내 서비스 설명 · 나랑 했을 때 기대할 것 · 신뢰 · 정보(블로그) · 구글 리뷰. 30대 기준, 세련되게 + 애니메이션.
+# "리얼 메시지"(DM) 는 구글 리뷰로 대체 (리뷰는 /api/google-reviews 로 실시간, 하드코딩 없음).
 HOW = [
     ('match', 'Find the right clinic', 'Tell me what you’d like to change. I send 2–3 verified clinics with honest prices and downtime.'),
     ('with', 'Come with you', 'I book it, translate, and sit next to you at the consultation and treatment. Coming alone is fine.'),
     ('care', 'Check on you after', 'Day 1, 7 and 30, even after you fly home. Send me a photo any time.'),
     ('free', 'Free for you', 'Clinics pay us a referral fee, only after your treatment. You pay the clinic the normal price.'),
 ]
-how = ''.join(f'<li><span class="hw-i">{ico(k)}</span><div><h3>{e(t)}</h3><p>{e(d)}</p></div></li>' for k, t, d in HOW)
-how_modal = sheet('m-how', 'How it works', f"""<ul class="how-list">{how}</ul>
-{note("무료·수수료 구조 = 현 glowupseoul.com 문구 기준. 확인 필요")}
-<h3 class="sheet-h3">What’s included</h3>
-<div class="tiers2">
-  <div><h4>Care <small>skin · free</small></h4><ul><li>1:1 with Romie from day one</li><li>Verified clinic match</li><li>With you on the day</li><li>1-week check-in</li></ul></div>
-  <div><h4>Premium Care <small>surgery · free</small></h4><ul><li>Everything in Care</li><li>Airport pickup</li><li>Pharmacy + medication covered</li><li>Day 1 · 7 · 30 check-ins</li></ul></div>
-</div>
-<a class="btn sheet-cta" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Start on WhatsApp</a>""")
-msgs_modal = sheet('m-msgs', 'Real messages', f'<div class="g-dms">{dms}</div>{note("인스타 캐러셀 DM 캡처를 텍스트로 옮김. 게재 전 당사자 동의 재확인")}', 'Shared with permission. Names removed.')
-reels_modal = sheet('m-reels', 'Seoul Skin Talk', f'<div class="reel-grid">{reels}</div><p class="sheet-more"><a href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">More on Instagram @{e(C["instagram"])} →</a></p>', 'Romie’s Q&amp;A and street interviews in Gangnam')
-first_dm = e(D['dms'][0]['m'][0][1])
-hbody = f"""<section class="w">
-  <div class="hero2">
-    <div class="tile t-main">
-      <span class="k soft" style="align-self:flex-start">{e(D["service"]["label"])}</span>
-      <h1>Your friend in Seoul for <mark class="hl">clinics.</mark></h1>
-      <p class="lead">I’m Romie. I match international patients with verified skin &amp; plastic surgery clinics, come with you on the day, and look after you once you’re home.</p>
-      <div class="btns"><a class="btn" href="{WA}?text={e("Hi Romie! 👋")}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Text me on WhatsApp</a><button type="button" class="btn o" data-open="m-how" aria-haspopup="dialog">How it works</button></div>
-      <p class="trust">✓ Free for patients &nbsp;·&nbsp; ✓ Registered with Korea’s Ministry of Health &amp; Welfare &nbsp;·&nbsp; ✓ 500+ patients</p>
-    </div>
-    <div class="tile t-collage" aria-label="Photos from Romie's Instagram">
-      <figure class="p1"><img src="../assets/romie-mic.jpg" alt="Romie with a microphone in Gangnam" style="object-position:50% 20%" fetchpriority="high"><figcaption>gangnam, last week</figcaption></figure>
-      <figure class="p2"><img src="../assets/airport2.jpg" alt="Romie hugging a patient at the airport" style="object-position:50% 30%"><figcaption>airport pickup</figcaption></figure>
-      <figure class="p3"><img src="../assets/romie-desk.jpg" alt="Romie planning a clinic shortlist" style="object-position:50% 35%"><figcaption>your shortlist</figcaption></figure>
-      <span class="stk s1">hi, i’m romie ✌️</span>
+EXPECT = [
+    ('romie-desk.jpg', '50% 30%', 'Before you fly', 'A shortlist, not a sales pitch',
+     'Within a day of your message you get 2–3 verified clinics for your concern, with honest prices, downtime and a rough plan for your days in Seoul.'),
+    ('clinic-lobby.jpg', '50% 55%', 'On the day', 'Someone beside you',
+     'I book the appointments, translate at the consultation and stay with you through treatment. Coming on your own is completely fine.'),
+    ('romie-closeup.jpg', '50% 25%', 'After you fly home', 'Still here when you’re home',
+     'I check in on day 1, 7 and 30. Send me a photo any time, and if anything feels off I talk to the clinic for you.'),
+]
+MARQUEE = ['Verified clinics only', 'Free for patients', 'Registered with the Ministry of Health & Welfare', 'English · 中文 · Bahasa',
+           'With you on the day', 'Aftercare after you fly home']
+
+
+def num_attrs(n):
+    m = re.match(r'^(\d+)(.*)$', n)
+    return f' data-count="{m.group(1)}" data-suffix="{e(m.group(2))}"' if m else ''
+
+
+svc_list = ''.join(f'<li data-r style="--i:{i}"><span class="svc-n">0{i + 1}</span><span class="svc-i">{ico(k)}</span><div><h3>{e(t)}</h3><p>{e(d)}</p></div></li>' for i, (k, t, d) in enumerate(HOW))
+expect = ''.join(f'''<article class="xp-i" data-r style="--i:{i}">
+      <figure class="xp-img rv-img"><img src="../assets/{img}" alt="" loading="lazy" decoding="async" style="object-position:{pos}"></figure>
+      <span class="mono">0{i + 1} · {e(k)}</span><h3>{e(t)}</h3><p>{e(d)}</p>
+    </article>''' for i, (img, pos, k, t, d) in enumerate(EXPECT))
+stats = ''.join(f'<li data-r style="--i:{i}"><b{num_attrs(s["n"])}>{e(s["n"])}</b><span>{e(s["l"])}</span></li>' for i, s in enumerate(D['stats']))
+checks_home = ''.join(f'<li data-r style="--i:{i}"><b>{e(t)}</b><span>{e(p)}</span></li>' for i, (t, p) in enumerate(D['checks']))
+mq = ''.join(f'<span>{e(x)}</span>' for x in MARQUEE * 2)
+reels = ''.join(f'<a class="g-reel" href="{reel(r["id"])}" target="_blank" rel="noopener"><img src="../assets/{r["cover"]}" alt="" loading="lazy"><span class="g-reel-k">{e(r["k"])}</span><span class="g-reel-t">{e(r["t"])}</span><span class="g-reel-d">▶ {e(r["dur"])}</span></a>' for r in D['reels'])
+home_faq = ''.join(faq_item(FAQ[i], 'hq-') for i in ['alone', 'free', 'trust', 'days', 'start'])
+latest = ''.join(card(BY[s], 'journal/', '../assets/') for s in HOME_PICKS)
+hi = e('Hi Romie! 👋')
+
+hbody = f"""<section class="hero" aria-label="Introduction">
+  <div class="hero-media"><img src="../assets/romie-seated.jpg" alt="Romie, founder of Glow Up Seoul" fetchpriority="high" data-speed="0.12"></div>
+  <div class="hero-in w">
+    <span class="mono hero-k">Medical beauty concierge · Seoul</span>
+    <h1 class="split hero-h">Your person in Seoul for <em>skin &amp; surgery.</em></h1>
+    <p class="hero-lead">I’m Romie. I match international patients with verified clinics, come with you on the day, and look after you once you’re home.</p>
+    <div class="btns"><a class="btn light" href="{WA}?text={hi}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Message me on WhatsApp</a><a class="btn ghost" href="#how">How it works</a></div>
+  </div>
+  <div class="hero-foot w"><span>Registered with Korea’s Ministry of Health &amp; Welfare</span><span class="cue" aria-hidden="true">Scroll</span></div>
+</section>
+
+<div class="mq" aria-hidden="true"><div class="g-marquee"><div class="g-marquee-track">{mq}</div></div></div>
+
+<section class="w sec" id="how">
+  <div class="sh"><span class="mono">01 — What I do</span><h2 class="split">One person, from your first message to your last check-in.</h2></div>
+  <ol class="svc">{svc_list}</ol>
+</section>
+
+<section class="sec xp-sec" id="expect">
+  <div class="w">
+    <div class="sh"><span class="mono">02 — What to expect</span><h2 class="split">What working with me looks like.</h2><p>No packages to choose from and no pressure. You talk to me, the same person, the whole way through.</p></div>
+    <div class="xp">{expect}</div>
+    <div class="tiers2" data-r>
+      <div><h4>Care <small>Skin treatments · free</small></h4><ul><li>1:1 with Romie from day one</li><li>Verified clinic match</li><li>With you on the day</li><li>Check-ins after your treatment</li></ul></div>
+      <div><h4>Premium Care <small>Surgery · free</small></h4><ul><li>Everything in Care</li><li>Airport pickup</li><li>Pharmacy and medication covered</li><li>Day 1 · 7 · 30 check-ins</li></ul></div>
     </div>
   </div>
 </section>
 
-<section class="w qsec" aria-label="Explore">
-  <div class="qt-grid">
-    <button type="button" class="qt qt-how" data-open="m-how" aria-haspopup="dialog"><span class="qt-k">How it works</span><b>One person, start to finish</b><span class="qt-ico">{ico("with")}</span><span class="qt-go" aria-hidden="true">↗</span></button>
-    <button type="button" class="qt qt-faq" data-open="m-chat" aria-haspopup="dialog"><span class="qt-k">FAQ</span><b>Ask me anything</b><span class="qt-bub">Can I come alone?</span><span class="qt-go" aria-hidden="true">↗</span></button>
-    <button type="button" class="qt qt-msgs" data-open="m-msgs" aria-haspopup="dialog"><span class="qt-k">From patients</span><b>Real messages</b><span class="qt-bub">{first_dm}</span><span class="qt-go" aria-hidden="true">↗</span></button>
-    <button type="button" class="qt qt-reels" data-open="m-reels" aria-haspopup="dialog"><span class="qt-k">Instagram</span><b>Watch me answer</b><img src="../assets/cover-street1.jpg" alt="" loading="lazy"><span class="qt-go" aria-hidden="true">↗</span></button>
+<section class="dark sec" id="trust">
+  <div class="w">
+    <div class="sh"><span class="mono">03 — Why people trust us</span><h2 class="split">Every clinic is checked before I recommend it.</h2></div>
+    <ul class="stats">{stats}</ul>
+    <div class="trust-grid">
+      <div class="reg" data-r><span class="mono">Government registered</span><p>Glow Up Seoul is registered with Korea’s Ministry of Health &amp; Welfare as a Foreign Patient Attraction Agency.</p><p class="reg-free"><b>Free for you.</b> Clinics pay us a referral fee, only after your treatment. You pay the clinic’s normal price.</p></div>
+      <ul class="checks">{checks_home}</ul>
+    </div>
   </div>
 </section>
 
-<section class="w qsec">
-  <a class="jban" href="{JHOME}">
-    <span class="jban-t"><span class="k butter">journal</span><b>Romie’s guides to Seoul treatments.</b><span>{len(ARTICLES)} in-depth reads on what each treatment is, how it feels, how long it lasts and what it costs.</span><span class="jban-go">Open the journal →</span></span>
-    <span class="jban-c" aria-hidden="true">{cover(BY["first-time-in-korea"], False, "../assets/")}{cover(BY["this-or-that"], False, "../assets/")}{cover(BY["trustworthy-clinic"], False, "../assets/")}</span>
-  </a>
+<section class="w sec" id="reviews">
+  <div class="sh sh-row"><div><span class="mono">04 — Reviews</span><h2 class="split">What patients say on Google.</h2></div><div class="rv-sum" data-rv-sum hidden></div></div>
+  <div class="rvs" data-reviews data-url="{GOOGLE_REVIEWS}" data-lenis-prevent-horizontal>
+    <div class="rv sk"></div><div class="rv sk"></div><div class="rv sk"></div>
+  </div>
+  <div class="rv-foot"><a class="btn o" href="{GOOGLE_REVIEWS}" target="_blank" rel="noopener">Read all reviews on Google <span aria-hidden="true">↗</span></a><span class="rv-by">Reviews from Google</span></div>
+</section>
+
+<section class="w sec" id="journal">
+  <div class="sh sh-row"><div><span class="mono">05 — Journal</span><h2 class="split">Read before you book.</h2></div><a class="more" href="{JHOME}">All articles <span aria-hidden="true">→</span></a></div>
+  <div class="pcs pcs-3"><!--GUS:LATEST-->{latest}<!--GUS:/LATEST--></div>
+</section>
+
+<section class="sec reels-sec" id="instagram">
+  <div class="w"><div class="sh sh-row"><div><span class="mono">06 — On Instagram</span><h2 class="split">Watch me answer.</h2></div><a class="more" href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">@{e(C["instagram"])} <span aria-hidden="true">↗</span></a></div></div>
+  <div class="g-reels">{reels}</div>
+</section>
+
+<section class="w sec" id="faq">
+  <div class="faq-wrap">
+    <div class="sh"><span class="mono">07 — FAQ</span><h2 class="split">Questions people ask first.</h2><p>Short answers here. Ask me anything else in the chat, or read all 22.</p>
+      <div class="btns"><button type="button" class="btn" data-open="m-chat" aria-haspopup="dialog">Ask Romie</button><a class="btn o" href="faq.html">All questions</a></div></div>
+    <div class="faq-list">{home_faq}</div>
+  </div>
+</section>
+
+<section class="w sec">
+  <div class="end" data-r>
+    <span class="mono">Ready when you are</span>
+    <h2 class="split">Tell me what you’d like to change.</h2>
+    <p>Send a photo and a few words. I reply personally, usually within a day.</p>
+    <div class="btns"><a class="btn light" href="{WA}?text={hi}" target="_blank" rel="noopener"><span class="ico-wa" aria-hidden="true"></span>Message on WhatsApp</a><a class="btn ghost" href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">Instagram</a></div>
+  </div>
 </section>"""
-HOME_MODALS = how_modal + msgs_modal + reels_modal
 ld_home = {'@context': 'https://schema.org', '@type': 'Organization', 'name': 'Glow Up Seoul', 'url': LIVE, 'description': D['service']['line'],
            'founder': {'@type': 'Person', 'name': 'Romie'}, 'sameAs': ['https://www.instagram.com/glowupseoul/'],
            'contactPoint': {'@type': 'ContactPoint', 'contactType': 'customer service', 'telephone': '+82-10-6487-1060', 'availableLanguage': ['English', 'Chinese', 'Indonesian']}}
 open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8', newline='\n').write(
-    shell('home', 'Glow Up Seoul · your friend in Seoul for clinics (시안 D)', D['service']['line'], hbody, ld=ld_home, modals=HOME_MODALS,
+    shell('home', 'Glow Up Seoul · your person in Seoul for skin & surgery', D['service']['line'], hbody, ld=ld_home,
           chat_ids='alone,trust,start,know,cheap,free,when,days,wrong,botoxbooster,area'))
 
-print(f'wrote D: home, journal ({len(ARTICLES)} articles), faq')
+print(f'wrote D: home, journal ({len(ARTICLES)} articles + _post.html template + posts.json), faq')
 for a in ARTICLES:
     print(f"  {a['cat']:18s} {a['slug']:22s} {a['mins']}min  faq={len(a['faq'])}")

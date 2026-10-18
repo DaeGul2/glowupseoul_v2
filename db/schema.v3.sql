@@ -257,3 +257,25 @@ CREATE TABLE IF NOT EXISTS partner_submissions (
   INDEX idx_psub_status  (status),
   INDEX idx_psub_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- blog_posts — Journal 에 admin 이 직접 쓰는 일반 블로그 글 (2026-10-18).
+-- 기존 정적 Journal 글은 파일로 남고, 서버가 목록에 DB 글을 끼워 넣는다.
+-- 서버가 첫 사용 때 같은 정의로 CREATE TABLE IF NOT EXISTS 도 한다.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS blog_posts (
+  id              INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  slug            VARCHAR(80)  NOT NULL UNIQUE,
+  title           VARCHAR(200) NOT NULL,
+  excerpt         VARCHAR(400),
+  category        VARCHAR(60),
+  cover_url       TEXT,
+  body_md         MEDIUMTEXT,
+  status          ENUM('draft','published') NOT NULL DEFAULT 'draft',
+  published_at    DATETIME,
+
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  INDEX idx_blog_status (status, published_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

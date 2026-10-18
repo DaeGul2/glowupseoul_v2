@@ -22,6 +22,8 @@ export default defineConfig({
       },
       '/sitemap.xml': { target: 'http://localhost:3001', changeOrigin: true },
       '/robots.txt':  { target: 'http://localhost:3001', changeOrigin: true },
+      // 홈페이지 시안 — 서버가 Journal 의 DB 글을 목록에 끼워 넣어서 준다
+      '/proposals':   { target: 'http://localhost:3001', changeOrigin: true },
     },
   },
 });

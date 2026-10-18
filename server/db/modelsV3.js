@@ -173,4 +173,22 @@ export const PartnerSubmission = sequelize.define('PartnerSubmission', {
   payload: { type: DataTypes.JSON, allowNull: false },
 }, opts('partner_submissions'));
 
+// -------------------------------------------------------------------
+// blog_posts — 홈페이지 Journal 에 admin 이 직접 쓰는 일반 블로그 글.
+// 기존 정적 글(scripts/proposals/build_d.py 생성)은 파일 그대로 두고,
+// 서버가 Journal 목록·홈 "최신 글"에 DB 글을 끼워 넣어 같이 보여준다.
+// body_md = Markdown 원문 (서버에서 HTML 로 렌더, raw HTML 은 이스케이프).
+// -------------------------------------------------------------------
+export const BlogPost = sequelize.define('BlogPost', {
+  id:           { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  slug:         { type: DataTypes.STRING(80), allowNull: false, unique: true },
+  title:        { type: DataTypes.STRING(200), allowNull: false },
+  excerpt:      { type: DataTypes.STRING(400) },
+  category:     { type: DataTypes.STRING(60) },
+  cover_url:    { type: DataTypes.TEXT },
+  body_md:      { type: DataTypes.TEXT('medium') },
+  status:       { type: DataTypes.ENUM('draft', 'published'), allowNull: false, defaultValue: 'draft' },
+  published_at: { type: DataTypes.DATE },
+}, opts('blog_posts'));
+
 export { sequelize, Op };

@@ -38,6 +38,11 @@ import {
   adminSettingsGet, adminSettingsPatch, adminTestAlert,
 } from './routes/adminBookingsV3.js';
 import { sitemapHandler, robotsHandler } from './routes/sitemap.js';
+import { googleReviewsHandler } from './routes/googleReviews.js';
+import {
+  proposalsRouter,
+  blogAdminList, blogAdminGet, blogAdminCreate, blogAdminUpdate, blogAdminDelete, blogAdminPreview,
+} from './routes/blogV3.js';
 import { checkDbHealth } from './db/health.js';
 import { hasDbConfig, closeSequelize } from './db/sequelize.js';
 import { hasS3Config } from './s3.js';
@@ -71,6 +76,8 @@ app.get('/api/health', async (_req, res) => {
 app.post('/api/analyze', rateLimitAnalyzeIp, analyzeHandler);
 app.post('/api/synthesize', synthesizeHandler);
 app.get('/api/reviews/:slug', reviewsHandler);
+// 홈페이지 Reviews 섹션 — Glow Up Seoul 자체 구글 리뷰 (Places API, 실패 시 링크만)
+app.get('/api/google-reviews', googleReviewsHandler);
 app.post('/api/partner', partnerSubmitHandler);
 app.get('/api/partner/admin', partnerListHandler);
 
@@ -123,6 +130,13 @@ app.delete('/api/v3/admin/bookings/:id',    requireAdmin, adminBookingDelete);
 app.get   ('/api/v3/admin/settings',        requireAdmin, adminSettingsGet);
 app.patch ('/api/v3/admin/settings',        requireAdmin, adminSettingsPatch);
 app.post  ('/api/v3/admin/settings/_test-alert', requireAdmin, adminTestAlert);
+// v3 admin — Journal 블로그 글 (generic :kind 라우트보다 먼저)
+app.get   ('/api/v3/admin/blog-posts',          requireAdmin, blogAdminList);
+app.post  ('/api/v3/admin/blog-posts/_preview', requireAdmin, blogAdminPreview);
+app.post  ('/api/v3/admin/blog-posts',          requireAdmin, blogAdminCreate);
+app.get   ('/api/v3/admin/blog-posts/:id',      requireAdmin, blogAdminGet);
+app.patch ('/api/v3/admin/blog-posts/:id',      requireAdmin, blogAdminUpdate);
+app.delete('/api/v3/admin/blog-posts/:id',      requireAdmin, blogAdminDelete);
 app.get   ('/api/v3/admin/_stats',     requireAdmin, v3Stats);
 app.get   ('/api/v3/admin/_tags',      requireAdmin, v3TagList);
 app.post  ('/api/v3/admin/_tags',      requireAdmin, v3TagCreate);
@@ -138,6 +152,10 @@ app.post  ('/api/admin/:kind',                 requireAdmin, adminCreate);
 app.get   ('/api/admin/:kind/:id',             requireAdmin, adminGet);
 app.patch ('/api/admin/:kind/:id',             requireAdmin, adminUpdate);
 app.delete('/api/admin/:kind/:id',             requireAdmin, adminDelete);
+
+// 홈페이지 시안 D (/proposals/d/…) — 정적 파일 + Journal DB 글을 끼운 목록/글 페이지.
+// client/dist 정적 서빙보다 먼저 와야 DB 글이 목록에 들어간다. dev 는 Vite 가 /proposals 를 여기로 프록시.
+app.use(proposalsRouter);
 
 // ── 클라이언트 정적 서빙 (Render 등 단일 서비스 배포용 — nginx 역할 흡수) ──
 // client/dist 가 빌드돼 있으면 정적 파일 + SPA fallback 제공.
