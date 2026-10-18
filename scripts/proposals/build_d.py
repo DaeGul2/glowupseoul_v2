@@ -161,6 +161,22 @@ def sheet(mid, title, inner, sub=''):
 </div></dialog>'''
 
 
+# 홈 첫 화면 인트로 (10/18 "키먼트처럼 처음에 웅장한 거 슥"): 큰 워드마크가 올라오고 화면이 위로 걷히며 홈이 나온다.
+# CSS 애니메이션만으로 끝나서 JS 가 늦어도 화면을 막지 않는다. 같은 탭에서는 한 번만, #링크로 오거나 움직임 줄이기면 생략.
+INTRO_JS = ("try{var h=document.documentElement;if(sessionStorage.getItem('gus-intro')||location.hash||"
+            "matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('intro-skip');"
+            "else sessionStorage.setItem('gus-intro','1')}catch(e){document.documentElement.classList.add('intro-skip')}")
+INTRO = '''<div class="intro" aria-hidden="true">
+  <div class="intro-bg"><img src="../assets/clinic-lobby.jpg" alt="" fetchpriority="high"></div>
+  <div class="intro-c">
+    <span class="intro-k"><span>Medical beauty concierge</span></span>
+    <span class="intro-l"><span>Glow Up</span></span>
+    <span class="intro-l intro-l2"><span>Seoul</span></span>
+  </div>
+  <div class="intro-f"><span>Skin &amp; surgery</span><span class="intro-bar"><i></i></span><span>For international patients</span></div>
+</div>'''
+
+
 def chat_sheet(pre):
     """FAQ 2. 채팅 (d/faq.js 가 [data-d=chat] 에 붙인다)"""
     sub = f'<span data-gus="status"></span> · <a href="{pre}faq.html#message" data-open="m-wa">Message on WhatsApp</a>'
@@ -179,7 +195,7 @@ def fab(pre):
 </div>'''
 
 
-def shell(page, title, desc, body, pre='', ld=None, modals='', css='', tail='', raw=False):
+def shell(page, title, desc, body, pre='', ld=None, modals='', css='', tail='', raw=False, intro=''):
     """raw=True: title/desc/ld 를 그대로 넣는다 (서버가 채우는 %%GUS_…%% 자리표시용 템플릿)."""
     sh = pre + '../shared/'
     title = title.replace(' (시안 D)', '')
@@ -204,10 +220,11 @@ def shell(page, title, desc, body, pre='', ld=None, modals='', css='', tail='', 
 <link rel="stylesheet" href="{sh}base.css?v={V}">
 <link rel="stylesheet" href="{pre}style.css?v={V}">
 {xcss}
-<script>document.documentElement.className='js';setTimeout(function(){{if(!window.GUS_D)document.documentElement.classList.add('rv-off')}},2500)</script>
+<script>document.documentElement.className='js';setTimeout(function(){{if(!window.GUS_D)document.documentElement.classList.add('rv-off')}},2500);{INTRO_JS if intro else ''}</script>
 {ldj}
 </head>
 <body data-site="d" data-page="{page}">
+{intro}
 <div class="prog" aria-hidden="true"></div>
 {header(page, pre)}
 <main id="main">
@@ -726,7 +743,7 @@ latest = ''.join(card(BY[s], 'journal/', '../assets/') for s in HOME_PICKS)
 hi = e('Hi Romie! 👋')
 
 hbody = f"""<section class="hero" aria-label="Introduction">
-  <div class="hero-media"><img src="../assets/clinic-lobby-hero.jpg" alt="The calm lobby of a partner clinic in Gangnam" fetchpriority="high" data-speed="0.12"></div>
+  <div class="hero-media"><img src="../assets/clinic-lobby.jpg" alt="The calm lobby of a partner clinic in Gangnam" fetchpriority="high" data-speed="0.12"></div>
   <div class="hero-in w">
     <span class="mono hero-k">Medical beauty concierge · Seoul</span>
     <h1 class="split hero-h">Your person in Seoul for <em>skin &amp; surgery.</em></h1>
@@ -804,7 +821,7 @@ ld_home = {'@context': 'https://schema.org', '@type': 'Organization', 'name': 'G
            'founder': {'@type': 'Person', 'name': 'Romie'}, 'sameAs': ['https://www.instagram.com/glowupseoul/'],
            'contactPoint': {'@type': 'ContactPoint', 'contactType': 'customer service', 'telephone': '+82-10-6487-1060', 'availableLanguage': ['English', 'Chinese', 'Indonesian']}}
 open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8', newline='\n').write(
-    shell('home', 'Glow Up Seoul · your person in Seoul for skin & surgery', D['service']['line'], hbody, ld=ld_home))
+    shell('home', 'Glow Up Seoul · your person in Seoul for skin & surgery', D['service']['line'], hbody, ld=ld_home, intro=INTRO))
 
 print(f'wrote D: home, journal ({len(ARTICLES)} articles + _post.html template + posts.json), faq')
 for a in ARTICLES:

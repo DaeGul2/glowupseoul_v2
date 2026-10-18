@@ -15,10 +15,19 @@
 <link rel="stylesheet" href="../shared/base.css?v=41">
 <link rel="stylesheet" href="style.css?v=41">
 
-<script>document.documentElement.className='js';setTimeout(function(){if(!window.GUS_D)document.documentElement.classList.add('rv-off')},2500)</script>
+<script>document.documentElement.className='js';setTimeout(function(){if(!window.GUS_D)document.documentElement.classList.add('rv-off')},2500);try{var h=document.documentElement;if(sessionStorage.getItem('gus-intro')||location.hash||matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('intro-skip');else sessionStorage.setItem('gus-intro','1')}catch(e){document.documentElement.classList.add('intro-skip')}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "Glow Up Seoul", "url": "https://glowupseoul.onrender.com/proposals/d/", "description": "We match international patients with verified skin and plastic surgery clinics in Seoul, go with you on the day, and look after you once you’re home.", "founder": {"@type": "Person", "name": "Romie"}, "sameAs": ["https://www.instagram.com/glowupseoul/"], "contactPoint": {"@type": "ContactPoint", "contactType": "customer service", "telephone": "+82-10-6487-1060", "availableLanguage": ["English", "Chinese", "Indonesian"]}}</script>
 </head>
 <body data-site="d" data-page="home">
+<div class="intro" aria-hidden="true">
+  <div class="intro-bg"><img src="../assets/clinic-lobby.jpg" alt="" fetchpriority="high"></div>
+  <div class="intro-c">
+    <span class="intro-k"><span>Medical beauty concierge</span></span>
+    <span class="intro-l"><span>Glow Up</span></span>
+    <span class="intro-l intro-l2"><span>Seoul</span></span>
+  </div>
+  <div class="intro-f"><span>Skin &amp; surgery</span><span class="intro-bar"><i></i></span><span>For international patients</span></div>
+</div>
 <div class="prog" aria-hidden="true"></div>
 <header class="gh"><div class="gh-in">
   <a class="gh-logo" href="index.html" aria-label="Glow Up Seoul home">Glow Up<i aria-hidden="true"></i>Seoul</a>
@@ -27,7 +36,7 @@
 </div></header>
 <main id="main">
 <section class="hero" aria-label="Introduction">
-  <div class="hero-media"><img src="../assets/clinic-lobby-hero.jpg" alt="The calm lobby of a partner clinic in Gangnam" fetchpriority="high" data-speed="0.12"></div>
+  <div class="hero-media"><img src="../assets/clinic-lobby.jpg" alt="The calm lobby of a partner clinic in Gangnam" fetchpriority="high" data-speed="0.12"></div>
   <div class="hero-in w">
     <span class="mono hero-k">Medical beauty concierge · Seoul</span>
     <h1 class="split hero-h">Your person in Seoul for <em>skin &amp; surgery.</em></h1>

@@ -112,6 +112,9 @@
     fills.forEach((h) => vio.observe(h));
   }
   const phone = matchMedia('(max-width: 899px)');
+  const tocBox = document.querySelector('.bl-toc');
+  const tocGrid = document.querySelector('.bl-grid');
+  let rail = null;   // floating section rail (phones/tablets), built below with the table of contents
   let lastY = window.scrollY; let lastT = performance.now(); let rate = 1; let dir = 1; let busyUntil = 0; let ticking = false;
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   function frame(now) {
@@ -128,6 +131,12 @@
       if (article) { const r = article.getBoundingClientRect(); p = -r.top / Math.max(1, r.height - vh); }
       else p = y / Math.max(1, document.documentElement.scrollHeight - vh);
       prog.style.transform = `scaleX(${clamp(p, 0, 1).toFixed(4)})`;
+      if (tocBox) tocBox.style.setProperty('--tp', clamp(p, 0, 1).toFixed(4));
+    }
+    if (rail && tocGrid) {
+      const g = tocGrid.getBoundingClientRect();
+      rail.classList.toggle('is-on', g.top < vh * 0.35 && g.bottom > vh * 0.55);
+      if (!rail.classList.contains('is-on')) rail.classList.remove('open');
     }
     if (!calm) {
       if (hero) {
@@ -205,7 +214,10 @@
   document.querySelectorAll('.split').forEach(split);
 
   /* ---------- reveal on scroll ---------- */
-  const targets = document.querySelectorAll('[data-r], .split, .rv-img, .svc > li, .stats > li');
+  // home intro (CSS-only overlay) lifts at ~2.1s: the hero's own reveal waits for it
+  const introOn = !calm && !!document.querySelector('.intro') && !html.classList.contains('intro-skip');
+  const targets = [...document.querySelectorAll('[data-r], .split, .rv-img, .svc > li, .stats > li')];
+  const heroLater = introOn && hero ? targets.filter((t) => hero.contains(t)) : [];
   if (calm || !('IntersectionObserver' in window)) {
     targets.forEach((t) => t.classList.add('in'));
   } else {
@@ -214,9 +226,10 @@
       en.target.classList.add('in');
       io.unobserve(en.target);
     }), { rootMargin: '0px 0px -12% 0px', threshold: 0.01 });
-    targets.forEach((t) => io.observe(t));
+    targets.filter((t) => !heroLater.includes(t)).forEach((t) => io.observe(t));
   }
-  if (hero) requestAnimationFrame(() => setTimeout(() => hero.classList.add('in'), 60));
+  if (hero) setTimeout(() => { hero.classList.add('in'); heroLater.forEach((t) => t.classList.add('in')); }, introOn ? 2150 : 60);
+  if (introOn) setTimeout(() => { const el = document.querySelector('.intro'); if (el) el.remove(); }, 3400);
 
   /* ---------- count-up numbers ---------- */
   const nums = document.querySelectorAll('[data-count]');
@@ -235,15 +248,33 @@
     nums.forEach((n) => { n.textContent = '0' + (n.dataset.suffix || ''); io.observe(n); });
   }
 
-  /* ---------- table of contents: highlight the section you're reading ---------- */
+  /* ---------- table of contents: sidebar on desktop, a floating rail on the left on phones/tablets ---------- */
   const tocLinks = [...document.querySelectorAll('.bl-toc a')];
-  if (tocLinks.length && 'IntersectionObserver' in window) {
-    const map = new Map(tocLinks.map((a) => [a.getAttribute('href').slice(1), a]));
-    const io = new IntersectionObserver((es) => es.forEach((en) => {
-      if (!en.isIntersecting) return;
-      tocLinks.forEach((a) => a.classList.toggle('on', a === map.get(en.target.id)));
-    }), { rootMargin: '0px 0px -70% 0px' });
-    map.forEach((_a, id) => { const h = document.getElementById(id); if (h) io.observe(h); });
+  if (tocLinks.length) {
+    rail = document.createElement('div');
+    rail.className = 'toc-rail';
+    rail.innerHTML = `<button type="button" class="toc-rail-btn" aria-expanded="false" aria-label="Sections in this article">${tocLinks.map(() => '<i></i>').join('')}</button>`
+      + `<nav class="toc-pop" aria-label="In this article"><p class="toc-pop-h">In this article</p><ol>${tocLinks.map((a) => `<li><a href="${a.getAttribute('href')}">${a.innerHTML}</a></li>`).join('')}</ol></nav>`;
+    document.body.appendChild(rail);
+    const btn = rail.querySelector('.toc-rail-btn');
+    const lines = [...rail.querySelectorAll('.toc-rail-btn i')];
+    const popLinks = [...rail.querySelectorAll('.toc-pop a')];
+    btn.addEventListener('click', () => { const o = rail.classList.toggle('open'); btn.setAttribute('aria-expanded', String(o)); });
+    rail.addEventListener('click', (e) => { if (e.target.closest('.toc-pop a')) { rail.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); } });
+    document.addEventListener('click', (e) => { if (rail.classList.contains('open') && !rail.contains(e.target)) { rail.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); } });
+    const setActive = (idx) => {
+      tocLinks.forEach((a, i) => a.classList.toggle('on', i === idx));
+      popLinks.forEach((a, i) => a.classList.toggle('on', i === idx));
+      lines.forEach((l, i) => { l.classList.toggle('on', i === idx); l.classList.toggle('done', i < idx); });
+    };
+    if ('IntersectionObserver' in window) {
+      const ids = tocLinks.map((a) => decodeURIComponent(a.getAttribute('href').slice(1)));
+      const io = new IntersectionObserver((es) => es.forEach((en) => {
+        if (en.isIntersecting) setActive(ids.indexOf(en.target.id));
+      }), { rootMargin: '0px 0px -70% 0px' });
+      ids.forEach((id) => { const h = document.getElementById(id); if (h) io.observe(h); });
+    }
+    kick();
   }
 
   /* ---------- Google reviews (live from /api/google-reviews; never hard-coded) ---------- */
