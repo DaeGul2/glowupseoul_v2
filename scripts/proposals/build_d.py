@@ -14,7 +14,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 P = os.path.join(ROOT, 'client', 'public', 'proposals')
 OUT = os.path.join(P, 'd')
 LIVE = 'https://glowupseoul.onrender.com/proposals/d/'
-V = '43'
+V = '44'
 DATE = '2026-10-17'
 DATE_H = '17 Oct 2026'
 GOOGLE_REVIEWS = 'https://www.google.com/maps/place/glowup+seoul/data=!4m6!3m5!1s0x357ca395b5f2fda7:0x348e4305c8a65ae3!9m1!1b1!16s%2Fg%2F11xtyd24zx'
@@ -801,6 +801,7 @@ hbody = f"""<section class="hero" aria-label="Introduction">
   <div class="rvs" data-reviews data-lenis-prevent-horizontal>
     <div class="rv sk"></div><div class="rv sk"></div><div class="rv sk"></div>
   </div>
+  <div class="rv-find" data-rv-find hidden></div>
   <div class="rv-foot"><button type="button" class="btn o" data-rv-at="all" aria-haspopup="dialog">Read all reviews</button><span class="rv-by">Reviews from Google Maps</span></div>
 </section>
 

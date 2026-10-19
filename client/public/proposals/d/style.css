@@ -223,10 +223,46 @@ body[data-page="home"] .gh:not(.is-scrolled) .gh-cta{background:#fff;color:var(-
 .rvm-sum b{font:400 54px/.9 var(--sans);letter-spacing:-.06em}
 .rvm-sum>div{display:grid;gap:7px;font-size:14px;color:var(--ink-2)}
 .rvm-sum small{margin-left:auto;align-self:flex-end;font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
-.rvm-ctl{display:flex;gap:6px;overflow-x:auto;margin:0 -20px 12px;padding:0 20px 2px;scrollbar-width:none}
-.rvm-ctl::-webkit-scrollbar{display:none}
-.rvm-ctl button{flex:0 0 auto;height:36px;padding:0 15px;border-radius:999px;border:1px solid var(--line);background:var(--card);font:500 14px var(--sans);color:var(--ink-2);cursor:pointer}
-.rvm-ctl button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+/* review search (10/19 "리뷰 검색어로 검색되게"): search box + topic chips stay on top while the list scrolls */
+.rvm-tools{position:sticky;top:-4px;z-index:2;display:grid;gap:10px;margin:0 -20px 10px;padding:8px 20px 10px;background:var(--bg)}
+.rvm-q{position:relative;display:flex;align-items:center}
+.rvm-q svg{position:absolute;left:15px;width:18px;height:18px;color:var(--ink-3);pointer-events:none}
+.rvm-q input{width:100%;height:48px;padding:0 46px 0 43px;border-radius:999px;border:1px solid var(--line);background:var(--card);font:400 16px var(--sans);color:var(--ink);outline:none;-webkit-appearance:none;appearance:none;transition:border-color .2s,box-shadow .2s}
+.rvm-q input::-webkit-search-cancel-button{-webkit-appearance:none}
+.rvm-q input::placeholder{color:var(--ink-3)}
+.rvm-q input:focus{border-color:var(--ink);box-shadow:0 0 0 4px var(--accent-soft)}
+.rvm-q button{position:absolute;right:7px;width:34px;height:34px;border:0;border-radius:50%;background:var(--bg-2);font:300 20px/1 var(--sans);color:var(--ink-2);cursor:pointer}
+.rvm-q button[hidden]{display:none}
+.rvm-chips{display:flex;gap:6px;overflow-x:auto;margin:0 -20px;padding:0 20px;scrollbar-width:none}
+.rvm-chips::-webkit-scrollbar{display:none}
+.rvm-chips button,.rv-find-t button{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);font:500 14px var(--sans);color:var(--ink-2);cursor:pointer;transition:background .2s,border-color .2s,color .2s}
+.rvm-chips button b,.rv-find-t button b{font:500 11px var(--mono);color:var(--ink-3)}
+.rvm-chips button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.rvm-chips button[aria-pressed="true"] b{color:rgba(255,255,255,.65)}
+@media(hover:hover){.rvm-chips button:hover,.rv-find-t button:hover{border-color:rgba(16,17,20,.3);color:var(--ink)}}
+.rvm-status{margin:0 0 10px;font-size:13.5px;color:var(--ink-3)}
+.rvm-status b{color:var(--ink);font-weight:600}
+.rvm-status button,.rvm-none button{padding:0;border:0;background:none;font:inherit;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.rvm-none{margin:0;padding:30px 20px;border-radius:var(--r);background:var(--bg-2);text-align:center;line-height:1.9;color:var(--ink-2)}
+.rvm-status[hidden],.rvm-none[hidden]{display:none}
+.rvm mark{padding:0 2px;border-radius:3px;background:#DCE3FF;color:var(--ink)}
+@media(min-width:760px){.rvm-tools{margin-inline:-28px;padding-inline:28px}.rvm-chips{margin-inline:-28px;padding-inline:28px}}
+/* home: a search entry and the most-mentioned topics under the cards — both open the sheet */
+.rv-find{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin-top:22px;animation:fa-in .7s var(--ease) both}
+.rv-find[hidden]{display:none}
+.rv-find-q{display:flex;align-items:center;gap:10px;flex:0 1 420px;min-width:0;height:50px;padding:0 20px 0 17px;border-radius:999px;border:1px solid var(--line);background:var(--card);font:500 15px var(--sans);color:var(--ink);text-align:left;cursor:text;transition:border-color .3s,box-shadow .3s}
+.rv-find-q svg{width:18px;height:18px;flex:0 0 auto;color:var(--ink-3)}
+.rv-find-q span{flex:0 0 auto}
+.rv-find-q small{margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;color:var(--ink-3)}
+@media(hover:hover){.rv-find-q:hover{border-color:rgba(16,17,20,.25);box-shadow:0 12px 28px -20px rgba(14,15,18,.45)}}
+.rv-find-t{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.rv-find-k{margin-right:4px;font:500 11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+@media(max-width:759px){
+  .rv-find-q{flex:1 1 100%}
+  .rv-find-t{flex-wrap:nowrap;overflow-x:auto;width:calc(100% + 2*var(--gut));margin-inline:calc(-1*var(--gut));padding-inline:var(--gut);scrollbar-width:none}
+  .rv-find-t::-webkit-scrollbar{display:none}
+  .rv-find-k{flex:0 0 auto}
+}
 .rvm-list{display:grid;gap:10px}
 .rvm{display:grid;gap:14px;padding:20px 20px 16px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);animation:fa-in .6s var(--ease) both}
 .rvm[hidden]{display:none}

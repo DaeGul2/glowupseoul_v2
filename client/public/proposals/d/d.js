@@ -320,6 +320,33 @@
     const plural = (n) => `${n} review${n === 1 ? '' : 's'}`;
     let data = null; let failed = false;
 
+    // review search (10/19 "리뷰 검색어로 검색되게"): type anything, or tap a topic worked out from what people actually wrote.
+    // A topic only shows when at least one review mentions it; matches are highlighted in the text (and in the original).
+    const TOPICS = [
+      ['Romie', 'romie'], ['translation', 'translat\\w*|interpret\\w*'], ['clinics', 'clinics?'], ['doctors', 'doctors?|surgeons?'],
+      ['consultation', 'consult\\w*'], ['booking', 'book(?:ed|ing|s)?|appointments?|schedul\\w*'],
+      ['price', 'pric\\w*|budget\\w*|costs?|afford\\w*'],
+      ['aftercare', 'after ?care|follow(?:ed|s|ing)?[ -]?ups?|check(?:ed|s|ing)? (?:in|on|up)|recover\\w*'],
+      ['first time', 'first[ -]time|nervous|scared|daunting'], ['comfortable', 'comfortabl\\w*|at ease|safe'],
+      ['kind', 'kind(?:ness)?|caring|friendly|warm'], ['recommend', 'recommend\\w*'], ['surgery', 'surger(?:y|ies)|operations?'],
+      ['skin', 'skin\\w*|laser\\w*|facials?'], ['nose', 'nose|rhino\\w*'], ['eyes', 'eyes?|eyelids?'], ['lips', 'lips?|cleft'],
+      ['Botox', 'botox|toxin'], ['fillers', 'fillers?'], ['Ulthera', 'ulthera'], ['Thermage', 'thermage'], ['Rejuran', 'rejuran'],
+      ['friends', 'friends?|sister|mum|mom|husband|boyfriend|girlfriend|family'],
+    ].map(([k, re]) => ({ k, re: `\\b(?:${re})\\b` }));
+    const ICO_Q = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>';
+    const hay = (r) => `${r.text} ${r.orig || ''} ${r.author}`;
+    const mark = (str, re) => {
+      if (!re) return esc(str);
+      let out = ''; let last = 0; let m; re.lastIndex = 0;
+      while ((m = re.exec(str))) {
+        if (!m[0]) { re.lastIndex += 1; continue; }
+        out += `${esc(str.slice(last, m.index))}<mark>${esc(m[0])}</mark>`; last = m.index + m[0].length;
+      }
+      return out + esc(str.slice(last));
+    };
+    const st = { q: '', topic: '', lang: '' };
+    let topics = []; let qTimer = 0;
+
     const fold = () => {
       failed = true;
       list.innerHTML = `<p class="rvm-load">Reviews can’t be loaded right now. <a href="${esc(gUrl)}" target="_blank" rel="noopener">Read them on Google Maps ↗</a></p>`;
@@ -353,9 +380,16 @@
       const total = data.count || data.reviews.length;
       const rating = data.rating ? Number(data.rating).toFixed(1) : '';
       const langs = [...new Set(data.reviews.map((r) => r.lang).filter(Boolean))];
+      topics = TOPICS.map((t) => ({ ...t, n: data.reviews.filter((r) => new RegExp(t.re, 'i').test(hay(r))).length }))
+        .filter((t) => t.n > 0).sort((a, b) => b.n - a.n).slice(0, 8);
+      const eg = topics.filter((t) => t.k !== 'Romie').slice(0, 3).map((t) => t.k).join(', ');
+      const chip = (t, attrs) => `<button type="button" ${attrs}>${esc(t.k)} <b>${t.n}</b></button>`;
       list.innerHTML = `<div class="rvm-sum">${rating ? `<b>${rating}</b>` : ''}<div>${stars(data.rating)}<span>${plural(total)}</span></div><small>Google Maps</small></div>`
-        + (langs.length > 1 ? `<div class="rvm-ctl" role="group" aria-label="Show reviews in">${['', ...langs].map((l) => `<button type="button" data-rv-lang="${esc(l)}" aria-pressed="${l ? 'false' : 'true'}">${l ? esc(LANG[l] || l) : 'All'}</button>`).join('')}</div>` : '')
-        + `<div class="rvm-list">${data.reviews.map(full).join('')}</div>`
+        + `<div class="rvm-tools"><label class="rvm-q">${ICO_Q}<input type="search" placeholder="Search reviews" aria-label="Search reviews" autocomplete="off" enterkeyhint="search"><button type="button" data-rv-clear aria-label="Clear search" hidden>×</button></label>`
+        + (topics.length ? `<div class="rvm-chips" role="group" aria-label="What people mention">${topics.map((t) => chip(t, `data-rv-topic="${esc(t.k)}" aria-pressed="false"`)).join('')}</div>` : '')
+        + (langs.length > 1 ? `<div class="rvm-chips" role="group" aria-label="Show reviews in">${['', ...langs].map((l) => `<button type="button" data-rv-lang="${esc(l)}" aria-pressed="${l ? 'false' : 'true'}">${l ? esc(LANG[l] || l) : 'All languages'}</button>`).join('')}</div>` : '')
+        + '</div><p class="rvm-status" aria-live="polite" hidden></p>'
+        + `<div class="rvm-list">${data.reviews.map(full).join('')}</div><p class="rvm-none" hidden></p>`
         + `<p class="rvm-more">${data.reviews.length < total ? `Showing ${data.reviews.length} of ${total}. ` : ''}<a href="${esc(data.url || gUrl)}" target="_blank" rel="noopener">See all on Google Maps ↗</a>${data.write_url ? ` · <a href="${esc(data.write_url)}" target="_blank" rel="noopener">Write a review</a>` : ''}</p>`;
       if (!box) return;
       if (sum) {
@@ -363,6 +397,12 @@
         sum.hidden = false;
       }
       box.innerHTML = data.reviews.slice(0, 6).map(card).join('');
+      const find = document.querySelector('[data-rv-find]');
+      if (find) {
+        find.innerHTML = `<button type="button" class="rv-find-q" data-rv-at="all" data-rv-search aria-haspopup="dialog">${ICO_Q}<span>Search the reviews</span>${eg ? `<small>${esc(eg)}…</small>` : ''}</button>`
+          + (topics.length ? `<div class="rv-find-t" role="group" aria-label="Often mentioned"><span class="rv-find-k">Often mentioned</span>${topics.slice(0, 6).map((t) => chip(t, `data-rv-at="all" data-rv-topic="${esc(t.k)}" aria-haspopup="dialog"`)).join('')}</div>` : '');
+        find.hidden = false;
+      }
       const cards = [...box.children];
       if (calm || !('IntersectionObserver' in window)) cards.forEach((c) => c.classList.add('in'));
       else {
@@ -372,16 +412,40 @@
       if (isHome) peek();
     }
 
-    const setLang = (l) => {
-      list.querySelectorAll('[data-rv-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.rvLang === l)));
-      list.querySelectorAll('.rvm').forEach((a) => { a.hidden = !!l && a.dataset.lang !== l; });
+    // filter the sheet by the search box / a topic / a language, and mark what matched
+    const apply = () => {
+      if (!data) return;
+      const t = st.topic && TOPICS.find((x) => x.k === st.topic);
+      const re = t ? new RegExp(t.re, 'gi') : st.q ? new RegExp(st.q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') : null;
+      let shown = 0;
+      list.querySelectorAll('.rvm').forEach((a) => {
+        const r = data.reviews[+a.id.slice(3)];
+        if (re) re.lastIndex = 0;
+        a.hidden = !((!st.lang || a.dataset.lang === st.lang) && (!re || re.test(hay(r))));
+        if (!a.hidden) shown += 1;
+        a.querySelector('.rvm-t').innerHTML = mark(r.text, re);
+        const o = a.querySelector('.rvm-o'); if (o) o.innerHTML = mark(r.orig, re);
+      });
+      list.querySelectorAll('[data-rv-topic]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.rvTopic === st.topic)));
+      list.querySelectorAll('[data-rv-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.rvLang === st.lang)));
+      const clr = list.querySelector('[data-rv-clear]'); if (clr) clr.hidden = !st.q;
+      const label = st.topic || st.q;
+      const status = list.querySelector('.rvm-status'); const none = list.querySelector('.rvm-none');
+      status.hidden = !label || !shown;
+      if (label && shown) status.innerHTML = `<b>${shown}</b> of ${plural(data.reviews.length)} mention “${esc(label)}” · <button type="button" data-rv-reset>Show all</button>`;
+      none.hidden = !label || !!shown;
+      if (label && !shown) none.innerHTML = `No reviews mention “${esc(label)}” yet.<br><button type="button" data-rv-reset>Show all reviews</button>`;
     };
-    // open the sheet, scrolled to one review (briefly highlighted) or to the top
-    const openAt = (at, opener) => {
+    // open the sheet, scrolled to one review (briefly highlighted) or to the top; optionally with a topic or the search box ready
+    const openAt = (at, opener, opts = {}) => {
       open('m-rv', opener);
       if (!data) return;
-      setLang('');
+      const inp = list.querySelector('.rvm-q input');
+      Object.assign(st, { q: '', topic: opts.topic || '', lang: '' });
+      if (inp) inp.value = '';
+      apply();
       body.scrollTop = 0;
+      if (opts.search && inp) inp.focus({ preventScroll: true });
       const el = at === 'all' ? null : list.querySelector(`#rv-${at}`);
       if (!el) return;
       body.scrollTop = el.getBoundingClientRect().top - body.getBoundingClientRect().top - 8;
@@ -391,11 +455,22 @@
       const t = e.target.closest('[data-rv-at]');
       if (!t || failed || (e.target.closest('a[href]') && !e.target.closest('a[href]').hasAttribute('data-rv-at'))) return;
       e.preventDefault();
-      openAt(t.dataset.rvAt, t);
+      openAt(t.dataset.rvAt, t, { topic: t.dataset.rvTopic || '', search: t.hasAttribute('data-rv-search') });
     });
+    list.addEventListener('input', (e) => {
+      if (!e.target.matches('.rvm-q input')) return;
+      st.q = e.target.value.trim(); st.topic = '';
+      clearTimeout(qTimer); qTimer = setTimeout(apply, 120);
+    });
+    list.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('.rvm-q input')) e.target.blur(); });
     list.addEventListener('click', (e) => {
+      const inp = list.querySelector('.rvm-q input');
+      const tp = e.target.closest('[data-rv-topic]');
+      if (tp) { st.topic = st.topic === tp.dataset.rvTopic ? '' : tp.dataset.rvTopic; st.q = ''; if (inp) inp.value = ''; apply(); return; }
+      if (e.target.closest('[data-rv-clear]')) { st.q = ''; if (inp) { inp.value = ''; inp.focus(); } apply(); return; }
+      if (e.target.closest('[data-rv-reset]')) { Object.assign(st, { q: '', topic: '', lang: '' }); if (inp) inp.value = ''; apply(); return; }
       const l = e.target.closest('[data-rv-lang]');
-      if (l) { setLang(l.dataset.rvLang); return; }
+      if (l) { st.lang = l.dataset.rvLang; apply(); return; }
       const o = e.target.closest('[data-rv-orig]');
       if (!o) return;
       const p = o.closest('.rvm').querySelector('.rvm-o');
