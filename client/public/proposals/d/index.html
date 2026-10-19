@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="../shared/base.css?v=41">
-<link rel="stylesheet" href="style.css?v=41">
+<link rel="stylesheet" href="../shared/base.css?v=42">
+<link rel="stylesheet" href="style.css?v=42">
 
 <script>document.documentElement.className='js';setTimeout(function(){if(!window.GUS_D)document.documentElement.classList.add('rv-off')},2500);try{var h=document.documentElement;if(sessionStorage.getItem('gus-intro')||location.hash||matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('intro-skip');else sessionStorage.setItem('gus-intro','1')}catch(e){document.documentElement.classList.add('intro-skip')}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "Glow Up Seoul", "url": "https://glowupseoul.onrender.com/proposals/d/", "description": "We match international patients with verified skin and plastic surgery clinics in Seoul, go with you on the day, and look after you once you’re home.", "founder": {"@type": "Person", "name": "Romie"}, "sameAs": ["https://www.instagram.com/glowupseoul/"], "contactPoint": {"@type": "ContactPoint", "contactType": "customer service", "telephone": "+82-10-6487-1060", "availableLanguage": ["English", "Chinese", "Indonesian"]}}</script>
@@ -28,6 +28,9 @@
   </div>
   <div class="intro-f"><span>Skin &amp; surgery</span><span class="intro-bar"><i></i></span><span>For international patients</span></div>
 </div>
+<script>(function(){var h=document.documentElement,d=0;if(h.classList.contains('intro-skip'))return;
+function go(){if(d)return;d=1;requestAnimationFrame(function(){requestAnimationFrame(function(){h.classList.add('intro-go');window.GUS_INTRO=performance.now();try{document.dispatchEvent(new Event('gus:intro'))}catch(e){}})})}
+setTimeout(go,1400);try{var f=document.fonts;if(f&&f.load)Promise.all([f.load('500 80px Geist','Glow Up Seoul'),f.load('500 12px "Geist Mono"','Medical')]).then(go,go);else go()}catch(e){go()}})();</script>
 <div class="prog" aria-hidden="true"></div>
 <header class="gh"><div class="gh-in">
   <a class="gh-logo" href="index.html" aria-label="Glow Up Seoul home">Glow Up<i aria-hidden="true"></i>Seoul</a>
@@ -87,10 +90,10 @@
 
 <section class="w sec" id="reviews">
   <div class="sh sh-row"><div><span class="mono">04 — Reviews</span><h2 class="split">What patients say on Google.</h2></div><div class="rv-sum" data-rv-sum hidden></div></div>
-  <div class="rvs" data-reviews data-url="https://www.google.com/maps/place/glowup+seoul/data=!4m6!3m5!1s0x357ca395b5f2fda7:0x348e4305c8a65ae3!9m1!1b1!16s%2Fg%2F11xtyd24zx" data-lenis-prevent-horizontal>
+  <div class="rvs" data-reviews data-lenis-prevent-horizontal>
     <div class="rv sk"></div><div class="rv sk"></div><div class="rv sk"></div>
   </div>
-  <div class="rv-foot"><a class="btn o" href="https://www.google.com/maps/place/glowup+seoul/data=!4m6!3m5!1s0x357ca395b5f2fda7:0x348e4305c8a65ae3!9m1!1b1!16s%2Fg%2F11xtyd24zx" target="_blank" rel="noopener">Read all reviews on Google <span aria-hidden="true">↗</span></a><span class="rv-by">Reviews from Google</span></div>
+  <div class="rv-foot"><button type="button" class="btn o" data-rv-at="all" aria-haspopup="dialog">Read all reviews</button><span class="rv-by">Reviews from Google Maps</span></div>
 </section>
 
 <section class="w sec" id="journal">
@@ -134,7 +137,7 @@
     </div>
     <div><span class="gf-h">Follow</span>
       <a href="https://www.instagram.com/glowupseoul/" target="_blank" rel="noopener">Instagram @glowupseoul</a>
-      <a href="https://www.google.com/maps/place/glowup+seoul/data=!4m6!3m5!1s0x357ca395b5f2fda7:0x348e4305c8a65ae3!9m1!1b1!16s%2Fg%2F11xtyd24zx" target="_blank" rel="noopener">Google reviews</a>
+      <a href="https://www.google.com/maps/place/glowup+seoul/data=!4m6!3m5!1s0x357ca395b5f2fda7:0x348e4305c8a65ae3!9m1!1b1!16s%2Fg%2F11xtyd24zx" target="_blank" rel="noopener" data-rv-at="all" aria-haspopup="dialog">Google reviews</a>
     </div>
   </div>
   <p class="gf-legal">Glow Up Seoul · Foreign Patient Attraction Agency registered with the Ministry of Health &amp; Welfare, Korea · Gangnam-gu, Seoul<br>We’re a concierge, not a clinic. Medical decisions are made between you and your doctor. © 2026 Glow Up Seoul</p>
@@ -151,14 +154,18 @@
   <header class="sheet-h"><div><h2 id="m-wa-t">Message Romie</h2><p class="sheet-sub">Straight to WhatsApp. She replies personally.</p></div><button type="button" class="sheet-x" data-close aria-label="Close">×</button></header>
   <div class="sheet-b" data-lenis-prevent><div data-d="compose"></div></div>
 </div></dialog>
+<dialog class="sheet" id="m-rv" aria-labelledby="m-rv-t"><div class="sheet-in">
+  <header class="sheet-h"><div><h2 id="m-rv-t">Patient reviews</h2><p class="sheet-sub">Reviews from Google Maps</p></div><button type="button" class="sheet-x" data-close aria-label="Close">×</button></header>
+  <div class="sheet-b" data-lenis-prevent><div data-d="reviews"><p class="rvm-load">Loading reviews…</p></div></div>
+</div></dialog>
 
-<script src="../shared/data.js?v=41"></script>
+<script src="../shared/data.js?v=42"></script>
 <script>window.GUS.site={noBar:true,noReview:true};</script>
-<script src="../shared/app.js?v=41"></script>
-<script src="faq-data.js?v=41"></script>
+<script src="../shared/app.js?v=42"></script>
+<script src="faq-data.js?v=42"></script>
 <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js" defer></script>
-<script src="faq.js?v=41" defer></script>
-<script src="d.js?v=41" defer></script>
+<script src="faq.js?v=42" defer></script>
+<script src="d.js?v=42" defer></script>
 
 </body>
 </html>

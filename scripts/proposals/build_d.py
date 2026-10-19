@@ -14,7 +14,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 P = os.path.join(ROOT, 'client', 'public', 'proposals')
 OUT = os.path.join(P, 'd')
 LIVE = 'https://glowupseoul.onrender.com/proposals/d/'
-V = '41'
+V = '42'
 DATE = '2026-10-17'
 DATE_H = '17 Oct 2026'
 GOOGLE_REVIEWS = 'https://www.google.com/maps/place/glowup+seoul/data=!4m6!3m5!1s0x357ca395b5f2fda7:0x348e4305c8a65ae3!9m1!1b1!16s%2Fg%2F11xtyd24zx'
@@ -145,7 +145,7 @@ def footer(pre):
     </div>
     <div><span class="gf-h">Follow</span>
       <a href="https://www.instagram.com/{e(C["instagram"])}/" target="_blank" rel="noopener">Instagram @{e(C["instagram"])}</a>
-      <a href="{GOOGLE_REVIEWS}" target="_blank" rel="noopener">Google reviews</a>
+      <a href="{GOOGLE_REVIEWS}" target="_blank" rel="noopener" data-rv-at="all" aria-haspopup="dialog">Google reviews</a>
     </div>
   </div>
   <p class="gf-legal">Glow Up Seoul · Foreign Patient Attraction Agency registered with the Ministry of Health &amp; Welfare, Korea · {e(C["address"])}<br>We’re a concierge, not a clinic. Medical decisions are made between you and your doctor. © 2026 Glow Up Seoul</p>
@@ -162,7 +162,10 @@ def sheet(mid, title, inner, sub=''):
 
 
 # 홈 첫 화면 인트로 (10/18 "키먼트처럼 처음에 웅장한 거 슥"): 큰 워드마크가 올라오고 화면이 위로 걷히며 홈이 나온다.
-# CSS 애니메이션만으로 끝나서 JS 가 늦어도 화면을 막지 않는다. 같은 탭에서는 한 번만, #링크로 오거나 움직임 줄이기면 생략.
+# 같은 탭에서는 한 번만, #링크로 오거나 움직임 줄이기면 생략.
+# 10/19 "폰에선 Glow Up 이 안 올라감": 폰은 글꼴이 늦게 와서, 글자가 보일 때쯤엔 올라오는 동작이 이미 끝나 있었다.
+# 그래서 인트로 바로 뒤 작은 스크립트가 Geist 글꼴(최대 1.4초)과 첫 화면이 그려진 걸 확인한 뒤 html.intro-go 를 붙이고,
+# 그때부터 CSS 애니메이션이 돈다. d.js 는 그 시각(window.GUS_INTRO)부터 재서 히어로를 띄운다.
 INTRO_JS = ("try{var h=document.documentElement;if(sessionStorage.getItem('gus-intro')||location.hash||"
             "matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('intro-skip');"
             "else sessionStorage.setItem('gus-intro','1')}catch(e){document.documentElement.classList.add('intro-skip')}")
@@ -174,7 +177,10 @@ INTRO = '''<div class="intro" aria-hidden="true">
     <span class="intro-l intro-l2"><span>Seoul</span></span>
   </div>
   <div class="intro-f"><span>Skin &amp; surgery</span><span class="intro-bar"><i></i></span><span>For international patients</span></div>
-</div>'''
+</div>
+<script>(function(){var h=document.documentElement,d=0;if(h.classList.contains('intro-skip'))return;
+function go(){if(d)return;d=1;requestAnimationFrame(function(){requestAnimationFrame(function(){h.classList.add('intro-go');window.GUS_INTRO=performance.now();try{document.dispatchEvent(new Event('gus:intro'))}catch(e){}})})}
+setTimeout(go,1400);try{var f=document.fonts;if(f&&f.load)Promise.all([f.load('500 80px Geist','Glow Up Seoul'),f.load('500 12px "Geist Mono"','Medical')]).then(go,go);else go()}catch(e){go()}})();</script>'''
 
 
 def chat_sheet(pre):
@@ -186,6 +192,12 @@ def chat_sheet(pre):
 def wa_sheet():
     """FAQ 1. WhatsApp 으로 바로 — 질문·여행 틀을 채워서 WhatsApp 을 연다 (d/faq.js)"""
     return sheet('m-wa', 'Message Romie', '<div data-d="compose"></div>', 'Straight to WhatsApp. She replies personally.')
+
+
+def rv_sheet():
+    """구글 리뷰 모아 보기 (10/19 "구글로 바로 보내지 말고 카드로 묶어서 모달로"). d.js 가 /api/google-reviews 로 채운다.
+    홈 카드 · 홈 'Read all' · 아래서 올라오는 리뷰 카드 · 푸터 'Google reviews' 가 여기를 연다."""
+    return sheet('m-rv', 'Patient reviews', '<div data-d="reviews"><p class="rvm-load">Loading reviews…</p></div>', 'Reviews from Google Maps')
 
 
 def fab(pre):
@@ -234,6 +246,7 @@ def shell(page, title, desc, body, pre='', ld=None, modals='', css='', tail='', 
 {fab(pre)}
 {chat_sheet(pre) if page != 'faq' else ''}
 {wa_sheet()}
+{rv_sheet()}
 {modals}
 <script src="{sh}data.js?v={V}"></script>
 <script>window.GUS.site={{noBar:true,noReview:true}};</script>
@@ -785,10 +798,10 @@ hbody = f"""<section class="hero" aria-label="Introduction">
 
 <section class="w sec" id="reviews">
   <div class="sh sh-row"><div><span class="mono">04 — Reviews</span><h2 class="split">What patients say on Google.</h2></div><div class="rv-sum" data-rv-sum hidden></div></div>
-  <div class="rvs" data-reviews data-url="{GOOGLE_REVIEWS}" data-lenis-prevent-horizontal>
+  <div class="rvs" data-reviews data-lenis-prevent-horizontal>
     <div class="rv sk"></div><div class="rv sk"></div><div class="rv sk"></div>
   </div>
-  <div class="rv-foot"><a class="btn o" href="{GOOGLE_REVIEWS}" target="_blank" rel="noopener">Read all reviews on Google <span aria-hidden="true">↗</span></a><span class="rv-by">Reviews from Google</span></div>
+  <div class="rv-foot"><button type="button" class="btn o" data-rv-at="all" aria-haspopup="dialog">Read all reviews</button><span class="rv-by">Reviews from Google Maps</span></div>
 </section>
 
 <section class="w sec" id="journal">

@@ -214,8 +214,10 @@
   document.querySelectorAll('.split').forEach(split);
 
   /* ---------- reveal on scroll ---------- */
-  // home intro (CSS-only overlay) lifts at ~2.1s: the hero's own reveal waits for it
-  const introOn = !calm && !!document.querySelector('.intro') && !html.classList.contains('intro-skip');
+  // home intro: starts once its font is ready (inline script after the overlay → html.intro-go, window.GUS_INTRO = start),
+  // lifts ~2.1s after that; the hero's own reveal waits for it
+  const introEl = document.querySelector('.intro');
+  const introOn = !calm && !!introEl && !html.classList.contains('intro-skip');
   const targets = [...document.querySelectorAll('[data-r], .split, .rv-img, .svc > li, .stats > li')];
   const heroLater = introOn && hero ? targets.filter((t) => hero.contains(t)) : [];
   if (calm || !('IntersectionObserver' in window)) {
@@ -228,8 +230,16 @@
     }), { rootMargin: '0px 0px -12% 0px', threshold: 0.01 });
     targets.filter((t) => !heroLater.includes(t)).forEach((t) => io.observe(t));
   }
-  if (hero) setTimeout(() => { hero.classList.add('in'); heroLater.forEach((t) => t.classList.add('in')); }, introOn ? 2150 : 60);
-  if (introOn) setTimeout(() => { const el = document.querySelector('.intro'); if (el) el.remove(); }, 3400);
+  const showHero = () => { if (hero) { hero.classList.add('in'); heroLater.forEach((t) => t.classList.add('in')); } };
+  if (!introOn) setTimeout(showHero, 60);
+  else {
+    const afterGo = () => {
+      const t = performance.now() - window.GUS_INTRO;
+      setTimeout(showHero, Math.max(0, 2150 - t));
+      setTimeout(() => introEl.remove(), Math.max(0, 3400 - t));
+    };
+    if (window.GUS_INTRO) afterGo(); else document.addEventListener('gus:intro', afterGo, { once: true });
+  }
 
   /* ---------- count-up numbers ---------- */
   const nums = document.querySelectorAll('[data-count]');
@@ -277,43 +287,199 @@
     kick();
   }
 
-  /* ---------- Google reviews (live from /api/google-reviews; never hard-coded) ---------- */
-  const box = document.querySelector('[data-reviews]');
-  if (box) {
+  /* ---------- Google reviews (live from /api/google-reviews; never hard-coded) ----------
+     10/19 "구글로 바로 보내지 말고 카드로 묶어서 모달로 · 스크롤하면 아래서 슥 올라오게":
+     home cards → tap one (or "Read all") for the reviews sheet #m-rv; the footer's "Google reviews" opens it on every page;
+     on the way down the home page a review card slides up from the bottom (closable, once per visit).
+     No reviews (API off) → the home section folds away, later section numbers close the gap, and links go to Google Maps. */
+  const rvSheet = document.getElementById('m-rv');
+  if (rvSheet) {
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const box = document.querySelector('[data-reviews]');
+    const sec = box && box.closest('section');
     const sum = document.querySelector('[data-rv-sum]');
-    const fallback = () => {
-      box.innerHTML = `<div class="rv-empty"><p>Read what patients say about working with Romie, in their own words on Google.</p></div>`;
+    const list = rvSheet.querySelector('[data-d="reviews"]');
+    const body = rvSheet.querySelector('.sheet-b');
+    const gLink = document.querySelector('.gf a[data-rv-at]');
+    let gUrl = gLink ? gLink.href : 'https://www.google.com/maps';
+    const LANG = { en: 'English', zh: '中文', id: 'Bahasa Indonesia', ms: 'Bahasa Melayu', ko: '한국어', ja: '日本語', th: 'ภาษาไทย', vi: 'Tiếng Việt', ru: 'Русский', fr: 'Français', de: 'Deutsch', es: 'Español' };
+    const rtf = window.Intl && Intl.RelativeTimeFormat ? new Intl.RelativeTimeFormat('en', { numeric: 'auto' }) : null;
+    const ago = (r) => {
+      if (r.relative) return r.relative;
+      const t = Date.parse(r.time || ''); if (!t || !rtf) return '';
+      const s = (t - Date.now()) / 1000; const a = Math.abs(s);
+      const [u, n] = a < 3600 ? ['minute', 60] : a < 86400 ? ['hour', 3600] : a < 604800 ? ['day', 86400]
+        : a < 2629800 ? ['week', 604800] : a < 31557600 ? ['month', 2629800] : ['year', 31557600];
+      return rtf.format(Math.round(s / n), u);
     };
+    const stars = (v) => `<i class="stars" style="--v:${+v || 0}" role="img" aria-label="${+v || 0} out of 5 stars"></i>`;
+    const avatar = (r) => (r.photo
+      ? `<img src="${esc(r.photo)}" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async">`
+      : `<span class="rv-av" aria-hidden="true">${esc((r.author || '?').trim().charAt(0).toUpperCase())}</span>`);
+    const note = (r) => (r.translated ? 'Translated by Google' : r.lang && r.lang !== 'en' ? (LANG[r.lang] || r.lang) : 'Google review');
+    const plural = (n) => `${n} review${n === 1 ? '' : 's'}`;
+    let data = null; let failed = false;
+
+    const fold = () => {
+      failed = true;
+      list.innerHTML = `<p class="rvm-load">Reviews can’t be loaded right now. <a href="${esc(gUrl)}" target="_blank" rel="noopener">Read them on Google Maps ↗</a></p>`;
+      if (!sec) return;
+      sec.hidden = true;
+      let n = 0;   // "05 — Journal" → "04 — Journal" …
+      document.querySelectorAll('main .sh .mono').forEach((m) => {
+        if (m.closest('[hidden]')) return;
+        const k = m.textContent.match(/^\d\d( — .*)$/);
+        if (k) m.textContent = String(++n).padStart(2, '0') + k[1];
+      });
+      kick();
+    };
+
+    // home: up to 6 cards, the rest live in the sheet
+    const card = (r, i) => `<article class="rv" data-r style="--i:${i % 3}" data-rv-at="${i}">
+  <div class="rv-top">${stars(r.rating)}<small>${esc(ago(r))}</small></div>
+  <p class="rv-q">${esc(r.text)}</p>
+  ${r.text.length > 260 ? `<button type="button" class="rv-more" data-rv-at="${i}" aria-haspopup="dialog">Read more</button>` : ''}
+  <div class="rv-h">${avatar(r)}<div><b>${esc(r.author)}</b><small>${esc(note(r))}</small></div></div>
+</article>`;
+    // the sheet: every review in full, with the author's Google profile, the original text and a link to it on Google Maps
+    const full = (r, i) => `<article class="rvm" id="rv-${i}" data-lang="${esc(r.lang || '')}">
+  <header class="rvm-h">${avatar(r)}<div><b>${r.author_url ? `<a href="${esc(r.author_url)}" target="_blank" rel="noopener">${esc(r.author)}</a>` : esc(r.author)}</b><small>${esc(ago(r))}</small></div>${stars(r.rating)}</header>
+  <p class="rvm-t"${r.lang ? ` lang="${esc(r.lang)}"` : ''}>${esc(r.text)}</p>
+  ${r.orig ? `<p class="rvm-o" lang="${esc(r.orig_lang || '')}" hidden>${esc(r.orig)}</p>` : ''}
+  <footer class="rvm-f">${r.translated ? '<button type="button" data-rv-orig>Translated by Google · <u>See original</u></button>' : `<span>${esc(note(r))}</span>`}${r.link ? `<a href="${esc(r.link)}" target="_blank" rel="noopener">View on Google Maps ↗</a>` : ''}</footer>
+</article>`;
+
+    function render() {
+      const total = data.count || data.reviews.length;
+      const rating = data.rating ? Number(data.rating).toFixed(1) : '';
+      const langs = [...new Set(data.reviews.map((r) => r.lang).filter(Boolean))];
+      list.innerHTML = `<div class="rvm-sum">${rating ? `<b>${rating}</b>` : ''}<div>${stars(data.rating)}<span>${plural(total)}</span></div><small>Google Maps</small></div>`
+        + (langs.length > 1 ? `<div class="rvm-ctl" role="group" aria-label="Show reviews in">${['', ...langs].map((l) => `<button type="button" data-rv-lang="${esc(l)}" aria-pressed="${l ? 'false' : 'true'}">${l ? esc(LANG[l] || l) : 'All'}</button>`).join('')}</div>` : '')
+        + `<div class="rvm-list">${data.reviews.map(full).join('')}</div>`
+        + `<p class="rvm-more">${data.reviews.length < total ? `Showing ${data.reviews.length} of ${total}. ` : ''}<a href="${esc(data.url || gUrl)}" target="_blank" rel="noopener">See all on Google Maps ↗</a>${data.write_url ? ` · <a href="${esc(data.write_url)}" target="_blank" rel="noopener">Write a review</a>` : ''}</p>`;
+      if (!box) return;
+      if (sum) {
+        sum.innerHTML = `<button type="button" class="rv-sum-b" data-rv-at="all" aria-haspopup="dialog">${rating ? `<b>${rating}</b>` : ''}<span>${stars(data.rating)}<em>${plural(total)} on Google Maps</em></span></button>`;
+        sum.hidden = false;
+      }
+      box.innerHTML = data.reviews.slice(0, 6).map(card).join('');
+      const cards = [...box.children];
+      if (calm || !('IntersectionObserver' in window)) cards.forEach((c) => c.classList.add('in'));
+      else {
+        const io = new IntersectionObserver(([en]) => { if (en.isIntersecting) { cards.forEach((c) => c.classList.add('in')); io.disconnect(); } }, { rootMargin: '0px 0px -12% 0px' });
+        io.observe(box);
+      }
+      if (isHome) peek();
+    }
+
+    const setLang = (l) => {
+      list.querySelectorAll('[data-rv-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.rvLang === l)));
+      list.querySelectorAll('.rvm').forEach((a) => { a.hidden = !!l && a.dataset.lang !== l; });
+    };
+    // open the sheet, scrolled to one review (briefly highlighted) or to the top
+    const openAt = (at, opener) => {
+      open('m-rv', opener);
+      if (!data) return;
+      setLang('');
+      body.scrollTop = 0;
+      const el = at === 'all' ? null : list.querySelector(`#rv-${at}`);
+      if (!el) return;
+      body.scrollTop = el.getBoundingClientRect().top - body.getBoundingClientRect().top - 8;
+      el.classList.remove('hl'); void el.offsetWidth; el.classList.add('hl');
+    };
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-rv-at]');
+      if (!t || failed || (e.target.closest('a[href]') && !e.target.closest('a[href]').hasAttribute('data-rv-at'))) return;
+      e.preventDefault();
+      openAt(t.dataset.rvAt, t);
+    });
+    list.addEventListener('click', (e) => {
+      const l = e.target.closest('[data-rv-lang]');
+      if (l) { setLang(l.dataset.rvLang); return; }
+      const o = e.target.closest('[data-rv-orig]');
+      if (!o) return;
+      const p = o.closest('.rvm').querySelector('.rvm-o');
+      p.hidden = !p.hidden;
+      o.innerHTML = `Translated by Google · <u>${p.hidden ? 'See original' : 'Hide original'}</u>`;
+    });
+
+    // home: a review card slides up from the bottom once you're past the first screen.
+    // It cycles through the best reviews (thin progress lines on top, paused on hover), then slides away by itself.
+    // Hidden while the reviews section, the closing call-to-action or the footer is on screen; × closes it for this visit.
+    function peek() {
+      let seenBefore = false;
+      try { seenBefore = sessionStorage.getItem('gus-rvp') === '1'; } catch (e) { /* private mode */ }
+      const items = data.reviews.map((r, i) => ({ r, i })).filter((x) => (x.r.rating || 0) >= 4).slice(0, 5);
+      if (seenBefore || !items.length) return;
+      const total = data.count || data.reviews.length;
+      const p = document.createElement('aside');
+      p.className = 'rvp';
+      p.setAttribute('aria-label', 'Patient reviews from Google Maps');
+      p.innerHTML = `<div class="rvp-bar" aria-hidden="true">${items.map(() => '<i></i>').join('')}</div>`
+        + '<button type="button" class="rvp-x" aria-label="Close reviews">×</button>'
+        + `<button type="button" class="rvp-main" aria-haspopup="dialog"><span class="rvp-k">${data.rating ? `<b>${Number(data.rating).toFixed(1)}</b>` : ''}${stars(data.rating)}<span>${plural(total)} on Google</span></span>`
+        + '<span class="rvp-c"><span class="rvp-q"></span><span class="rvp-by"></span></span></button>';
+      document.body.appendChild(p);
+      const bars = [...p.querySelectorAll('.rvp-bar i')];
+      const main = p.querySelector('.rvp-main'); const c = p.querySelector('.rvp-c');
+      const q = p.querySelector('.rvp-q'); const by = p.querySelector('.rvp-by');
+      let k = -1; let on = false; let over = false; let at = 0;
+      const fill = (j) => {
+        const { r, i } = items[j];
+        at = i;
+        q.textContent = r.text;
+        by.innerHTML = `${avatar(r)}<span><b>${esc(r.author)}</b>${ago(r) ? ` · ${esc(ago(r))}` : ''}</span><em>Read all <span aria-hidden="true">→</span></em>`;
+        bars.forEach((b, x) => { b.classList.toggle('done', x < j); b.classList.remove('on'); });
+        if (!calm) { void bars[j].offsetWidth; bars[j].classList.add('on'); }
+      };
+      const next = () => {
+        if (k + 1 >= items.length) { finish(); return; }
+        k += 1;
+        if (k === 0 || calm) { fill(k); return; }
+        c.classList.add('swap');
+        setTimeout(() => { fill(k); c.classList.remove('swap'); }, 280);
+      };
+      const setOn = (v) => {
+        on = v;
+        p.classList.toggle('on', v);
+        html.classList.toggle('rvp-on', v);
+        if (v) { if (k < 0) next(); html.style.setProperty('--rvp-h', `${p.offsetHeight + 4}px`); }
+      };
+      function finish() {
+        if (over) return;
+        over = true;
+        try { sessionStorage.setItem('gus-rvp', '1'); } catch (e) { /* ignore */ }
+        setOn(false);
+        setTimeout(() => p.remove(), 900);
+      }
+      p.addEventListener('animationend', (e) => { if (e.animationName === 'rvp-fill') next(); });
+      p.querySelector('.rvp-x').addEventListener('click', finish);
+      main.addEventListener('click', () => { openAt(String(at), main); finish(); });
+      const blockers = [sec, document.querySelector('.end'), document.querySelector('.gf')].filter(Boolean);
+      const inView = new Set();
+      const check = () => {
+        if (over) return;
+        const want = window.scrollY > innerHeight * 1.1 && !inView.size;
+        if (want !== on) setOn(want);
+      };
+      if ('IntersectionObserver' in window) {
+        const bio = new IntersectionObserver((es) => { es.forEach((en) => (en.isIntersecting ? inView.add(en.target) : inView.delete(en.target))); check(); });
+        blockers.forEach((b) => bio.observe(b));
+      }
+      let queued = false;
+      window.addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; check(); }); } }, { passive: true });
+      window.addEventListener('resize', () => { if (on) html.style.setProperty('--rvp-h', `${p.offsetHeight + 4}px`); });
+      check();
+    }
+
     fetch('/api/google-reviews', { headers: { Accept: 'application/json' } })
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((d) => {
-        if (!d || !d.ok || !d.reviews || !d.reviews.length) return fallback();
-        if (sum && d.rating) {
-          sum.innerHTML = `<b>${d.rating.toFixed(1)}</b><span><i class="stars" style="--v:${d.rating}" aria-label="${d.rating} out of 5"></i>${d.count} reviews on Google</span>`;
-          sum.hidden = false;
-        }
-        box.classList.toggle('many', d.reviews.length > 3);
-        box.innerHTML = d.reviews.map((r, i) => {
-          const av = r.photo
-            ? `<img src="${esc(r.photo)}" alt="" referrerpolicy="no-referrer" loading="lazy">`
-            : `<span class="rv-av">${esc((r.author || '?').trim().charAt(0))}</span>`;
-          const name = r.author_url ? `<a href="${esc(r.author_url)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(r.author)}</a>` : esc(r.author);
-          return `<article class="rv" data-r style="--i:${i}">
-  <div class="rv-h">${av}<div><b>${name}</b><small>${esc(r.relative)}</small></div></div>
-  <i class="stars" style="--v:${r.rating || 0}" aria-label="${r.rating} out of 5"></i>
-  <p>${esc(r.text)}</p>
-  ${r.text.length > 360 ? '<button type="button" class="rv-more">Read more</button>' : ''}
-  <span class="rv-tl">${r.translated ? 'Translated by Google' : 'Google review'}</span>
-</article>`;
-        }).join('');
-        requestAnimationFrame(() => box.querySelectorAll('.rv').forEach((el) => el.classList.add('in')));
+        if (d && d.url) gUrl = d.url;
+        if (!d || !d.ok || !Array.isArray(d.reviews) || !d.reviews.length) { fold(); return; }
+        data = d;
+        render();
       })
-      .catch(fallback);
-    box.addEventListener('click', (e) => {
-      const b = e.target.closest('.rv-more'); if (!b) return;
-      const card = b.closest('.rv'); card.classList.toggle('open');
-      b.textContent = card.classList.contains('open') ? 'Show less' : 'Read more';
-    });
+      .catch(fold);
   }
 })();
