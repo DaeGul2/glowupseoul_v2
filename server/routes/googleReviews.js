@@ -24,11 +24,13 @@ const FIELDS = 'id,displayName,rating,userRatingCount,googleMapsUri,googleMapsLi
 const DAILY_MAX = Number(process.env.GOOGLE_REVIEWS_DAILY_MAX || 30);
 const USAGE_KEY = 'google_reviews_usage';   // {"day":"2026-10-19","n":3}
 const PLACE_KEY = 'google_place_id';
+const EXTRA_KEY = 'google_reviews_extra';    // {"checked":"…","added":0} — 다른 언어로 물었을 때 새로 나온 리뷰 수
 
 let cache = null;      // { at, ttl, body }
 let inflight = null;
 let placeId = (process.env.GOOGLE_PLACE_ID || '').trim() || null;
 let memUsage = { day: '', n: 0 };   // DB 가 안 될 때만 쓰는 대체 카운터
+let memExtra = null;                 // 〃 (다른 언어 확인 결과)
 
 const key = () => (process.env.GOOGLE_PLACES_API_KEY || '').trim();
 const lang2 = (c) => String(c || '').toLowerCase().slice(0, 2);
@@ -152,13 +154,21 @@ async function load() {
     throw e;
   });
   const responses = [{ lang: 'en', d: en }];
-  // 리뷰가 5개보다 많을 때만 다른 언어로 더 물어본다 (하루 상한 안에서)
-  if ((en.userRatingCount || 0) > (en.reviews || []).length) {
+  // 리뷰가 5개보다 많을 때만 다른 언어로 더 물어본다 (하루 상한 안에서).
+  // 지난번에 다른 언어로 물어서 새 리뷰가 하나도 안 나왔으면 일주일 동안은 건너뛴다 (10/19: 6개 중 5개가 전부 영어라 헛호출).
+  let extra = {};
+  try { extra = JSON.parse((await getStored(EXTRA_KEY)) || 'null') || memExtra || {}; } catch { extra = memExtra || {}; }
+  const skipExtra = extra.added === 0 && Date.now() - Date.parse(extra.checked || 0) < 7 * 86400 * 1000;
+  if ((en.userRatingCount || 0) > (en.reviews || []).length && !skipExtra && EXTRA_LANGS.length) {
     for (const l of EXTRA_LANGS) {
       if (u.n >= DAILY_MAX) break;
       await spend(u);
       try { responses.push({ lang: l, d: await details(id, l) }); } catch (e) { console.warn('[google-reviews] extra lang', l, e.message); }
     }
+    const seen = new Set((en.reviews || []).map((r) => r.name));
+    const added = new Set(responses.slice(1).flatMap((x) => (x.d.reviews || []).map((r) => r.name)).filter((n) => !seen.has(n))).size;
+    memExtra = { checked: new Date().toISOString(), added };
+    await putStored(EXTRA_KEY, JSON.stringify(memExtra));
   }
   const pid = en.id || id;
   return {
