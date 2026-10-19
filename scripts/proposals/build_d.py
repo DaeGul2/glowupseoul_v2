@@ -14,7 +14,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 P = os.path.join(ROOT, 'client', 'public', 'proposals')
 OUT = os.path.join(P, 'd')
 LIVE = 'https://glowupseoul.onrender.com/proposals/d/'
-V = '44'
+V = '45'
 DATE = '2026-10-17'
 DATE_H = '17 Oct 2026'
 GOOGLE_REVIEWS = 'https://www.google.com/maps/place/glowup+seoul/data=!4m6!3m5!1s0x357ca395b5f2fda7:0x348e4305c8a65ae3!9m1!1b1!16s%2Fg%2F11xtyd24zx'
@@ -164,13 +164,18 @@ def sheet(mid, title, inner, sub=''):
 
 
 # 홈 첫 화면 인트로 (10/18 "키먼트처럼 처음에 웅장한 거 슥"): 큰 워드마크가 올라오고 화면이 위로 걷히며 홈이 나온다.
-# 같은 탭에서는 한 번만, #링크로 오거나 움직임 줄이기면 생략.
+# #링크로 오거나 움직임 줄이기 설정이면 생략.
 # 10/19 "폰에선 Glow Up 이 안 올라감": 폰은 글꼴이 늦게 와서, 글자가 보일 때쯤엔 올라오는 동작이 이미 끝나 있었다.
 # 그래서 인트로 바로 뒤 작은 스크립트가 Geist 글꼴(최대 1.4초)과 첫 화면이 그려진 걸 확인한 뒤 html.intro-go 를 붙이고,
 # 그때부터 CSS 애니메이션이 돈다. d.js 는 그 시각(window.GUS_INTRO)부터 재서 히어로를 띄운다.
-INTRO_JS = ("try{var h=document.documentElement;if(sessionStorage.getItem('gus-intro')||location.hash||"
-            "matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('intro-skip');"
-            "else sessionStorage.setItem('gus-intro','1')}catch(e){document.documentElement.classList.add('intro-skip')}")
+# 10/19 "폰에서 홈 오면 왜 안 떠": 원래 '같은 탭에서 한 번만'(sessionStorage)이었는데, 폰은 한 탭을 며칠씩 써서 한 번 보면 끝이었다.
+# 이제는 밖에서 들어오거나(카톡·링크·주소창) 새로고침할 때마다 나오고, 사이트 안에서 오가거나 뒤로 가기면 생략한다.
+# ARRIVE_JS 는 모든 D 페이지 머리에서 돌며 window.GUS_ARRIVE 를 정한다 (스크롤하면 올라오는 리뷰 카드도 이걸 쓴다).
+ARRIVE_JS = ("(function(){var p=window.performance||{},n=p.getEntriesByType&&p.getEntriesByType('navigation')[0],"
+             "o=p.navigation&&p.navigation.type,t=n?n.type:o===1?'reload':o===2?'back_forward':'navigate',r=document.referrer||'';"
+             "window.GUS_ARRIVE=t==='reload'||(t!=='back_forward'&&r.indexOf(location.origin+'/proposals/d/')!==0)})();")
+INTRO_JS = ("try{if(!window.GUS_ARRIVE||location.hash||matchMedia('(prefers-reduced-motion: reduce)').matches)"
+            "document.documentElement.classList.add('intro-skip')}catch(e){document.documentElement.classList.add('intro-skip')}")
 INTRO = '''<div class="intro" aria-hidden="true">
   <div class="intro-bg"><img src="../assets/clinic-lobby.jpg" alt="" fetchpriority="high"></div>
   <div class="intro-c">
@@ -232,7 +237,7 @@ def shell(page, title, desc, body, pre='', ld=None, modals='', css='', tail='', 
 <link rel="stylesheet" href="{sh}base.css?v={V}">
 <link rel="stylesheet" href="{pre}style.css?v={V}">
 {xcss}
-<script>document.documentElement.className='js';setTimeout(function(){{if(!window.GUS_D)document.documentElement.classList.add('rv-off')}},2500);{INTRO_JS if intro else ''}</script>
+<script>document.documentElement.className='js';setTimeout(function(){{if(!window.GUS_D)document.documentElement.classList.add('rv-off')}},2500);{ARRIVE_JS}{INTRO_JS if intro else ''}</script>
 {ldj}
 </head>
 <body data-site="d" data-page="{page}">

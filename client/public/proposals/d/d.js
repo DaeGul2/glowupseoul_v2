@@ -28,7 +28,7 @@
     e.preventDefault();
     const y = t.getBoundingClientRect().top + window.scrollY - (head ? head.offsetHeight : 0) - 12;
     if (lenis) lenis.scrollTo(y); else window.scrollTo({ top: y, behavior: calm ? 'auto' : 'smooth' });
-    history.replaceState(null, '', a.getAttribute('href'));
+    if (!isHome) history.replaceState(null, '', a.getAttribute('href'));   // home keeps a clean URL, so a reload still plays the intro
   });
 
   /* ---------- modals ---------- */
@@ -482,8 +482,12 @@
     // It cycles through the best reviews (thin progress lines on top, paused on hover), then slides away by itself.
     // Hidden while the reviews section, the closing call-to-action or the footer is on screen; × closes it for this visit.
     function peek() {
+      // once per visit (10/19: "once per tab" meant once ever on phones, which keep one tab for days); × mutes it for a day
       let seenBefore = false;
-      try { seenBefore = sessionStorage.getItem('gus-rvp') === '1'; } catch (e) { /* private mode */ }
+      try {
+        if (Date.now() - (Number(localStorage.getItem('gus-rvp-x')) || 0) < 864e5) seenBefore = true;
+        else if (!window.GUS_ARRIVE && sessionStorage.getItem('gus-rvp') === '1') seenBefore = true;
+      } catch (e) { /* private mode: just show it */ }
       const items = data.reviews.map((r, i) => ({ r, i })).filter((x) => (x.r.rating || 0) >= 4).slice(0, 5);
       if (seenBefore || !items.length) return;
       const total = data.count || data.reviews.length;
@@ -520,15 +524,18 @@
         html.classList.toggle('rvp-on', v);
         if (v) { if (k < 0) next(); html.style.setProperty('--rvp-h', `${p.offsetHeight + 4}px`); }
       };
-      function finish() {
+      function finish(closed) {
         if (over) return;
         over = true;
-        try { sessionStorage.setItem('gus-rvp', '1'); } catch (e) { /* ignore */ }
+        try {
+          sessionStorage.setItem('gus-rvp', '1');
+          if (closed === true) localStorage.setItem('gus-rvp-x', String(Date.now()));
+        } catch (e) { /* ignore */ }
         setOn(false);
         setTimeout(() => p.remove(), 900);
       }
       p.addEventListener('animationend', (e) => { if (e.animationName === 'rvp-fill') next(); });
-      p.querySelector('.rvp-x').addEventListener('click', finish);
+      p.querySelector('.rvp-x').addEventListener('click', () => finish(true));
       main.addEventListener('click', () => { openAt(String(at), main); finish(); });
       const blockers = [sec, document.querySelector('.end'), document.querySelector('.gf')].filter(Boolean);
       const inView = new Set();
