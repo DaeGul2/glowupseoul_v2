@@ -14,7 +14,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 P = os.path.join(ROOT, 'client', 'public', 'proposals')
 OUT = os.path.join(P, 'd')
 LIVE = 'https://glowupseoul.onrender.com/proposals/d/'
-V = '42'
+V = '43'
 DATE = '2026-10-17'
 DATE_H = '17 Oct 2026'
 GOOGLE_REVIEWS = 'https://www.google.com/maps/place/glowup+seoul/data=!4m6!3m5!1s0x357ca395b5f2fda7:0x348e4305c8a65ae3!9m1!1b1!16s%2Fg%2F11xtyd24zx'
@@ -113,7 +113,9 @@ def words(s):
 # ---------------- page shell ----------------
 NAV = [('home', 'index.html', 'Home'), ('journal', 'journal/index.html', 'Journal'), ('faq', 'faq.html', 'FAQ')]
 # 10/18 회의: 파스텔·둥근 Gabarito 톤 → 운영 사이트(onrender)와 같은 Geist + Geist Mono, 웜 화이트·잉크·서울 블루.
-FONTS = 'https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap'
+# 10/19: 글꼴은 구글 폰트 대신 우리 서버(proposals/assets/fonts, @font-face 는 d/style.css 맨 위). 폰에서 늦게 오던 문제·중국 차단 때문.
+# 첫 화면에 바로 쓰이는 latin 두 개만 <head> 에서 미리 받는다 (style.css 의 url 과 같은 주소여야 재사용됨).
+FONT_PRELOAD = ('geist-v5-latin.woff2', 'geist-mono-v6-latin.woff2')
 LENIS = 'https://unpkg.com/lenis@1.1.13/dist/lenis.min.js'
 # 로고: 빨간 점 없앰. "Glow Up · Seoul" — Glow Up 과 Seoul 사이에 작은 점.
 LOGO = 'Glow Up<i aria-hidden="true"></i>Seoul'
@@ -226,9 +228,7 @@ def shell(page, title, desc, body, pre='', ld=None, modals='', css='', tail='', 
 <meta name="description" content="{d}">
 <meta property="og:title" content="{t}">
 <meta property="og:description" content="{d}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="{FONTS}">
+{''.join(f'<link rel="preload" href="{pre}../assets/fonts/{f}" as="font" type="font/woff2" crossorigin>' + chr(10) for f in FONT_PRELOAD)}
 <link rel="stylesheet" href="{sh}base.css?v={V}">
 <link rel="stylesheet" href="{pre}style.css?v={V}">
 {xcss}

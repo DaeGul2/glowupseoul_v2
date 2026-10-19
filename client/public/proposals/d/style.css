@@ -2,6 +2,16 @@
    새롬님: "너무 동글동글·파스텔 → 신뢰도 낮음, 10대 블로그 느낌. 30대가 보는 고급스럽고 세련된 느낌, 애니메이션 조금".
    색·폰트 = 운영 사이트(glowupseoul.onrender.com)와 같은 계열: 웜 화이트 · 잉크 · 서울 블루, Geist + Geist Mono.
    모서리는 작게(12–18px), 장식은 줄이고 여백·타이포·사진으로. 애니메이션은 d.js (스크롤 등장·패럴랙스·숫자). */
+/* 글꼴은 우리 서버에서 (10/19 "폰에서 왜 늦게 와"): 구글 폰트를 거치면 폰은 서버 두 곳을 더 거쳐 1초 넘게 늦고, 중국에선 막힌다.
+   파일은 ../assets/fonts (구글 폰트의 가변 글꼴 · latin/latin-ext, SIL OFL), 각 페이지 <head> 가 latin 두 개를 미리 받아둔다(preload). */
+@font-face{font-family:"Geist";font-style:normal;font-weight:300 700;font-display:swap;src:url(../assets/fonts/geist-v5-latin.woff2) format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Geist";font-style:normal;font-weight:300 700;font-display:swap;src:url(../assets/fonts/geist-v5-latin-ext.woff2) format("woff2");
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Geist Mono";font-style:normal;font-weight:400 500;font-display:swap;src:url(../assets/fonts/geist-mono-v6-latin.woff2) format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Geist Mono";font-style:normal;font-weight:400 500;font-display:swap;src:url(../assets/fonts/geist-mono-v6-latin-ext.woff2) format("woff2");
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}
 :root{
   --bg:#FAFAF8; --bg-2:#F2F1ED; --card:#FFFFFF;
   --ink:#101114; --ink-2:#4D4F56; --ink-3:#6B6D74;

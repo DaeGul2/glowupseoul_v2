@@ -223,7 +223,10 @@ proposalsRouter.get('/proposals/d/journal/:slug.html', async (req, res, next) =>
   } catch (e) { next(e); }
 });
 // 나머지 시안 파일(css/js/사진/정적 글). dev(Vite 프록시)에서도 같은 원본을 준다.
-proposalsRouter.use('/proposals', express.static(PROPOSALS, { setHeaders: (res) => res.set('Cache-Control', 'no-cache') }));
+// 글꼴(assets/fonts/*.woff2)은 파일 이름에 버전이 들어 있어서 1년 캐시, 나머지는 매번 확인(no-cache).
+proposalsRouter.use('/proposals', express.static(PROPOSALS, {
+  setHeaders: (res, file) => res.set('Cache-Control', /[\\/]fonts[\\/][^\\/]+\.woff2$/.test(file) ? 'public, max-age=31536000, immutable' : 'no-cache'),
+}));
 
 // ---------------------------------------------------------------- admin API (/api/v3/admin/blog-posts)
 const COLS = ['title', 'slug', 'excerpt', 'category', 'cover_url', 'body_md', 'status'];
