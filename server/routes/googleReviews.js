@@ -6,6 +6,12 @@
 // Places API 는 한 번에 리뷰를 최대 5개까지만 준다 (구글 정책). 리뷰가 그보다 많으면 언어를 바꿔
 // (GOOGLE_REVIEWS_LANGS, 기본 zh-CN·id) 한 번씩 더 물어 겹치지 않는 리뷰를 모은다 — 언어마다 고르는 5개가 다르다.
 // 비용: 리뷰가 든 장소 상세 = Enterprise+Atmosphere (월 1,000회 무료). 12시간 캐시 + 리뷰가 5개 이하면 추가 호출 없음.
+// 10/19 "돈 내야 됨?": 구글 호출은 하루 GOOGLE_REVIEWS_DAILY_MAX(기본 30)번까지만 — 한 달 최대 900번이라 무료 한도 안.
+// 횟수는 settings 테이블(google_reviews_usage)에 남겨서 Render 가 재시작돼도 이어서 센다. 상한에 걸리면 구글을 안 부르고
+// 받아둔 리뷰를 계속 보여준다(없으면 섹션이 접힘). 장소 ID 는 구글 약관상 계속 저장해도 돼서 settings(google_place_id)에 둔다.
+
+import { Setting } from '../db/modelsV3.js';
+import { hasDbConfig } from '../db/sequelize.js';
 
 const SEARCH_QUERY = 'Glow Up Seoul';
 // 사용자 제공 구글맵 링크 (리뷰 탭이 열리는 형태). API 실패 시에도 이 링크는 항상 보여줌.
@@ -15,13 +21,44 @@ const OK_TTL_MS = Number(process.env.GOOGLE_REVIEWS_CACHE_HOURS || 12) * 3600 * 
 const ERR_TTL_MS = 10 * 60 * 1000;
 const EXTRA_LANGS = (process.env.GOOGLE_REVIEWS_LANGS || 'zh-CN,id').split(',').map((s) => s.trim()).filter(Boolean);
 const FIELDS = 'id,displayName,rating,userRatingCount,googleMapsUri,googleMapsLinks,reviews';
+const DAILY_MAX = Number(process.env.GOOGLE_REVIEWS_DAILY_MAX || 30);
+const USAGE_KEY = 'google_reviews_usage';   // {"day":"2026-10-19","n":3}
+const PLACE_KEY = 'google_place_id';
 
 let cache = null;      // { at, ttl, body }
 let inflight = null;
 let placeId = (process.env.GOOGLE_PLACE_ID || '').trim() || null;
+let memUsage = { day: '', n: 0 };   // DB 가 안 될 때만 쓰는 대체 카운터
 
 const key = () => (process.env.GOOGLE_PLACES_API_KEY || '').trim();
 const lang2 = (c) => String(c || '').toLowerCase().slice(0, 2);
+const today = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);   // 한국 날짜
+
+async function getStored(skey) {
+  if (!hasDbConfig()) return null;
+  try { return (await Setting.findByPk(skey, { raw: true }))?.value ?? null; } catch { return null; }
+}
+async function putStored(skey, value) {
+  if (!hasDbConfig()) return;
+  try { await Setting.upsert({ skey, value }); } catch (e) { console.warn('[google-reviews] settings save', e.message); }
+}
+
+// 하루 호출 수 (구글에 보내기 전에 센다 — 실패한 호출도 포함해서 보수적으로)
+async function readUsage() {
+  const d = today();
+  let u = memUsage.day === d ? memUsage : { day: d, n: 0 };
+  try {
+    const s = JSON.parse((await getStored(USAGE_KEY)) || '{}');
+    if (s.day === d && Number(s.n) > u.n) u = { day: d, n: Number(s.n) };
+  } catch { /* 깨진 값이면 메모리 기준 */ }
+  return { ...u };
+}
+async function spend(u) {
+  if (u.n >= DAILY_MAX) throw new Error(`daily limit reached (${u.n}/${DAILY_MAX})`);
+  u.n += 1;
+  memUsage = { day: u.day, n: u.n };
+  await putStored(USAGE_KEY, JSON.stringify(memUsage));
+}
 
 async function gfetch(url, init, fieldMask) {
   const r = await fetch(url, {
@@ -36,8 +73,11 @@ async function gfetch(url, init, fieldMask) {
   return r.json();
 }
 
-async function findPlaceId() {
+async function findPlaceId(u) {
   if (placeId) return placeId;
+  const saved = (await getStored(PLACE_KEY) || '').trim();
+  if (saved) { placeId = saved; return placeId; }
+  await spend(u);
   const j = await gfetch('https://places.googleapis.com/v1/places:searchText', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -49,6 +89,7 @@ async function findPlaceId() {
   const hit = (j.places || []).find((p) => /glow\s*up/i.test(p.displayName?.text || ''));
   if (!hit) throw new Error('place not found by text search');
   placeId = hit.id;
+  await putStored(PLACE_KEY, placeId);
   return placeId;
 }
 
@@ -102,13 +143,22 @@ function merge(responses) {
 
 async function load() {
   if (!key()) throw new Error('GOOGLE_PLACES_API_KEY not set');
-  const id = await findPlaceId();
-  const en = await details(id, 'en');
+  const u = await readUsage();
+  const id = await findPlaceId(u);
+  await spend(u);
+  const en = await details(id, 'en').catch(async (e) => {
+    // 구글이 장소 ID 를 바꾼 경우: 저장해둔 ID 를 지워서 다음에 다시 찾게 한다
+    if (/HTTP 404/.test(e.message)) { placeId = null; await putStored(PLACE_KEY, ''); }
+    throw e;
+  });
   const responses = [{ lang: 'en', d: en }];
-  // 리뷰가 5개보다 많을 때만 다른 언어로 더 물어본다
-  if ((en.userRatingCount || 0) > (en.reviews || []).length && EXTRA_LANGS.length) {
-    const more = await Promise.allSettled(EXTRA_LANGS.map((l) => details(id, l).then((d) => ({ lang: l, d }))));
-    more.forEach((m) => { if (m.status === 'fulfilled') responses.push(m.value); else console.warn('[google-reviews] extra lang', m.reason?.message); });
+  // 리뷰가 5개보다 많을 때만 다른 언어로 더 물어본다 (하루 상한 안에서)
+  if ((en.userRatingCount || 0) > (en.reviews || []).length) {
+    for (const l of EXTRA_LANGS) {
+      if (u.n >= DAILY_MAX) break;
+      await spend(u);
+      try { responses.push({ lang: l, d: await details(id, l) }); } catch (e) { console.warn('[google-reviews] extra lang', l, e.message); }
+    }
   }
   const pid = en.id || id;
   return {
